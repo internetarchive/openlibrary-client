@@ -15,3 +15,4 @@ __author__ = 'Internet Archive'
 __desc__ = 'A python client for Open Library'
 
 from .openlibrary import OpenLibrary, Work, Results
+from .marc import MARC

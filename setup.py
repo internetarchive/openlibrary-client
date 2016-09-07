@@ -13,7 +13,7 @@ import codecs
 import os
 import re
 from setuptools import setup
-from openlibrary import __desc__
+from olclient import __desc__
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -66,7 +66,7 @@ setup(
         'olclient',
         ],
     entry_points={
-        'console_scripts': ['olie=olclient.cli:main'],
+        'console_scripts': ['ol=olclient.cli:main'],
     },
     extras_require={
         ':python_version=="2.7"': ['argparse']
