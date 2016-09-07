@@ -158,6 +158,26 @@ class OpenLibrary(object):
             logger.exception("Error creating OpenLibrary book: %s", e)
 
     def get_book_by_olid(self, olid):
+        """Retrieves a single book from OpenLibrary as json and marshals it into 
+        an olclient Book.
+
+        Warnings:
+            Currently, the marshaling is not complete. While it generates/returns
+            a valid book, ideally we want the OpenLibrary fields to be converted
+            into a format which is consistent with how we are using olclient Book
+            to create OpenLibrary books -- i.e. authors = Author objects,
+            publishers list instead of publisher, identifiers (instead of
+            key and isbn). The goal is to enable service to interoperate with
+            the Book object and for OpenLibrary to be able to marshal the book
+            object into a form it can use (or marshal its internal book json
+            into a form others can use).
+
+        Usage:
+            >>> from olclient import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> ol.get_book_by_olid('OL25944230M')
+            <class 'olclient.book.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
+        """
         url = self.base_url + '/books/%s.json' % olid
         print(url)
         try:
