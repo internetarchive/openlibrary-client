@@ -12,7 +12,7 @@
 __title__ = 'olclient'
 __version__ = '0.0.1'
 __author__ = 'Internet Archive'
-__desc__ = 'A python client for Open Library'
+
 
 from .openlibrary import OpenLibrary, Work, Results
 from .marc import MARC

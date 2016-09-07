@@ -13,7 +13,7 @@ import codecs
 import os
 import re
 from setuptools import setup
-from olclient import __desc__
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,7 +45,7 @@ def requirements():
 setup(
     name='olclient',
     version=find_version("olclient", "__init__.py"),
-    description=__desc__,
+    description=u'A python client for Open Library',
     long_description=read('README.md'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
