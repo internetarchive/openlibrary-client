@@ -1,0 +1,100 @@
+#-*- encoding: utf-8 -*-
+
+"""General project independent data structure for enabling
+interoperability between OpenLibrary and partner services + data
+sources"""
+
+from __future__ import absolute_import, division, print_function
+
+from .utils import rm_punctuation
+
+
+class Author(object):
+    """Represets a book Author and their identifier on a service
+    (currently only OpenLibrary -- this should be refactored to include
+    multiple identifiers, such as wikidata ID (see Book.identifiers), as
+    well as other RDFA Author fields like date of birth, etc
+    """
+
+    def __init__(self, name, olid=None):
+        self.olid = olid
+        self.name = name
+
+    def __repr__(self):
+        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+
+
+class Book(object):
+    """Organizational model for standardizing MARC, OpenLibrary, and other
+    sources into a uniform format so they can be programatically ingested
+    and compared for similarity.
+    """
+
+    def __init__(self, title, subtitle="", identifiers=None,
+                 number_of_pages=None, authors=None, publisher=None,
+                 publish_date="", cover="", **kwargs):
+        """
+        Args:
+            title (unicode) [required]
+            subtitle (unicode) [optional]
+            identifiers (list) - a dict of id_types mapped to lists of ids of this type
+                                 e.g. {'olid': [OL..., OL...]}
+            pages (int)
+            authors (list of Author)
+            publisher (list of unicode)
+            publish_date (int) - year
+            cover (unicode) - uri of bookcover
+        """
+        self.identifiers = identifiers or {}
+        self.title = rm_punctuation(title)
+        self.subtitle = subtitle
+        self.pages = number_of_pages
+        self.authors = authors or []
+        self.publisher = publisher
+        self.publish_date = int(publish_date) if publish_date else None
+        self.cover = cover
+
+        for kwarg in kwargs:
+            setattr(self, kwarg, kwargs[kwarg])
+
+    def __repr__(self):
+        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+
+    def add_id(self, id_type, identifier):
+        """Adds an identifier to this book
+
+        Usage:
+             >>> book.identifiers
+             {'olid': [u'OL2514725W']}
+             >>> book.add_id(u'oclc', u'4963507')
+             {'olid': [u'OL2514725W'], 'oclc': [u'4963507']}
+             >>> book.add_id(u'olid', u'OL20536769M')
+             {'olid': [u'OL2514725W', u'OL20536769M'], 'oclc': [u'4963507']}
+        """
+        _ids = set([identifier])
+        if id_type in self.identifiers:
+            _ids = _ids.union(self.identifiers.get(id_type, []))
+
+        self.identifiers[id_type] = list(_ids)
+        return self.identifiers
+
+    @property
+    def canonical_title(self, rm_punc=True):
+        """Make book titles homogeneous so they can be compared canonically
+
+        Usage:
+            >>> book = Book(title=u"The Autobiography of: Benjamin Franklin")
+            >>> book.canonical_title
+
+        """
+        title = self.title.lower()
+        if rm_punc:
+            title = rm_punctuation(title)
+        return title
+
+    @property
+    def primary_author(self):
+        try:
+            return self.authors[0]
+        except IndexError:
+            return None

@@ -1,0 +1,99 @@
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+<!-- Ignoring line: LEADER 01189nam a2200361 c 4500 -->
+  <leader>01000cam a2200265 i 4500</leader>
+  <controlfield tag="001">BV000023623</controlfield>
+  <controlfield tag="003">DE-604</controlfield>
+  <controlfield tag="005">20100617        </controlfield>
+  <controlfield tag="007">t</controlfield>
+  <controlfield tag="008">870612s1982             |||| 00||| und d</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">3434004246$93-434-00424-6</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)157011841</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DE-599)BVBBV000023623</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">DE-604</subfield>
+    <subfield code="b">ger</subfield>
+    <subfield code="e">rakddb</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">DE-12</subfield>
+    <subfield code="a">DE-M347</subfield>
+    <subfield code="a">DE-703</subfield>
+    <subfield code="a">DE-525</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">CU 2567$2rvk</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">MS 1290$2rvk</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Fromm, Erich</subfield>
+    <subfield code="d">1900-1980</subfield>
+    <subfield code="e">Verfasser$0(DE-588)118536389$4aut</subfield>
+  </datafield>
+  <datafield tag="240" ind1="1" ind2="0">
+    <subfield code="a">?The? sane society</subfield>
+    <subfield code="l">dt.</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Wege aus einer kranken Gesellschaft</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">11., überarb. Aufl.</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Frankfurt am Main</subfield>
+    <subfield code="b">Europ. Verl.-Anst.</subfield>
+    <subfield code="c">1982</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">354 S.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Früher u.d.T.: Fromm, Erich: Der moderne Mensch und seine Zukunft</subfield>
+  </datafield>
+  <datafield tag="650" ind1="0" ind2="7">
+    <subfield code="0">(DE-588)4155776-1</subfield>
+    <subfield code="a">Futurologie$2gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1="0" ind2="7">
+    <subfield code="0">(DE-588)4038639-9</subfield>
+    <subfield code="a">Mensch$2gnd</subfield>
+  </datafield>
+  <datafield tag="650" ind1="0" ind2="7">
+    <subfield code="0">(DE-588)4020588-5</subfield>
+    <subfield code="a">Gesellschaft$2gnd</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="0">
+    <subfield code="0">(DE-588)4038639-9</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Mensch</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2="1">
+    <subfield code="0">(DE-588)4020588-5</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Gesellschaft</subfield>
+  </datafield>
+  <datafield tag="689" ind1="0" ind2=" ">
+    <subfield code="5">DE-604</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2="0">
+    <subfield code="0">(DE-588)4155776-1</subfield>
+    <subfield code="D">s</subfield>
+    <subfield code="a">Futurologie</subfield>
+  </datafield>
+  <datafield tag="689" ind1="1" ind2=" ">
+    <subfield code="5">DE-604</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">oai:aleph.bib-bvb.de:BVB01-000000092</subfield>
+  </datafield>
+</record>
+</collection>
