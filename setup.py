@@ -43,15 +43,16 @@ def requirements():
         return f.read().split()
 
 setup(
-    name='olclient',
+    name='openlibrary-client',
     version=find_version("olclient", "__init__.py"),
     description=u'A python client for Open Library',
     long_description=read('README.md'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: AGPL 3 License",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Topic :: Software Development :: Build Tools",
+        "Topic :: Software Development :: Libraries",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
