@@ -157,6 +157,17 @@ class OpenLibrary(object):
         except requests.exceptions.RequestException as e:
             logger.exception("Error creating OpenLibrary book: %s", e)
 
+    def get_book_by_olid(self, olid):
+        url = self.base_url + '/books/%s.json' % olid
+        print(url)
+        try:
+            response = self.session.get(url)
+        except requests.exceptions.RequestException as e:
+            logger.exception("Error retrieving OpenLibrary book: %s", e)            
+            return None
+        # XXX need a way to convert OL book json -> book (and back)
+        return Book(**response.json())
+
     def get_book_by_metadata(self, title, author=None):
         """Get the *closest* matching result in OpenLibrary based on a title
         and author.
