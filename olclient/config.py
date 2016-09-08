@@ -49,12 +49,6 @@ class Config(object):
             u'url': u'https://openlibrary.org',
             u'username': u'',
             u'password': u''
-        },
-        u'db': {
-            u'host': u'localhost',
-            u'user': u'',
-            u'db': u'',
-            u'passwd': u''
         }
     }
 

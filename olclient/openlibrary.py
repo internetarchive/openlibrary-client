@@ -6,11 +6,13 @@ from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
 import datetime
-import logging
 import json
+import logging
 import re
-import requests
 import urllib, urllib2
+
+import backoff
+import requests
 
 from .book import Book, Author
 from .config import Config
@@ -25,7 +27,7 @@ class OpenLibrary(object):
     """Open Library API Client.
 
     Usage:
-        >>> ol = OpenLibrary("http://0.0.0.0:8080")
+        >>> ol = OpenLibrary(base_url="http://0.0.0.0:8080")
         ... #  Create a new book
         ... book = ol.create_book(Book(
         ...     title=u"Wie die Weißen Engel die Blauen Tiger zur Schnecke machten",
@@ -40,10 +42,16 @@ class OpenLibrary(object):
     """
 
     VALID_IDS = ['isbn_10', 'isbn_13', 'lccn']
-
+    BACKOFF_KWARGS = {
+        'wait_gen': backoff.expo,
+        'exception': requests.exceptions.RequestException,
+        'max_tries': 5
+    }
+    
     def __init__(self, base_url=None, credentials=None):
         ol_config = Config().get_config()['openlibrary']
-        self.base_url = (base_url or ol_config['url']).rstrip('/')
+        default_base_url = ol_config['url'].rstrip('/')
+        self.base_url = base_url or default_base_url
         self.session = requests.Session()
         credentials = credentials or ol_config.get('credentials')
         if credentials:
@@ -52,15 +60,16 @@ class OpenLibrary(object):
 
     def login(self, credentials):
         """Login to Open Library with given credentials"""
+        err = lambda e: logger.exception("Error at login: %s", e)
         headers = {'Content-Type': 'application/json'}
         url = self.base_url + '/account/login'
         data = json.dumps(credentials._asdict())
-        try:
-            response = self.session.post(url, data=data, headers=headers)
-        except requests.exceptions.RequestException as e:
-            logger.exception("Error at login: %s", e)
-            raise Exception("Error at login: %s", e)
 
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _login(url, headers, data):
+            return self.session.post(url, data=data, headers=headers)
+
+        response = _login(url, headers, data)
         if 'Set-Cookie' not in response.headers:
             raise Exception("No cookie set")
 
@@ -77,14 +86,15 @@ class OpenLibrary(object):
             authors autocomplete API
         """
         if name:
+            err = lambda e: logger.exception("Error fetching author matches: %s", e)
             url = self.base_url + '/authors/_autocomplete?q=%s&limit=%s' \
                   % (name, limit)
-            try:
-                response = self.session.get(url)
-            except requests.exceptions.RequestException as e:
-                logger.exception("Error fetching author matches: %s", e)
-                return None
 
+            @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+            def _get_matching_authors_by_name(url):
+                return self.session.get(url)
+
+            response = _get_matching_authors_by_name(url)
             author_matches = response.json()
             return author_matches
         return []
@@ -100,7 +110,7 @@ class OpenLibrary(object):
             name (unicode) - name of an Author to search for within OpenLibrary
 
         Returns:
-            olid (unicode)  -
+            olid (unicode)
         """
         authors = self.get_matching_authors_by_name(name)
         _name = name.lower().strip()
@@ -150,15 +160,15 @@ class OpenLibrary(object):
             id_value=id_value,
             debug=debug)
 
-
     def _create_book(self, title, author_name, author_key,
-                     publish_date, publisher, id_name, id_value,
-                     debug=False):
+                    publish_date, publisher, id_name, id_value,
+                    debug=False):
 
         if id_name not in self.VALID_IDS:
             raise ValueError("Invalid `id_name`. Must be one of %s, got %s" \
                              % (self.VALID_IDS, id_name))
 
+        err = lambda e: logger.exception("Error creating OpenLibrary book: %s", e)
         url = self.base_url + '/books/add'
         data = {
             "title": title,
@@ -173,12 +183,12 @@ class OpenLibrary(object):
         if debug:
             return data
 
-        try:
-            response = self.session.post(url, data=data)
-            return self._extract_olid_from_url(response.url, url_type="books")
-        except requests.exceptions.RequestException as e:
-            logger.exception("Error creating OpenLibrary book: %s", e)
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _create_book_post(url, data=data):
+            return self.session.post(url, data=data)
 
+        response = _create_book_post(url, data=data)
+        return self._extract_olid_from_url(response.url, url_type="books")
 
     def get_book_by_olid(self, olid):
         """Retrieves a single book from OpenLibrary as json and marshals it into
@@ -202,15 +212,16 @@ class OpenLibrary(object):
             >>> ol = OpenLibrary()
             >>> ol.get_book_by_olid('OL25944230M')
             <class 'olclient.book.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
-
         """
+        err = lambda e: logger.exception("Error retrieving OpenLibrary " \
+                                         "book: %s", e)
         url = self.base_url + '/books/%s.json' % olid
-        print(url)
-        try:
-            response = self.session.get(url)
-        except requests.exceptions.RequestException as e:
-            logger.exception("Error retrieving OpenLibrary book: %s", e)
-            return None
+
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _get_book_by_olid(url):
+            return self.session.get(url)
+
+        response = _get_book_by_olid(url)
         # XXX need a way to convert OL book json -> book (and back)
         return Book(**response.json())
 
@@ -230,13 +241,20 @@ class OpenLibrary(object):
             ... ol.get_book_by_metadata(
             ...     title=u'The Autobiography of Benjamin Franklin')
         """
+        err = lambda e: logger.exception("Error retrieving metadata " \
+                                         "for book: %s", e)
         url = '%s/search.json?title=%s' % (self.base_url, title)
         if author:
             url += '&author=%s' % author
-        resp = requests.get(url)
+
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _get_book_by_metadata(url):
+            return requests.get(url)
+
+        response = _get_book_by_metadata(url)
 
         try:
-            results = Results(**resp.json())
+            results = Results(**response.json())
         except ValueError as e:
             logger.exception(e)
             return None
@@ -261,16 +279,24 @@ class OpenLibrary(object):
 
         Usage:
         """
+        err = lambda e: logger.exception("Error retrieving OpenLibrary " \
+                                         "book by isbn: %s", e)
         url = self.base_url + '/api/books?bibkeys=ISBN:' + isbn + \
               '&format=json&jscmd=data'
-        resp = requests.get(url)
-        isbn_key = u'ISBN:%s' % isbn
+
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _get_book_by_isbn(url):
+            return requests.get(url)
+
+        response = _get_book_by_isbn(url)
+
         try:
-            result = resp.json()
+            result = response.json()
         except ValueError as e:
             logger.exception(e)
             return None
 
+        isbn_key = u'ISBN:%s' % isbn
         if isbn_key in result:
             edition = result[isbn_key]
             print(edition['key'])
@@ -300,10 +326,20 @@ class OpenLibrary(object):
             ... ol.get_book_by_isbn(u'9780747550303')
             u'OL1429049M'
         """
+        err = lambda e: logger.exception("Error retrieving OpenLibrary " \
+                                         "ID by isbn: %s", e)
         url = self.base_url + '/api/books?bibkeys=ISBN:' + isbn + '&format=json'
-        resp = requests.get(url)
+
+        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        def _get_olid_by_isbn(url):
+            """Makes best effort to perform request w/ exponential backoff"""
+            return requests.get(url)
+
+        # Let the exception be handled up the stack
+        response = _get_olid_by_isbn(url)
+
         try:
-            results = resp.json()
+            results = response.json()
         except ValueError as e:
             logger.exception(e)
             return None
@@ -336,33 +372,6 @@ class OpenLibrary(object):
             return re.search(ol_url_pattern, url).group(1)
         except AttributeError:
             return None  # No match
-
-    def get_many(self, keys):
-        """Get multiple documents in a single request as a dictionary.
-        """
-        def _get_many(keys):
-            url = self.base_url + "/api/get_many"
-            response = self.session.get(url, data={'keys': keys})
-            return response.json()['result', {}]
-
-        if len(keys) > 500:
-            # get in chunks of 500 to avoid crossing the URL length limit.
-            d = {}
-            for chunk in chunks(keys, 100):
-                d.update(self._get_many(chunk))
-            return d
-        else:
-            return self._get_many(keys)
-
-    def save(self, book, comment=None):
-        """Save/edit an existing Book"""
-        headers = {'Content-Type': 'application/json'}
-        data = self.marshal(data)
-        if comment:
-            headers['Opt'] = '"http://openlibrary.org/dev/docs/api"; ns=42'
-            headers['42-comment'] = comment
-        data = json.dumps(data)
-        #return self._request(key, method="PUT", data=data, headers=headers).read()
 
 
 class Results(object):

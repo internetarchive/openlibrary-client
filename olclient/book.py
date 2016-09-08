@@ -51,7 +51,8 @@ class Book(object):
         self.pages = number_of_pages
         self.authors = authors or []
         self.publisher = publisher
-        self.publish_date = int(publish_date) if publish_date else None
+        #self.publish_date = int(publish_date) if publish_date else None
+        self.publish_date = publish_date
         self.cover = cover
 
         for kwarg in kwargs:
