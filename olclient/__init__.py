@@ -14,5 +14,6 @@ __version__ = '0.0.1'
 __author__ = 'Internet Archive'
 
 
-from .openlibrary import OpenLibrary, Work, Results
+from .openlibrary import OpenLibrary
 from .marc import MARC
+from .book import Book, Author
