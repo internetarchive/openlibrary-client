@@ -5,18 +5,15 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
-import datetime
 import json
 import logging
 import re
-import urllib, urllib2
 
 import backoff
 import requests
 
 from .book import Book, Author
 from .config import Config
-from .utils import parse_datetime
 
 
 logger = logging.getLogger('openlibrary')
@@ -30,14 +27,17 @@ class OpenLibrary(object):
         >>> ol = OpenLibrary(base_url="http://0.0.0.0:8080")
         ... #  Create a new book
         ... book = ol.create_book(Book(
-        ...     title=u"Wie die Weißen Engel die Blauen Tiger zur Schnecke machten",
-        ...     author=Author(name=u"Walter Kort"), publisher=u"Bertelsmann",
+        ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
+        ...         "Schnecke machten",
+        ...     author=Author(name=u"Walter Kort"),
+        ...     publisher=u"Bertelsmann",
         ...     isbn=u"3570028364", publish_date=u"1982"))
 
         >>> ol = OpenLibrary("http://0.0.0.0:8080")
         ... #  Fetch and update an existing book
         ... book = ol.get_book_by_isbn(u"3570028364")
-        ... book.title = u"Wie die Weißen Engel die Blauen Tiger zur Schnecke machten"
+        ... book.title = u"Wie die Weißen Engel die Blauen Tiger zur " \
+        ...     "Schnecke machten"
         ... book.save(comment="correcting title")
     """
 
@@ -47,7 +47,7 @@ class OpenLibrary(object):
         'exception': requests.exceptions.RequestException,
         'max_tries': 5
     }
-    
+
     def __init__(self, base_url=None, credentials=None):
         ol_config = Config().get_config()['openlibrary']
         default_base_url = ol_config['url'].rstrip('/')
@@ -59,7 +59,9 @@ class OpenLibrary(object):
             self.login(credentials)
 
     def login(self, credentials):
-        """Login to Open Library with given credentials"""
+        """Login to Open Library with given credentials, ensures the requests
+        session has valid cookies for future requests.
+        """
         err = lambda e: logger.exception("Error at login: %s", e)
         headers = {'Content-Type': 'application/json'}
         url = self.base_url + '/account/login'
@@ -67,6 +69,7 @@ class OpenLibrary(object):
 
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _login(url, headers, data):
+            """Makes best effort to perform request w/ exponential backoff"""
             return self.session.post(url, data=data, headers=headers)
 
         response = _login(url, headers, data)
@@ -92,6 +95,7 @@ class OpenLibrary(object):
 
             @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
             def _get_matching_authors_by_name(url):
+                """Makes best effort to perform request w/ exponential backoff"""
                 return self.session.get(url)
 
             response = _get_matching_authors_by_name(url)
@@ -129,8 +133,10 @@ class OpenLibrary(object):
         Usage:
             >>> ol = OpenLibrary()
             ... book = ol.create_book(Book(
-            ...     title=u"Wie die Weißen Engel die Blauen Tiger zur Schnecke machten",
-            ...     author=Author(name=u"Walter Kort"), publisher=u"Bertelsmann",
+            ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
+            ...         "Schnecke machten",
+            ...     author=Author(name=u"Walter Kort"),
+            ...     publisher=u"Bertelsmann",
             ...     isbn=u"3570028364", publish_date=u"1982"))
         """
         def get_primary_identifier():
@@ -168,7 +174,8 @@ class OpenLibrary(object):
             raise ValueError("Invalid `id_name`. Must be one of %s, got %s" \
                              % (self.VALID_IDS, id_name))
 
-        err = lambda e: logger.exception("Error creating OpenLibrary book: %s", e)
+        err = lambda e: logger.exception("Error creating OpenLibrary " \
+                                         "book: %s", e)
         url = self.base_url + '/books/add'
         data = {
             "title": title,
@@ -185,6 +192,7 @@ class OpenLibrary(object):
 
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _create_book_post(url, data=data):
+            """Makes best effort to perform request w/ exponential backoff"""
             return self.session.post(url, data=data)
 
         response = _create_book_post(url, data=data)
@@ -219,6 +227,7 @@ class OpenLibrary(object):
 
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _get_book_by_olid(url):
+            """Makes best effort to perform request w/ exponential backoff"""
             return self.session.get(url)
 
         response = _get_book_by_olid(url)
@@ -249,6 +258,7 @@ class OpenLibrary(object):
 
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _get_book_by_metadata(url):
+            """Makes best effort to perform request w/ exponential backoff"""
             return requests.get(url)
 
         response = _get_book_by_metadata(url)
@@ -286,6 +296,7 @@ class OpenLibrary(object):
 
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _get_book_by_isbn(url):
+            """Makes best effort to perform request w/ exponential backoff"""
             return requests.get(url)
 
         response = _get_book_by_isbn(url)
@@ -447,6 +458,9 @@ class Results(object):
             }
 
         def to_book(self):
+            """Converts an OpenLibrary Search API Results Document to a
+            standardized Book
+            """
             publisher = self.publishers[0] if self.publishers else ""
             return Book(title=self.title, subtitle=self.subtitle,
                         identifiers=self.identifiers,
