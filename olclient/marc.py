@@ -4,12 +4,11 @@
 
 from __future__ import absolute_import, division, print_function
 
-import re
 import subprocess
 import tempfile
-import urllib
 
 import pymarc
+
 from .openlibrary import Author, Book
 from .utils import chunks
 
@@ -127,9 +126,9 @@ class MARCRecord(dict):
         subfields = getattr(self, _id)
         fieldmap = dict(chunks(subfields, 2))
 
-        for k, v in mapping:
-            if k in fieldmap:
-                data[v] = fieldmap[k]
+        for key, value in mapping:
+            if key in fieldmap:
+                data[value] = fieldmap[key]
         return data
 
 
@@ -186,6 +185,11 @@ class MARC(object):
 
     @classmethod
     def line_to_book(cls, line_marc):
+        """Converts a line (display format) MARC record (i.e. human readable)
+        into a standardized Book object.
+
+        See: openlibrary-client/examples/marc/line_marc.txt
+        """
         bin_marc = cls.convert(line_marc)
         return cls.to_book(bin_marc)
 
