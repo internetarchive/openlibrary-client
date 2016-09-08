@@ -11,9 +11,10 @@ from .utils import rm_punctuation
 
 class Author(object):
     """Represets a book Author and their identifier on a service
-    (currently only OpenLibrary -- this should be refactored to include
-    multiple identifiers, such as wikidata ID (see Book.identifiers), as
-    well as other RDFA Author fields like date of birth, etc
+    (currently only OpenLibrary -- this should be refactored to
+    include multiple identifiers, such as wikidata ID (see
+    Book.identifiers), as well as other RDFA Author fields like date
+    of birth, etc
     """
 
     def __init__(self, name, olid=None):
@@ -26,8 +27,8 @@ class Author(object):
 
 class Book(object):
     """Organizational model for standardizing MARC, OpenLibrary, and other
-    sources into a uniform format so they can be programatically ingested
-    and compared for similarity.
+    sources into a uniform format so they can be programatically
+    ingested and compared for similarity.
     """
 
     def __init__(self, title, subtitle="", identifiers=None,
@@ -37,7 +38,9 @@ class Book(object):
         Args:
             title (unicode) [required]
             subtitle (unicode) [optional]
-            identifiers (list) - a dict of id_types mapped to lists of ids of this type
+
+            identifiers (list) - a dict of id_types mapped to lists of
+                                 ids of this type:
                                  e.g. {'olid': [OL..., OL...]}
             pages (int)
             authors (list of Author)
@@ -95,6 +98,9 @@ class Book(object):
 
     @property
     def primary_author(self):
+        """If multiple authors are present in this book, extract the 1st
+        Author object (if it exists) or return None
+        """
         try:
             return self.authors[0]
         except IndexError:
