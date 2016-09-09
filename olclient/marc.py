@@ -162,9 +162,12 @@ class MARC(object):
         record = reader.next()
         keyed_record = MARCRecord(record)
         data = {
-            'identifiers': {'isbn_%s' % len(record.isbn()): [record.isbn()]},
+            'identifiers': {},
             'authors': [keyed_record.author],
         }
+        isbn = record.isbn()
+        if isbn:
+            isbn['isbn_%s' % len(record.isbn())] = [record.isbn()]
         data.update(keyed_record.publisher)
         data.update(keyed_record.title)
         return data
