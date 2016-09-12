@@ -1,0 +1,29 @@
+LEADER 01189nam a2200361 c 4500
+001 BV000023623
+003 DE-604
+005 20100617        
+007 t
+008 870612s1982             |||| 00||| und d
+020   $a3434004246$93-434-00424-6
+035   $a(OCoLC)157011841
+035   $a(DE-599)BVBBV000023623
+040   $aDE-604$bger$erakddb
+049   $aDE-12$aDE-M347$aDE-703$aDE-525
+084   $aCU 2567$2rvk
+084   $aMS 1290$2rvk
+100 1 $aƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ$d1900-1980$eVerfasser$0(DE-588)118536389$4aut
+240 10$a?The? sane society$ldt.
+245 10$aWege aus einer kranken Gesellschaft
+250   $a11., überarb. Aufl.
+260   $aFrankfurt am Main$bEurop. Verl.-Anst.$c1982
+300   $a354 S.
+500   $aFrüher u.d.T.: Fromm, Erich: Der moderne Mensch und seine Zukunft
+650 07$0(DE-588)4155776-1$aFuturologie$2gnd
+650 07$0(DE-588)4038639-9$aMensch$2gnd
+650 07$0(DE-588)4020588-5$aGesellschaft$2gnd
+689 00$0(DE-588)4038639-9$Ds$aMensch
+689 01$0(DE-588)4020588-5$Ds$aGesellschaft
+689 0 $5DE-604
+689 10$0(DE-588)4155776-1$Ds$aFuturologie
+689 1 $5DE-604
+999   $aoai:aleph.bib-bvb.de:BVB01-000000092

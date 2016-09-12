@@ -46,6 +46,8 @@ class TestMARC(unittest.TestCase):
                             % (expected_title, data['title']))
 
 
+
+
     def test_line_marc_to_book(self):
         with open(os.path.join(EXAMPLES_PATH, 'line_marc.txt')) as line_marc:
             book = MARC.line_to_book(line_marc.read())
@@ -68,6 +70,24 @@ class TestMARC(unittest.TestCase):
             bin_marc = MARC.convert(line_marc.read())
             reader = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                        force_utf8=True, utf8_handling='ignore')
-            keyed_record = MARCRecord(reader.next())            
+            keyed_record = MARCRecord(reader.next())
             self.assertTrue(keyed_record.author.name,
                             "Failed to retrieve author name")
+
+
+    def test_line_to_bin_unicode(self):
+        line_marc_file = os.path.join(EXAMPLES_PATH, 'line_marc_unicode.txt')
+        bin_marc_file = os.path.join(EXAMPLES_PATH, 'bin_marc_unicode.mrc')
+        with open(line_marc_file) as line_marc:
+            bin_marc = MARC.convert(line_marc.read())
+            with open(bin_marc_file) as expected_bin_marc:
+                self.assertTrue(bin_marc == expected_bin_marc.read(),
+                                "Binary MARC didn't match expected " \
+                                "unicode content")
+                marcs = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
+                                          force_utf8=True, utf8_handling='ignore')
+                marc = marcs.next()
+                self.assertTrue(marc.author() == \
+                                u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
+                                '1900-1980 Verfasser$0(DE-588)118536389$4aut',
+                                "Line MARC title didn't match pymarc title")

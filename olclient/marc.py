@@ -50,8 +50,8 @@ class MARCRecord(dict):
             pymarc_record (pymarc.Record)
         """
         fields = dict((field.tag, field.subfields)
-                            for field in pymarc_record.fields
-                            if hasattr(field, 'subfields'))
+                      for field in pymarc_record.fields
+                      if hasattr(field, 'subfields'))
         for k in fields:
             setattr(self, k, fields[k])
 
@@ -167,7 +167,7 @@ class MARC(object):
         }
         isbn = record.isbn()
         if isbn:
-            isbn['isbn_%s' % len(record.isbn())] = [record.isbn()]
+            data['isbn_%s' % len(record.isbn())] = [record.isbn()]
         data.update(keyed_record.publisher)
         data.update(keyed_record.title)
         return data
@@ -177,6 +177,9 @@ class MARC(object):
         """Convert MARCs of various format to other formats by shelling out to
         the `yaz-marcdump` utility. By default, converts the line 'tagged
         display' format to binary marc.
+
+        Args:
+            marc (file) - an open file handler
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
             tmp.write(marc)
