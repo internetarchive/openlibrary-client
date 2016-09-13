@@ -13,7 +13,7 @@ LEADER 01189nam a2200361 c 4500
 084   $aMS 1290$2rvk
 100 1 $aƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ$d1900-1980$eVerfasser$0(DE-588)118536389$4aut
 240 10$a?The? sane society$ldt.
-245 10$aWege aus einer kranken Gesellschaft
+245 10$aΛΦϞЌЍЖ⁁⅀∰	ﬡﬢ－中英字典こんにちはß
 250   $a11., überarb. Aufl.
 260   $aFrankfurt am Main$bEurop. Verl.-Anst.$c1982
 300   $a354 S.

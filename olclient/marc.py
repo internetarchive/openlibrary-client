@@ -182,7 +182,7 @@ class MARC(object):
             marc (file) - an open file handler
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
-            tmp.write(marc)
+            tmp.write(marc.encode("utf-8"))
             tmp.seek(0)
             new_marc = subprocess.check_output([
                 u'yaz-marcdump', '-i', informat, '-o', outformat, tmp.name
