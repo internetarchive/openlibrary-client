@@ -10,6 +10,11 @@ import re
 ALPHANUMERICS_RE = re.compile(r'([^\s\w])+')
 
 
+def has_unicode(text):
+    """Python 2.7, check if text has unicode in it"""
+    return not all(ord(char) < 128 for char in text)
+
+
 def chunks(seq, chunk_size):
     """Returns a generator which yields contiguous chunks of the sequence
     of size (up to) `chunk_size`.

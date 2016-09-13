@@ -10,7 +10,7 @@ import tempfile
 import pymarc
 
 from .openlibrary import Author, Book
-from .utils import chunks
+from .utils import chunks, has_unicode
 
 
 class MARCRecord(dict):
@@ -182,7 +182,8 @@ class MARC(object):
             marc (file) - an open file handler
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
-            tmp.write(marc.encode("utf-8"))
+            unicode_marc = marc if has_unicode(marc) else marc.encode("utf-8")
+            tmp.write(unicode_marc)
             tmp.seek(0)
             new_marc = subprocess.check_output([
                 u'yaz-marcdump', '-i', informat, '-o', outformat, tmp.name
