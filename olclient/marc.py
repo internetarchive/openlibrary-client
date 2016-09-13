@@ -179,7 +179,9 @@ class MARC(object):
         display' format to binary marc.
 
         Args:
-            marc (file) - an open file handler
+            marc (unicode) - contents of a MARC (of type `informat`)
+            informat (unicode) - convert from this type (a yaz flag)
+            outformat (unicode) - convert to this format (a yaz flag)
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
             unicode_marc = marc if has_unicode(marc) else marc.encode("utf-8")

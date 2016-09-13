@@ -11,7 +11,18 @@ ALPHANUMERICS_RE = re.compile(r'([^\s\w])+')
 
 
 def has_unicode(text):
-    """Python 2.7, check if text has unicode in it"""
+    """Python 2.7 compatible method to check if text has non-encoded
+    unicode in it
+
+    Args:
+        text (str or unicode)
+
+    Usage:
+        >>> has_unicode("Hello world!")
+        False
+        >>> has_unicode("👋 🌎 !")
+        True
+    """
     return not all(ord(char) < 128 for char in text)
 
 
