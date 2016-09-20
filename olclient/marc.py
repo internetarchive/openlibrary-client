@@ -10,7 +10,7 @@ import tempfile
 import pymarc
 
 from .openlibrary import Author, Book
-from .utils import chunks
+from .utils import chunks, has_unicode
 
 
 class MARCRecord(dict):
@@ -50,8 +50,8 @@ class MARCRecord(dict):
             pymarc_record (pymarc.Record)
         """
         fields = dict((field.tag, field.subfields)
-                            for field in pymarc_record.fields
-                            if hasattr(field, 'subfields'))
+                      for field in pymarc_record.fields
+                      if hasattr(field, 'subfields'))
         for k in fields:
             setattr(self, k, fields[k])
 
@@ -167,7 +167,7 @@ class MARC(object):
         }
         isbn = record.isbn()
         if isbn:
-            isbn['isbn_%s' % len(record.isbn())] = [record.isbn()]
+            data['isbn_%s' % len(record.isbn())] = [record.isbn()]
         data.update(keyed_record.publisher)
         data.update(keyed_record.title)
         return data
@@ -177,9 +177,15 @@ class MARC(object):
         """Convert MARCs of various format to other formats by shelling out to
         the `yaz-marcdump` utility. By default, converts the line 'tagged
         display' format to binary marc.
+
+        Args:
+            marc (unicode) - contents of a MARC (of type `informat`)
+            informat (unicode) - convert from this type (a yaz flag)
+            outformat (unicode) - convert to this format (a yaz flag)
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
-            tmp.write(marc)
+            unicode_marc = marc if has_unicode(marc) else marc.encode("utf-8")
+            tmp.write(unicode_marc)
             tmp.seek(0)
             new_marc = subprocess.check_output([
                 u'yaz-marcdump', '-i', informat, '-o', outformat, tmp.name

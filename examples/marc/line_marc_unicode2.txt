@@ -1,0 +1,18 @@
+LEADER 00694nam a2200229 c 4500
+001 BV000023633
+003 DE-604
+005 00000000000000.0
+007 t
+008 870612s1982       a|||  |||| 00||| ger d
+020   $a3570013650$93-570-01365-0
+035   $a(OCoLC)74535999
+035   $a(DE-599)BVBBV000023633
+040   $aDE-604$bger$erakddb
+049   $aDE-12$aDE-M336
+100 1 $aHeuck, Sigrid$d1932-2014$eVerfasser$0(DE-588)115367241$4aut
+245 10$aIch bin ein Cowboy und heiße Jim
+250   $aSonderausg.
+260   $aMünchen$bBertelsmann$c1982
+300   $a124 S.$bIll.
+500   $aFrüher u.d.T.: Cowboy Jim. Cowboy Jims Wildwest-ABC
+999   $aoai:aleph.bib-bvb.de:BVB01-000000102
