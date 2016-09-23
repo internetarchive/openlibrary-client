@@ -15,6 +15,8 @@ class Author(object):
     include multiple identifiers, such as wikidata ID (see
     Book.identifiers), as well as other RDFA Author fields like date
     of birth, etc
+
+    TODO: Consider moving to own file
     """
 
     def __init__(self, name, olid=None):
@@ -40,8 +42,8 @@ class Book(object):
             subtitle (unicode) [optional]
 
             identifiers (list) - a dict of id_types mapped to lists of
-                                 ids of this type:
-                                 e.g. {'olid': [OL..., OL...]}
+                                 (unicode) ids of this type:
+                                 e.g. {'olid': [u'OL...', u'OL...']}
             pages (int)
             authors (list of Author)
             publisher (list of unicode)

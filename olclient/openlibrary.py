@@ -48,12 +48,11 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
-    def __init__(self, base_url=None, credentials=None):
-        ol_config = Config().get_config()['openlibrary']
-        default_base_url = ol_config['url'].rstrip('/')
-        self.base_url = base_url or default_base_url
+    def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
         self.session = requests.Session()
-        credentials = credentials or ol_config.get('credentials')
+        self.base_url = base_url
+        credentials = credentials or \
+                      Config().get_config()['openlibrary'].get('credentials')
         if credentials:
             self.username = credentials.username
             self.login(credentials)
@@ -123,6 +122,18 @@ class OpenLibrary(object):
                 return author['key'].split('/')[-1]
         return None
 
+    def get_primary_identifier(cls):
+        """XXX needs docs"""
+        id_name, id_value = None, None
+        for valid_key in cls.VALID_IDS:
+            if valid_key in book.identifiers:
+                id_name = valid_key
+                id_value = book.identifiers[valid_key][0]
+                break
+
+        if not (id_name and id_value):
+            raise ValueError("ISBN10/13 or LCCN required")
+        return id_name, id_value
 
     def create_book(self, book, debug=False):
         """Create a new OpenLibrary Book using the /books/add endpoint
@@ -139,19 +150,7 @@ class OpenLibrary(object):
             ...     publisher=u"Bertelsmann",
             ...     isbn=u"3570028364", publish_date=u"1982"))
         """
-        def get_primary_identifier():
-            id_name, id_value = None, None
-            for valid_key in self.VALID_IDS:
-                if valid_key in book.identifiers:
-                    id_name = valid_key
-                    id_value = book.identifiers[valid_key][0]
-                    break
-
-            if not (id_name and id_value):
-                raise ValueError("ISBN10/13 or LCCN required")
-            return id_name, id_value
-
-        id_name, id_value = get_primary_identifier()
+        id_name, id_value = cls.get_primary_identifier()
         primary_author = book.primary_author
         author_name = primary_author.name if primary_author else u""
         author_olid = self.get_matching_authors_olid(author_name)
@@ -234,7 +233,7 @@ class OpenLibrary(object):
         # XXX need a way to convert OL book json -> book (and back)
         return Book(**response.json())
 
-    def get_book_by_metadata(self, title, author=None):
+    def get_book_by_metadata(self, title=None, author=None):
         """Get the *closest* matching result in OpenLibrary based on a title
         and author.
 
@@ -250,6 +249,9 @@ class OpenLibrary(object):
             ... ol.get_book_by_metadata(
             ...     title=u'The Autobiography of Benjamin Franklin')
         """
+        if not (title or author):
+            raise ValueError("Author or title required for metadata search")
+
         err = lambda e: logger.exception("Error retrieving metadata " \
                                          "for book: %s", e)
         url = '%s/search.json?title=%s' % (self.base_url, title)

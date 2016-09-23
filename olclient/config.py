@@ -46,7 +46,6 @@ class Config(object):
 
     DEFAULTS = {
         u'openlibrary': {
-            u'url': u'https://openlibrary.org',
             u'username': u'',
             u'password': u''
         }
