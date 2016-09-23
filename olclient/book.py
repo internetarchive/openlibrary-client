@@ -19,9 +19,12 @@ class Author(object):
     TODO: Consider moving to own file
     """
 
-    def __init__(self, name, olid=None):
+    def __init__(self, name, olid=None, **kwargs):
         self.olid = olid
         self.name = name
+
+        for kwarg in kwargs:
+            setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
         return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
