@@ -75,52 +75,212 @@ class OpenLibrary(object):
         if 'Set-Cookie' not in response.headers:
             raise Exception("No cookie set")
 
-    def get_matching_authors_by_name(self, name, limit=1):
-        """Finds a list of OpenLibrary authors with similar names to the
-        search query using the Author auto-complete API.
+    @property
+    def Work(ol_self):
+        class Work(object):
 
-        Args:
-            name (unicode) - name of author to search for within OpenLibrary's
-                             database of authors
+            OL = ol_self
 
-        Returns:
-            A (list) of matching authors from the OpenLibrary
-            authors autocomplete API
-        """
-        if name:
-            err = lambda e: logger.exception("Error fetching author matches: %s", e)
-            url = self.base_url + '/authors/_autocomplete?q=%s&limit=%s' \
-                  % (name, limit)
+            def __init__(self, olid, **book_kwargs):
+                self._ol = ol_self
+                self.olid = olid
+                super(Book, self).__init__(**book_kwargs)
 
-            @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
-            def _get_matching_authors_by_name(url):
-                """Makes best effort to perform request w/ exponential backoff"""
-                return self.session.get(url)
+            @property
+            def editions(self):
+                pass
 
-            response = _get_matching_authors_by_name(url)
-            author_matches = response.json()
-            return author_matches
-        return []
+            @classmethod
+            def create(cls, book, debug=False):
+                return cls.OL.create_book(book, debug=debug)
 
-    def get_matching_authors_olid(self, name):
-        """Uses the Authors auto-complete API to find OpenLibrary Authors with
-        similar names. If any name is an exact match and there's only
-        one exact match (e.g. not a common name like "Mike Smith"
-        which may have multiple valid results) then return the
-        matching author's 'key' (i.e. olid). Otherwise, return None
+            def add_bookcover(cls, url):
+                url = '/works/%s/title/add-cover' % self.olid
+                data = {
+                    'imageUrl': url
+                }
+                r = requests.post(url, data=data)
 
-        Args:
-            name (unicode) - name of an Author to search for within OpenLibrary
+        return Work
 
-        Returns:
-            olid (unicode)
-        """
-        authors = self.get_matching_authors_by_name(name)
-        _name = name.lower().strip()
-        for author in authors:
-            if _name == author['name'].lower().strip():
-                return author['key'].split('/')[-1]
-        return None
+    @property
+    def Edition(ol_self):
+        class Edition(Book):
+
+            OL = ol_self
+
+            def __init__(self, work_olid, edition_olid, **book_kwargs):
+                self.work_olid = work_olid
+                self.edition_olid = edition_olid
+
+                self.olid = olid
+                super(Book, self).__init__(**book_kwargs)
+
+            def add_bookcover(self, url):
+                return self.OL.add_edition_bookcover(self.olid, url)
+
+            def save(self):
+                pass
+
+            def add_bookcover(cls, url):
+                url = '/edition/%s/title/add-cover' % self.edition_olid
+                data = {
+                    'imageUrl': url
+                }
+                r = requests.post(url, data=data)
+
+            @classmethod
+            def create(cls, book, work_olid, debug=False):
+                """Creates this book as an Edition associated with the work having
+                olid work_olid
+
+                Args:
+                    book (Book)
+                    work_olid (unicode) - the olid of the work to add
+                                          this book to
+                """
+                return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
+
+            @classmethod
+            def get(cls, olid):
+                """Retrieves a single book from OpenLibrary as json and marshals it
+                into an olclient Book.
+
+                Warnings:
+                    Currently, the marshaling is not complete. While
+                    it generates/returns a valid book, ideally we want
+                    the OpenLibrary fields to be converted into a
+                    format which is consistent with how we are using
+                    olclient Book to create OpenLibrary books --
+                    i.e. authors = Author objects, publishers list
+                    instead of publisher, identifiers (instead of key
+                    and isbn). The goal is to enable service to
+                    interoperate with the Book object and for
+                    OpenLibrary to be able to marshal the book object
+                    into a form it can use (or marshal its internal
+                    book json into a form others can use).
+
+                Usage:
+                    >>> from olclient import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.get_book_by_olid('OL25944230M')
+                   <class 'olclient.book.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
+
+                """
+                err = lambda e: logger.exception("Error retrieving OpenLibrary " \
+                                                 "book: %s", e)
+                url = cls.OL.base_url + '/books/%s.json' % olid
+                
+                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
+                def _get_book_by_olid(url):
+                    """Makes best effort to perform request w/ exponential backoff"""
+                    return cls.OL.session.get(url)
+
+                response = _get_book_by_olid(url)
+
+                try:
+                    data = response.json()
+                    work_olid = pass
+                    edition_olid = pass
+                except:
+                    pass
+                
+                # XXX need a way to convert OL book json -> book (and back)
+                return cls(self, work_olid, edition_olid, **data)
+
+        return Edition
+
+    @property
+    def Author(ol_self):
+        class Author(Author):
+
+            OL = ol_self
+
+            def __init__(self, author_olid, **author_kwargs):
+                self.author_olid = author_olid
+                super(Author, self).__init__(**author_kwargs)
+
+            def create(self, author, debug=False):
+                """XXX How to create an author without a work?"""
+                pass
+
+            def create_work(self, book):
+                url = self.OL.base_url + \
+                      ('/books/add?author=/authors/%s' % self.author_olid)
+                raise NotImplmentedError
+
+            @classmethod
+            def get(cls, olid):
+                """Retrieves an OpenLibrary Author by author_olid"""
+                url = cls.OL.base_url + '/authors/%s.json' % olid
+                r = requests.get(url)
+                try:
+                    data = r.json()
+                    olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
+                                                         url_type="books")
+                    return cls(olid, name=data.pop('name', u''),
+                               birth_date=data.pop('birth_date', u''),
+                               alternate_names=data.pop('alternate_names', []),
+                               bio=data.pop('bio', {}).get('value', u''),
+                               created=data.pop('created', {}).get('value', u''),
+                               links=data.pop('links', [])
+                           )
+                except:
+                    return None
+
+            @classmethod
+            def search(cls, name, limit=1):
+                """Finds a list of OpenLibrary authors with similar names to the
+                search query using the Author auto-complete API.
+        
+                Args:
+                    name (unicode) - name of author to search for within OpenLibrary's
+                                     database of authors
+            
+                Returns:
+                    A (list) of matching authors from the OpenLibrary
+                    authors autocomplete API
+                """
+                if name:
+                    err = lambda e: logger.exception(
+                        "Error fetching author matches: %s", e)
+                    url = cls.OL.base_url + '/authors/_autocomplete?q=%s&limit=%s' \
+                          % (name, limit)
+            
+                    @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
+                    def _get_matching_authors_by_name(url):
+                        """Makes best effort to perform request w/ exponential backoff"""
+                        return cls.OL.session.get(url)
+            
+                    response = _get_matching_authors_by_name(url)
+                    author_matches = response.json()
+                    return author_matches
+                return []
+
+            def get_olid_by_name(cls, name):
+                """Uses the Authors auto-complete API to find OpenLibrary Authors with
+                similar names. If any name is an exact match then return the
+                matching author's 'key' (i.e. olid). Otherwise, return None.
+            
+                FIXME Warning: if there are multiple exact matches, (e.g. a common
+                name like "Mike Smith" which may have multiple valid results), this
+                presents a problem.
+            
+                Args:
+                    name (unicode) - name of an Author to search for within OpenLibrary
+            
+                Returns:
+                    olid (unicode)
+            
+                """
+                authors = cls.search(name)
+                _name = name.lower().strip()
+                for author in authors:
+                    if _name == author['name'].lower().strip():
+                        return author['key'].split('/')[-1]
+                return None
+
+        return Author
 
     @classmethod
     def get_primary_identifier(cls, book):
@@ -134,13 +294,16 @@ class OpenLibrary(object):
 
         if not (id_name and id_value):
             raise ValueError("ISBN10/13 or LCCN required")
-        return id_name, id_value
+        return id_name, id_value    
 
-    def create_book(self, book, debug=False):
+    def create_book(self, book, work_olid=None, debug=False):
         """Create a new OpenLibrary Book using the /books/add endpoint
 
         Args:
            book (Book)
+           work_olid (unicode) - if present, associates this edition
+                                 with an existing work.
+           debug (bool) - whether to create the book or return it as data
 
         Usage:
             >>> ol = OpenLibrary()
@@ -154,7 +317,7 @@ class OpenLibrary(object):
         id_name, id_value = self.get_primary_identifier(book)
         primary_author = book.primary_author
         author_name = primary_author.name if primary_author else u""
-        author_olid = self.get_matching_authors_olid(author_name)
+        author_olid = self.Author.get_olid_by_name(author_name)
         author_key = ('/authors/' + author_olid) if author_olid else  u'__new__'
         return self._create_book(
             title=book.title,
@@ -164,11 +327,18 @@ class OpenLibrary(object):
             publisher=book.publisher,
             id_name=id_name,
             id_value=id_value,
+            work_olid=work_olid,
             debug=debug)
 
     def _create_book(self, title, author_name, author_key,
-                    publish_date, publisher, id_name, id_value,
-                    debug=False):
+                     publish_date, publisher, id_name, id_value,
+                     work_olid=None, debug=False):
+        """
+        Creates a 
+
+        Returns:
+            An (OpenLibrary.Edition)
+        """
 
         if id_name not in self.VALID_IDS:
             raise ValueError("Invalid `id_name`. Must be one of %s, got %s" \
@@ -177,6 +347,8 @@ class OpenLibrary(object):
         err = lambda e: logger.exception("Error creating OpenLibrary " \
                                          "book: %s", e)
         url = self.base_url + '/books/add'
+        if work:
+            url += '?work=/works/%s' % work_olid
         data = {
             "title": title,
             "author_name": author_name,
@@ -198,45 +370,12 @@ class OpenLibrary(object):
         response = _create_book_post(url, data=data)
         return self._extract_olid_from_url(response.url, url_type="books")
 
-    def get_book_by_olid(self, olid):
-        """Retrieves a single book from OpenLibrary as json and marshals it into
-        an olclient Book.
-
-        Warnings:
-            Currently, the marshaling is not complete. While it
-            generates/returns a valid book, ideally we want the
-            OpenLibrary fields to be converted into a format which is
-            consistent with how we are using olclient Book to create
-            OpenLibrary books -- i.e. authors = Author objects,
-            publishers list instead of publisher, identifiers (instead
-            of key and isbn). The goal is to enable service to
-            interoperate with the Book object and for OpenLibrary to
-            be able to marshal the book object into a form it can use
-            (or marshal its internal book json into a form others can
-            use).
-
-        Usage:
-            >>> from olclient import OpenLibrary
-            >>> ol = OpenLibrary()
-            >>> ol.get_book_by_olid('OL25944230M')
-            <class 'olclient.book.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
-        """
-        err = lambda e: logger.exception("Error retrieving OpenLibrary " \
-                                         "book: %s", e)
-        url = self.base_url + '/books/%s.json' % olid
-
-        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
-        def _get_book_by_olid(url):
-            """Makes best effort to perform request w/ exponential backoff"""
-            return self.session.get(url)
-
-        response = _get_book_by_olid(url)
-        # XXX need a way to convert OL book json -> book (and back)
-        return Book(**response.json())
 
     def get_book_by_metadata(self, title=None, author=None):
         """Get the *closest* matching result in OpenLibrary based on a title
-        and author.
+        and author. 
+
+        FIXME: This is essentially a Work and should be moved there
 
         Args:
             title (unicode)
@@ -468,3 +607,4 @@ class Results(object):
                         identifiers=self.identifiers,
                         authors=self.authors, publisher=publisher,
                         publish_date=self.first_publish_year)
+
