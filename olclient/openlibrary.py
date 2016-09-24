@@ -12,7 +12,7 @@ import re
 import backoff
 import requests
 
-from .book import Book, Author
+import .book
 from .config import Config
 
 
@@ -26,7 +26,7 @@ class OpenLibrary(object):
     Usage:
         >>> ol = OpenLibrary(base_url="http://0.0.0.0:8080")
         ... #  Create a new book
-        ... book = ol.create_book(Book(
+        ... book = ol.create_book(book.Book(
         ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
         ...         "Schnecke machten",
         ...     author=Author(name=u"Walter Kort"),
@@ -77,17 +77,24 @@ class OpenLibrary(object):
 
     @property
     def Work(ol_self):
+        """
+        >>> from olclient import OpenLibrary
+        >>> ol = OpenLibrary()
+        >>> ol.Work.get(olid)
+        """
         class Work(object):
 
             OL = ol_self
 
-            def __init__(self, olid, **book_kwargs):
+            def __init__(self, olid):
                 self._ol = ol_self
                 self.olid = olid
-                super(Book, self).__init__(**book_kwargs)
 
             @property
             def editions(self):
+                """
+                >>> ol.Work(olid).editions
+                """
                 pass
 
             @classmethod
@@ -105,16 +112,19 @@ class OpenLibrary(object):
 
     @property
     def Edition(ol_self):
-        class Edition(Book):
+        class Edition(book.Book):
 
             OL = ol_self
 
-            def __init__(self, work_olid, edition_olid, **book_kwargs):
-                self.work_olid = work_olid
-                self.edition_olid = edition_olid
-
+            def __init__(self, olid, book):
+                """
+                Usage:
+                    >>> e = ol.Edition(u'OL2514725W')
+                    >>> e.book
+                """
+                self.book = book
                 self.olid = olid
-                super(Book, self).__init__(**book_kwargs)
+            
 
             def add_bookcover(self, url):
                 return self.OL.add_edition_bookcover(self.olid, url)
@@ -135,9 +145,11 @@ class OpenLibrary(object):
                 olid work_olid
 
                 Args:
-                    book (Book)
+                    book (book.Book)
                     work_olid (unicode) - the olid of the work to add
                                           this book to
+
+                >>> = ol.Edition.create(Book(...), u'OL2514725W')
                 """
                 return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
 
@@ -192,7 +204,7 @@ class OpenLibrary(object):
 
     @property
     def Author(ol_self):
-        class Author(Author):
+        class Author(book.Author):
 
             OL = ol_self
 
@@ -279,7 +291,7 @@ class OpenLibrary(object):
                     if _name == author['name'].lower().strip():
                         return author['key'].split('/')[-1]
                 return None
-
+        # This returns the Author class from the ol.Author factory method
         return Author
 
     @classmethod
