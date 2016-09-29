@@ -122,7 +122,8 @@ class OpenLibrary(object):
                 return author['key'].split('/')[-1]
         return None
 
-    def get_primary_identifier(cls):
+    @classmethod
+    def get_primary_identifier(cls, book):
         """XXX needs docs"""
         id_name, id_value = None, None
         for valid_key in cls.VALID_IDS:
@@ -150,7 +151,7 @@ class OpenLibrary(object):
             ...     publisher=u"Bertelsmann",
             ...     isbn=u"3570028364", publish_date=u"1982"))
         """
-        id_name, id_value = cls.get_primary_identifier()
+        id_name, id_value = self.get_primary_identifier(book)
         primary_author = book.primary_author
         author_name = primary_author.name if primary_author else u""
         author_olid = self.get_matching_authors_olid(author_name)
