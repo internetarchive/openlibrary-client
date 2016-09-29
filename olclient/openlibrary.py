@@ -310,7 +310,6 @@ class OpenLibrary(object):
         isbn_key = u'ISBN:%s' % isbn
         if isbn_key in result:
             edition = result[isbn_key]
-            print(edition['key'])
             edition['identifiers'][u'olid'] = [self._extract_olid_from_url(
                 edition.pop('key'), url_type="books")]
             authors = edition.pop('authors', [])

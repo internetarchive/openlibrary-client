@@ -15,6 +15,8 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import getpass
+import sys
+
 from . import __title__, __version__, OpenLibrary, MARC
 
 
@@ -44,15 +46,15 @@ def main():
     parser = argparser()
     args = parser.parse_args()
     if args.get_olid:
-        return ol.get_olid_by_isbn(args.isbn)
+        print(ol.get_olid_by_isbn(args.isbn))
     elif args.get_book:
         if args.isbn:
-            return ol.get_book_by_isbn(args.isbn)
+            print(ol.get_book_by_isbn(args.isbn))
         elif args.title:
-            return ol.get_book_by_metadata(args.title)
+            print(ol.get_book_by_metadata(args.title))
     else:
-        return parser.print_help()
+        print(parser.print_help())
 
 
 if __name__ == "__main__":
-    print(main())
+    main()
