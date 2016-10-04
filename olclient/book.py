@@ -33,9 +33,9 @@ class Book(object):
     ingested and compared for similarity.
     """
 
-    def __init__(self, title, subtitle="", identifiers=None,
+    def __init__(self, title, subtitle=u"", identifiers=None,
                  number_of_pages=None, authors=None, publisher=None,
-                 publish_date="", cover="", **kwargs):
+                 publish_date=u"", cover=u"", **kwargs):
         """
         Args:
             title (unicode) [required]
@@ -68,6 +68,10 @@ class Book(object):
 
     def add_id(self, id_type, identifier):
         """Adds an identifier to this book
+
+        Args:
+            id_type (unicode) - valid identifier types:
+              [u'olid', u'oclc', u'isbn_10', u'isbn_13']
 
         Usage:
              >>> book.identifiers
@@ -107,3 +111,25 @@ class Book(object):
             return self.authors[0]
         except IndexError:
             return None
+
+    @classmethod
+    def xisbn_to_books(cls, xisbn):
+        books = []
+        editions = xisbn.get('list', [])
+        for ed in editions:
+            isbns = ed.get('isbn', [])
+            book = cls(
+                title=ed.get('title', u''),
+                authors=[Author(name=ed.get('author', u''))],
+                publisher=ed.get('publisher', u''),
+                identifiers={
+                    'oclc': ed.get('oclcnum', []),
+                    'lccn': ed.get('lccn', []),                    
+                },
+                language=ed.get('lang', u''),
+                publish_date=ed.get('year', None)
+            )
+            for isbn in isbns:
+                book.add_id(u'isbn_%s' % len(isbn), isbn)
+            books.append(book)
+        return books
