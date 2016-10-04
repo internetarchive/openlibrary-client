@@ -124,7 +124,7 @@ class OpenLibrary(object):
                 """
                 self.book = book
                 self.olid = olid
-            
+
 
             def add_bookcover(self, url):
                 return self.OL.add_edition_bookcover(self.olid, url)
@@ -182,7 +182,7 @@ class OpenLibrary(object):
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "book: %s", e)
                 url = cls.OL.base_url + '/books/%s.json' % olid
-                
+
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_book_by_olid(url):
                     """Makes best effort to perform request w/ exponential backoff"""
@@ -196,7 +196,7 @@ class OpenLibrary(object):
                     edition_olid = pass
                 except:
                     pass
-                
+
                 # XXX need a way to convert OL book json -> book (and back)
                 return cls(self, work_olid, edition_olid, **data)
 
@@ -244,11 +244,11 @@ class OpenLibrary(object):
             def search(cls, name, limit=1):
                 """Finds a list of OpenLibrary authors with similar names to the
                 search query using the Author auto-complete API.
-        
+
                 Args:
                     name (unicode) - name of author to search for within OpenLibrary's
                                      database of authors
-            
+
                 Returns:
                     A (list) of matching authors from the OpenLibrary
                     authors autocomplete API
@@ -258,12 +258,12 @@ class OpenLibrary(object):
                         "Error fetching author matches: %s", e)
                     url = cls.OL.base_url + '/authors/_autocomplete?q=%s&limit=%s' \
                           % (name, limit)
-            
+
                     @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                     def _get_matching_authors_by_name(url):
                         """Makes best effort to perform request w/ exponential backoff"""
                         return cls.OL.session.get(url)
-            
+
                     response = _get_matching_authors_by_name(url)
                     author_matches = response.json()
                     return author_matches
@@ -273,17 +273,17 @@ class OpenLibrary(object):
                 """Uses the Authors auto-complete API to find OpenLibrary Authors with
                 similar names. If any name is an exact match then return the
                 matching author's 'key' (i.e. olid). Otherwise, return None.
-            
+
                 FIXME Warning: if there are multiple exact matches, (e.g. a common
                 name like "Mike Smith" which may have multiple valid results), this
                 presents a problem.
-            
+
                 Args:
                     name (unicode) - name of an Author to search for within OpenLibrary
-            
+
                 Returns:
                     olid (unicode)
-            
+
                 """
                 authors = cls.search(name)
                 _name = name.lower().strip()
@@ -306,7 +306,7 @@ class OpenLibrary(object):
 
         if not (id_name and id_value):
             raise ValueError("ISBN10/13 or LCCN required")
-        return id_name, id_value    
+        return id_name, id_value
 
     def create_book(self, book, work_olid=None, debug=False):
         """Create a new OpenLibrary Book using the /books/add endpoint
@@ -346,7 +346,7 @@ class OpenLibrary(object):
                      publish_date, publisher, id_name, id_value,
                      work_olid=None, debug=False):
         """
-        Creates a 
+        Creates a
 
         Returns:
             An (OpenLibrary.Edition)
@@ -385,7 +385,7 @@ class OpenLibrary(object):
 
     def get_book_by_metadata(self, title=None, author=None):
         """Get the *closest* matching result in OpenLibrary based on a title
-        and author. 
+        and author.
 
         FIXME: This is essentially a Work and should be moved there
 
@@ -619,4 +619,3 @@ class Results(object):
                         identifiers=self.identifiers,
                         authors=self.authors, publisher=publisher,
                         publish_date=self.first_publish_year)
-
