@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function
 import unittest
 
 from olclient.config import Config
-from olclient.book import Author, Book
+from olclient.common import Author, Book
 from olclient.openlibrary import OpenLibrary
 
 

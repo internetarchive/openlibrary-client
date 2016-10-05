@@ -9,7 +9,7 @@ import tempfile
 
 import pymarc
 
-from .openlibrary import Author, Book
+from .openlibrary import common
 from .utils import chunks, has_unicode
 
 
@@ -69,7 +69,7 @@ class MARCRecord(dict):
         author_name = author.get(u'author_name', u'')
         if author_name:
             author_name = ' '.join(author_name.split(', ')[::-1])
-        return Author(name=author_name)
+        return common.Author(name=author_name)
 
     @property
     def publisher(self):
@@ -211,7 +211,7 @@ class MARC(object):
             fmt (unicode) - binary "marc", display "line", or "marcxml"
 
         Returns:
-            (book.Book)
+            (common.Book)
         """
         marc_dict = cls.to_dict(bin_marc)
-        return Book(**marc_dict)
+        return common.Book(**marc_dict)

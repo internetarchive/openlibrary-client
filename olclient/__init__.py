@@ -16,4 +16,4 @@ __author__ = 'Internet Archive'
 
 from .openlibrary import OpenLibrary
 from .marc import MARC
-from .book import Book, Author
+from .common import Book, Author

@@ -12,7 +12,7 @@ import re
 import backoff
 import requests
 
-import .book
+from . import common
 from .config import Config
 
 
@@ -26,7 +26,7 @@ class OpenLibrary(object):
     Usage:
         >>> ol = OpenLibrary(base_url="http://0.0.0.0:8080")
         ... #  Create a new book
-        ... book = ol.create_book(book.Book(
+        ... book = ol.create_book(common.Book(
         ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
         ...         "Schnecke machten",
         ...     author=Author(name=u"Walter Kort"),
@@ -86,58 +86,75 @@ class OpenLibrary(object):
 
             OL = ol_self
 
-            def __init__(self, olid):
+            def __init__(self, olid, **kwargs):
                 self._ol = ol_self
                 self.olid = olid
+                for k,v in kwargs:
+                    setattr(self, k, v)
 
             @property
             def editions(self):
                 """
+                Does this hit the search api?
+
                 >>> ol.Work(olid).editions
                 """
-                pass
+                url = '%/works/%s/editions.json' % (self.OL.base_url, self.olid)
+                r = requests.get(url)
+                return [cls.OL.Edition.compose(ed) for ad in r.json()]
 
             @classmethod
             def create(cls, book, debug=False):
                 return cls.OL.create_book(book, debug=debug)
 
+            @classmethod
             def add_bookcover(cls, url):
-                url = '/works/%s/title/add-cover' % self.olid
+                url = '%s/works/%s/title/add-cover' % (cls.OL.base_url, self.olid)
                 data = {
                     'imageUrl': url
                 }
                 r = requests.post(url, data=data)
+                return r.json()
+
+            @classmethod
+            def get(cls, work_olid):
+                url = '%s/works/%s.json' % (cls.OL.base_url, work_olid)
+                return 
 
         return Work
 
     @property
     def Edition(ol_self):
-        class Edition(book.Book):
+        class Edition(common.Book):
 
             OL = ol_self
 
-            def __init__(self, olid, book):
+            def __init__(self, work_olid, edition_olid, title, subtitle=u"",
+                         identifiers=None, number_of_pages=None, authors=None,
+                         publisher=None, publish_date=u"", cover=u"", **kwargs):
                 """
                 Usage:
                     >>> e = ol.Edition(u'OL2514725W')
                     >>> e.book
                 """
-                self.book = book
-                self.olid = olid
-
+                self.work_olid = work_olid
+                self.edition_olid = edition_olid
+                super(Edition, self).__init__(
+                    title, subtitle=subtitle, identifiers=identifiers,
+                    number_of_pages=number_of_pages, authors=authors,
+                    publisher=publisher, publish_date=publish_date,
+                    cover=cover, **kwargs)
 
             def add_bookcover(self, url):
-                return self.OL.add_edition_bookcover(self.olid, url)
-
-            def save(self):
-                pass
-
-            def add_bookcover(cls, url):
-                url = '/edition/%s/title/add-cover' % self.edition_olid
+                url = '%s/books/%s/title/add-cover' % (cls.OL.base_url, self.olid)
                 data = {
                     'imageUrl': url
                 }
                 r = requests.post(url, data=data)
+                return r.json()
+
+            def save(self):
+                raise NotImplementedError
 
             @classmethod
             def create(cls, book, work_olid, debug=False):
@@ -145,7 +162,7 @@ class OpenLibrary(object):
                 olid work_olid
 
                 Args:
-                    book (book.Book)
+                    book (common.Book)
                     work_olid (unicode) - the olid of the work to add
                                           this book to
 
@@ -153,6 +170,10 @@ class OpenLibrary(object):
                 """
                 return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
 
+            @classmethod
+            def json_to_book(cls):
+                pass
+            
             @classmethod
             def get(cls, olid):
                 """Retrieves a single book from OpenLibrary as json and marshals it
@@ -176,7 +197,7 @@ class OpenLibrary(object):
                     >>> from olclient import OpenLibrary
                     >>> ol = OpenLibrary()
                     >>> ol.get_book_by_olid('OL25944230M')
-                   <class 'olclient.book.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
+                   <class 'olclient.common.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
 
                 """
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
@@ -192,19 +213,38 @@ class OpenLibrary(object):
 
                 try:
                     data = response.json()
-                    work_olid = pass
-                    edition_olid = pass
                 except:
                     pass
 
-                # XXX need a way to convert OL book json -> book (and back)
-                return cls(self, work_olid, edition_olid, **data)
+                edition_olid = olid
+                work_olid = data.pop('works', [])[0]['key'].split('/')[-1]
+                title = data.pop('title', u'')
+                publisher = data.pop('publishers', u'')
+                publish_date = data.pop('publish_date', u'')
+                number_of_pages = data.pop('number_of_pages', u'')
+                authors = []
+                
+                for author in data.pop('authors', []):
+                    author_olid = author['key'].split('/')[-1]               
+                    authors.append(cls.OL.Author.get(author_olid))
+                
+                edition = cls(work_olid=work_olid, edition_olid=edition_olid,
+                              title=title, authors=authors,
+                              publisher=publisher, publish_date=publish_date,
+                              number_of_pages=number_of_pages, **data)
+                
+                for oclc_id in data.get('oclc_numbers', []):
+                    edition.add_id('oclc', oclc_id)
+                for oclc_id in data.get('oclc_numbers', []):
+                    edition.add_id('oclc', oclc_id)
 
+                return edition
+                
         return Edition
 
     @property
     def Author(ol_self):
-        class Author(book.Author):
+        class Author(common.Author):
 
             OL = ol_self
 
@@ -230,13 +270,13 @@ class OpenLibrary(object):
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
                                                          url_type="books")
-                    return cls(olid, name=data.pop('name', u''),
-                               birth_date=data.pop('birth_date', u''),
-                               alternate_names=data.pop('alternate_names', []),
-                               bio=data.pop('bio', {}).get('value', u''),
-                               created=data.pop('created', {}).get('value', u''),
-                               links=data.pop('links', [])
-                           )
+                    return cls(
+                        olid, name=data.pop('name', u''),
+                        birth_date=data.pop('birth_date', u''),
+                        alternate_names=data.pop('alternate_names', []),
+                        bio=data.pop('bio', {}).get('value', u''),
+                        created=data.pop('created', {}).get('value', u''),
+                        links=data.pop('links', []))
                 except:
                     return None
 
@@ -394,7 +434,7 @@ class OpenLibrary(object):
             author (unicode)
 
         Returns:
-            (book.Book)
+            (common.Book)
 
         Usage:
             >>> ol = OpenLibrary()
