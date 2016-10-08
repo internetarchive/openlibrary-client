@@ -9,65 +9,9 @@ from __future__ import absolute_import, division, print_function
 from .utils import rm_punctuation
 
 
-class Author(object):
-    """Represets a book Author and their identifier on a service
-    (currently only OpenLibrary -- this should be refactored to
-    include multiple identifiers, such as wikidata ID (see
-    Book.identifiers), as well as other RDFA Author fields like date
-    of birth, etc
-
-    TODO: Consider moving to own file
-    """
-
-    def __init__(self, name, olid=None, **kwargs):
-        self.olid = olid
-        self.name = name
-
-        for kwarg in kwargs:
-            setattr(self, kwarg, kwargs[kwarg])
-
-    def __repr__(self):
-        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
-
-
-class Book(object):
-    """Organizational model for standardizing MARC, OpenLibrary, and other
-    sources into a uniform format so they can be programatically
-    ingested and compared for similarity.
-    """
-
-    def __init__(self, title, subtitle=u"", identifiers=None,
-                 number_of_pages=None, authors=None, publisher=None,
-                 publish_date=u"", cover=u"", **kwargs):
-        """
-        Args:
-            title (unicode) [required]
-            subtitle (unicode) [optional]
-
-            identifiers (list) - a dict of id_types mapped to lists of
-                                 (unicode) ids of this type:
-                                 e.g. {'olid': [u'OL...', u'OL...']}
-            pages (int)
-            authors (list of Author)
-            publisher (list of unicode)
-            publish_date (int) - year
-            cover (unicode) - uri of bookcover
-        """
+class Entity(object):
+    def __init__(self, identifiers):
         self.identifiers = identifiers or {}
-        self.title = rm_punctuation(title)
-        self.subtitle = subtitle
-        self.pages = number_of_pages
-        self.authors = authors or []
-        self.publisher = publisher
-        #self.publish_date = int(publish_date) if publish_date else None
-        self.publish_date = publish_date
-        self.cover = cover
-
-        for kwarg in kwargs:
-            setattr(self, kwarg, kwargs[kwarg])
-
-    def __repr__(self):
-        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
 
     def add_id(self, id_type, identifier):
         """Adds an identifier to this book
@@ -90,6 +34,67 @@ class Book(object):
 
         self.identifiers[id_type] = list(_ids)
         return self.identifiers
+        
+
+class Author(Entity):
+    """Represets a book Author and their identifier on a service
+    (currently only OpenLibrary -- this should be refactored to
+    include multiple identifiers, such as wikidata ID (see
+    Book.identifiers), as well as other RDFA Author fields like date
+    of birth, etc
+
+    TODO: Consider moving to own file
+    """
+
+    def __init__(self, name, identifiers=None, **kwargs):
+        super(Author, self).__init__(identifiers=identifiers)
+        self.name = name
+
+        for kwarg in kwargs:
+            setattr(self, kwarg, kwargs[kwarg])
+
+    def __repr__(self):
+        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+
+
+class Book(Entity):
+    """Organizational model for standardizing MARC, OpenLibrary, and other
+    sources into a uniform format so they can be programatically
+    ingested and compared for similarity.
+    """
+
+    def __init__(self, title, subtitle=u"", identifiers=None,
+                 number_of_pages=None, authors=None, publisher=None,
+                 publish_date=u"", cover=u"", **kwargs):
+        """
+        Args:
+            title (unicode) [required]
+            subtitle (unicode) [optional]
+
+            identifiers (list) - a dict of id_types mapped to lists of
+                                 (unicode) ids of this type:
+                                 e.g. {'olid': [u'OL...', u'OL...']}
+            pages (int)
+            authors (list of Author)
+            publisher (list of unicode)
+            publish_date (int) - year
+            cover (unicode) - uri of bookcover
+        """
+        super(Book, self).__init__(identifiers=identifiers)
+        self.title = rm_punctuation(title)
+        self.subtitle = subtitle
+        self.pages = number_of_pages
+        self.authors = authors or []
+        self.publisher = publisher
+        #self.publish_date = int(publish_date) if publish_date else None
+        self.publish_date = publish_date
+        self.cover = cover
+
+        for kwarg in kwargs:
+            setattr(self, kwarg, kwargs[kwarg])
+
+    def __repr__(self):
+        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
 
     @property
     def canonical_title(self, rm_punc=True):
@@ -115,6 +120,14 @@ class Book(object):
         except IndexError:
             return None
 
+    @classmethod
+    def xisbn_to_isbns(cls, xisbn):
+        isbns = []
+        editions = xisbn.get('list', [])
+        for ed in editions:
+            isbns.extend(ed.get('isbn', []))
+        return isbns
+            
     @classmethod
     def xisbn_to_books(cls, xisbn):
         books = []

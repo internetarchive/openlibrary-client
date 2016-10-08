@@ -41,7 +41,7 @@ class TestOpenLibrary(unittest.TestCase):
 
     def test_matching_authors_olid(self):
         name = u'Benjamin Franklin'
-        got_olid = self.ol.get_matching_authors_olid(name)
+        got_olid = self.ol.Author.get_olid_by_name(name)
         expected_olid = u'OL26170A'
         self.assertTrue(got_olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, got_olid))

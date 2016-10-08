@@ -7,7 +7,6 @@ import unittest
 
 import pymarc
 
-from olclient.common import Author, Book
 from olclient.marc import MARC, MARCRecord
 
 

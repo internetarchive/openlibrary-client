@@ -29,7 +29,7 @@ class OpenLibrary(object):
         ... book = ol.create_book(common.Book(
         ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
         ...         "Schnecke machten",
-        ...     author=Author(name=u"Walter Kort"),
+        ...     author=common.Author(name=u"Walter Kort"),
         ...     publisher=u"Bertelsmann",
         ...     isbn=u"3570028364", publish_date=u"1982"))
 
@@ -250,7 +250,7 @@ class OpenLibrary(object):
 
             def __init__(self, author_olid, **author_kwargs):
                 self.author_olid = author_olid
-                super(Author, self).__init__(**author_kwargs)
+                super(self.OL.Author, self).__init__(**author_kwargs)
 
             def create(self, author, debug=False):
                 """XXX How to create an author without a work?"""
@@ -309,6 +309,7 @@ class OpenLibrary(object):
                     return author_matches
                 return []
 
+            @classmethod
             def get_olid_by_name(cls, name):
                 """Uses the Authors auto-complete API to find OpenLibrary Authors with
                 similar names. If any name is an exact match then return the
@@ -399,7 +400,7 @@ class OpenLibrary(object):
         err = lambda e: logger.exception("Error creating OpenLibrary " \
                                          "book: %s", e)
         url = self.base_url + '/books/add'
-        if work:
+        if work_olid:
             url += '?work=/works/%s' % work_olid
         data = {
             "title": title,
@@ -508,10 +509,13 @@ class OpenLibrary(object):
                 edition.pop('key'), url_type="books")]
             authors = edition.pop('authors', [])
             edition['authors'] = [
-                Author(name=author['name'], olid=self._extract_olid_from_url(
-                    author['url'], url_type="authors"))
-                for author in authors]
-            return Book(**edition)
+                common.Author(name=author['name'], identifiers={
+                    u'olid': [
+                        self._extract_olid_from_url(
+                            author['url'], url_type="authors")
+                    ]
+                }) for author in authors]
+            return common.Book(**edition)
 
         return None
 
@@ -630,9 +634,10 @@ class Results(object):
             self.subjects = subject
             # XXX test that during the zip, author_name and author_key
             # correspond to each other one-to-one, in order
-            self.authors = [Author(name=name, olid=author_olid)
-                            for (name, author_olid) in
-                            zip(author_name or [], author_key or [])]
+            self.authors = [
+                common.Author(name=name, identifiers={u'olid': [author_olid]})
+                for (name, author_olid) in
+                zip(author_name or [], author_key or [])]
             self.publishers = publisher
             self.publish_dates = publish_date
             self.publish_places = publish_place
@@ -655,7 +660,8 @@ class Results(object):
             standardized Book
             """
             publisher = self.publishers[0] if self.publishers else ""
-            return Book(title=self.title, subtitle=self.subtitle,
-                        identifiers=self.identifiers,
-                        authors=self.authors, publisher=publisher,
-                        publish_date=self.first_publish_year)
+            return common.Book(
+                title=self.title, subtitle=self.subtitle,
+                identifiers=self.identifiers,
+                authors=self.authors, publisher=publisher,
+                publish_date=self.first_publish_year)
