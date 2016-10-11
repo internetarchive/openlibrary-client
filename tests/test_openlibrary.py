@@ -19,25 +19,24 @@ class TestOpenLibrary(unittest.TestCase):
         self.ol = OpenLibrary(credentials=ol_creds)
 
     def test_get_olid_by_isbn(self):
-        olid = self.ol.get_olid_by_isbn(u'0374202915')
+        olid = self.ol.Edition.get_olid_by_isbn(u'0374202915')
         expected_olid = u'OL23575801M'
         self.assertTrue(olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, olid))
 
-    def test_get_book_by_metadata(self):
+    def test_get_work_by_metadata(self):
         title = u"The Autobiography of Benjamin Franklin"
-        book = self.ol.get_book_by_metadata(title=title)
+        book = self.ol.Work.get_by_metadata(title=title)
         canonical_title = book.canonical_title
         self.assertTrue('franklin' in canonical_title,
                         "Expected 'franklin' to appear in result title: %s" % \
                         canonical_title)
 
-    def test_get_book_by_isbn(self):
-        book = self.ol.get_book_by_isbn(u'0374202915')
-        book_olid = book.identifiers['olid'][0]
+    def test_get_edition_by_isbn(self):
+        book = self.ol.Edition.get(isbn=u'0374202915')
         expected_olid = u'OL23575801M'
-        self.assertTrue(book_olid == expected_olid,
-                        "Expected olid %s, got %s" % (expected_olid, book_olid))
+        self.assertTrue(book.olid == expected_olid,
+                        "Expected olid %s, got %s" % (expected_olid, book.olid))
 
     def test_matching_authors_olid(self):
         name = u'Benjamin Franklin'

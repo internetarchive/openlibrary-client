@@ -26,10 +26,14 @@ def argparser():
     parser.add_argument('-v', help="Displays the currently installed " \
                         "version of ol", action="version",
                         version="%s v%s" % (__title__, __version__))
+    parser.add_argument('--get-work', action='store_true',
+                        help='Get a work by --title, --olid')
     parser.add_argument('--get-book', action='store_true',
-                        help='Get a book by --title or --isbn')
+                        help='Get a book by --isbn, --olid')
     parser.add_argument('--get-olid', action='store_true',
                         help='Get an olid by --title or --isbn')
+    parser.add_argument('--olid', default=None,
+                        help="Specify an olid as an argument")
     parser.add_argument('--isbn', default=None,
                         help="Specify an isbn as an argument")
     parser.add_argument('--title', default=None,
@@ -46,12 +50,17 @@ def main():
     parser = argparser()
     args = parser.parse_args()
     if args.get_olid:
-        print(ol.get_olid_by_isbn(args.isbn))
+        print(ol.Edition.get_olid_by_isbn(args.isbn))
     elif args.get_book:
-        if args.isbn:
-            print(ol.get_book_by_isbn(args.isbn))
+        if args.olid:
+            print(ol.Edition.get(olid=args.olid))
+        elif args.isbn:
+            print(ol.Edition.get(isbn=args.isbn))
+    elif args.get_work:
+        if args.olid:
+            print(ol.Work.get(args.olid))
         elif args.title:
-            print(ol.get_book_by_metadata(args.title))
+            print(ol.Work.search(args.title))
     else:
         print(parser.print_help())
 
