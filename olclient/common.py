@@ -65,7 +65,7 @@ class Book(Entity):
 
     def __init__(self, title, subtitle=u"", identifiers=None,
                  number_of_pages=None, authors=None, publisher=None,
-                 publish_date=u"", cover=u"", **kwargs):
+                 publish_date=u"", cover_url=u"", **kwargs):
         """
         Args:
             title (unicode) [required]
@@ -78,7 +78,7 @@ class Book(Entity):
             authors (list of Author)
             publisher (list of unicode)
             publish_date (int) - year
-            cover (unicode) - uri of bookcover
+            cover_url (unicode) - uri of bookcover
         """
         super(Book, self).__init__(identifiers=identifiers)
         self.title = rm_punctuation(title)
@@ -86,9 +86,8 @@ class Book(Entity):
         self.pages = number_of_pages
         self.authors = authors or []
         self.publisher = publisher
-        #self.publish_date = int(publish_date) if publish_date else None
         self.publish_date = publish_date
-        self.cover = cover
+        self.cover_url = cover_url
 
         for kwarg in kwargs:
             setattr(self, kwarg, kwargs[kwarg])

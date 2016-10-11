@@ -119,7 +119,7 @@ class OpenLibrary(object):
             @classmethod
             def get(cls, work_olid):
                 url = '%s/works/%s.json' % (cls.OL.base_url, work_olid)
-                return 
+                return
 
         return Work
 
@@ -173,7 +173,7 @@ class OpenLibrary(object):
             @classmethod
             def json_to_book(cls):
                 pass
-            
+
             @classmethod
             def get(cls, olid):
                 """Retrieves a single book from OpenLibrary as json and marshals it
@@ -223,23 +223,23 @@ class OpenLibrary(object):
                 publish_date = data.pop('publish_date', u'')
                 number_of_pages = data.pop('number_of_pages', u'')
                 authors = []
-                
+
                 for author in data.pop('authors', []):
-                    author_olid = author['key'].split('/')[-1]               
+                    author_olid = author['key'].split('/')[-1]
                     authors.append(cls.OL.Author.get(author_olid))
-                
+
                 edition = cls(work_olid=work_olid, edition_olid=edition_olid,
                               title=title, authors=authors,
                               publisher=publisher, publish_date=publish_date,
                               number_of_pages=number_of_pages, **data)
-                
+
                 for oclc_id in data.get('oclc_numbers', []):
                     edition.add_id('oclc', oclc_id)
                 for oclc_id in data.get('oclc_numbers', []):
                     edition.add_id('oclc', oclc_id)
 
                 return edition
-                
+
         return Edition
 
     @property
@@ -387,8 +387,6 @@ class OpenLibrary(object):
                      publish_date, publisher, id_name, id_value,
                      work_olid=None, debug=False):
         """
-        Creates a
-
         Returns:
             An (OpenLibrary.Edition)
         """
@@ -421,7 +419,8 @@ class OpenLibrary(object):
             return self.session.post(url, data=data)
 
         response = _create_book_post(url, data=data)
-        return self._extract_olid_from_url(response.url, url_type="books")
+        _olid = self._extract_olid_from_url(response.url, url_type="books")
+        return self.Edition.get(_olid)
 
 
     def get_book_by_metadata(self, title=None, author=None):
