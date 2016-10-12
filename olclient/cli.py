@@ -15,6 +15,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import getpass
+import jsonpickle
 import sys
 
 from . import __title__, __version__, OpenLibrary, MARC
@@ -53,14 +54,14 @@ def main():
         print(ol.Edition.get_olid_by_isbn(args.isbn))
     elif args.get_book:
         if args.olid:
-            print(ol.Edition.get(olid=args.olid))
+            print(jsonpickle.encoe(ol.Edition.get(olid=args.olid)))
         elif args.isbn:
-            print(ol.Edition.get(isbn=args.isbn))
+            print(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
     elif args.get_work:
         if args.olid:
-            print(ol.Work.get(args.olid))
+            print(json.encode(ol.Work.get(args.olid)))
         elif args.title:
-            print(ol.Work.search(args.title))
+            print(json.encode(ol.Work.search(args.title)))
     else:
         print(parser.print_help())
 

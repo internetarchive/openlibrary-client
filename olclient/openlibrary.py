@@ -113,7 +113,7 @@ class OpenLibrary(object):
                 data = {
                     'imageUrl': url
                 }
-                r = requests.post(url, data=data)
+                r = ol_self.session.post(url, files=data)
                 return r.json()
 
             @classmethod
@@ -192,12 +192,15 @@ class OpenLibrary(object):
                     cover=cover, **kwargs)
 
             def add_bookcover(self, url):
-                url = '%s/books/%s/title/add-cover' % (cls.OL.base_url, self.olid)
-                data = {
-                    'imageUrl': url
-                }
-                r = requests.post(url, data=data)
-                return r.json()
+                """Adds a cover image to this edition"""
+                metadata = self.get_metadata('OLID', self.olid)
+                _url = '%s/add-cover' % metadata['preview_url']
+                r = ol_self.session.post(_url, files={
+                    'file': '',
+                    'url': url,
+                    'upload': 'submit'
+                })
+                return r
 
             def save(self):
                 raise NotImplementedError
@@ -322,6 +325,13 @@ class OpenLibrary(object):
 
             @classmethod
             def get_olid(cls, key, value):
+                metadata = cls.get_metadata(key, value)
+                if metadata:
+                    book_url = results[_key].get('info_url', '')
+                    return ol_self._extract_olid_from_url(book_url, url_type="books")
+
+            @classmethod
+            def get_metadata(cls, key, value):
                 """Looks up a key (LCCN, OCLC, ISBN10/13) in OpenLibrary and returns a
                 matching olid if a match exists.
 
@@ -360,8 +370,7 @@ class OpenLibrary(object):
                     return None
                 _key = u'%s:%s' % (key, value)
                 if _key in results:
-                    book_url = results[_key].get('info_url', '')
-                    return ol_self._extract_olid_from_url(book_url, url_type="books")
+                    return results[_key]
                 return None
 
         return Edition
@@ -372,9 +381,9 @@ class OpenLibrary(object):
 
             OL = ol_self
 
-            def __init__(self, author_olid, **author_kwargs):
-                self.author_olid = author_olid
-                super(self.OL.Author, self).__init__(**author_kwargs)
+            def __init__(self, olid, name, **author_kwargs):
+                self.olid = olid
+                super(Author, self).__init__(name, **author_kwargs)
 
             def create(self, author, debug=False):
                 """XXX How to create an author without a work?"""
@@ -389,20 +398,23 @@ class OpenLibrary(object):
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid"""
                 url = cls.OL.base_url + '/authors/%s.json' % olid
-                r = requests.get(url)
+                r = ol_self.session.get(url)
+
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
                                                          url_type="books")
-                    return cls(
-                        olid, name=data.pop('name', u''),
-                        birth_date=data.pop('birth_date', u''),
-                        alternate_names=data.pop('alternate_names', []),
-                        bio=data.pop('bio', {}).get('value', u''),
-                        created=data.pop('created', {}).get('value', u''),
-                        links=data.pop('links', []))
                 except:
-                    return None
+                    raise Exception("No author with olid: %s" % olid)
+
+                return cls(
+                    olid, name=data.pop('name', u''),
+                    birth_date=data.pop('birth_date', u''),
+                    alternate_names=data.pop('alternate_names', []),
+                    bio=data.pop('bio', {}).get('value', u''),
+                    created=data.pop('created', {}).get('value', u''),
+                    links=data.pop('links', []))
+
 
             @classmethod
             def search(cls, name, limit=1):

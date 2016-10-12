@@ -34,7 +34,7 @@ class Entity(object):
 
         self.identifiers[id_type] = list(_ids)
         return self.identifiers
-        
+
 
 class Author(Entity):
     """Represets a book Author and their identifier on a service
