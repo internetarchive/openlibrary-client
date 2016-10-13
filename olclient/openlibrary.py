@@ -320,7 +320,7 @@ class OpenLibrary(object):
                     # XXX Better error handling required
                     pass
 
-                edition = cls(**_ol_edition_json_to_book_args(data))
+                edition = cls(**cls._ol_edition_json_to_book_args(data))
                 return edition
 
             @classmethod
@@ -339,7 +339,7 @@ class OpenLibrary(object):
             def get_olid(cls, key, value):
                 metadata = cls.get_metadata(key, value)
                 if metadata:
-                    book_url = results[_key].get('info_url', '')
+                    book_url = metadata.get('info_url', '')
                     return cls.OL._extract_olid_from_url(book_url, url_type="books")
 
             @classmethod
