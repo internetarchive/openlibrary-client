@@ -72,8 +72,9 @@ class OpenLibrary(object):
             return self.session.post(url, data=data, headers=headers)
 
         response = _login(url, headers, data)
+
         if 'Set-Cookie' not in response.headers:
-            raise Exception("No cookie set")
+            raise ValueException("No cookie set")
 
     @property
     def Work(ol_self):
@@ -396,15 +397,6 @@ class OpenLibrary(object):
             def __init__(self, olid, name, **author_kwargs):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
-
-            def create(self, author, debug=False):
-                """XXX How to create an author without a work?"""
-                pass
-
-            def create_work(self, book):
-                url = self.OL.base_url + \
-                      ('/books/add?author=/authors/%s' % self.author_olid)
-                raise NotImplmentedError
 
             @classmethod
             def get(cls, olid):

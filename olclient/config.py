@@ -51,9 +51,14 @@ class Config(object):
         }
     }
 
+    @classmethod
+    def get_config_parser(cls):
+        config = configparser.ConfigParser()
+        config.getdef = types.MethodType(getdef, config)
+        return config
+
     def __init__(self, config_file=None):
-        self.config = configparser.ConfigParser()
-        self.config.getdef = types.MethodType(getdef, self.config)
+        self.config = self.get_config_parser()
         self.config_file = config_file or self.default_config_file
         self.config.read(self.config_file)
 
@@ -73,6 +78,27 @@ class Config(object):
             return os.path.expanduser('~/.ol')
         return '{0}/ol.ini'.format(config_dir)
 
+    def update(self, config):        
+        """Updates the config defaults by updating it with config dict values
+
+        Args:
+            config (dict)
+        """
+        config_parser = self.get_config_parser()
+
+        _config = self.DEFAULTS
+        _config.update(config)
+        
+        for section in _config:
+            config_parser.add_section(section)
+            for key, default in _config[section].items():
+                config_parser.set(section, key, default)
+
+        self.config = config_parser
+
+        with open(self.config_file, 'w') as config_file:
+            self.config.write(config_file)
+    
     def create_default_config(self):
         """Creates and saves a new config file with the correct default values
         at the appropriate filepath.
@@ -87,16 +113,20 @@ class Config(object):
                 os.chmod(self.config_file, 0o600)
                 self.config.write(fh)
 
-    def get_config(self):
-        """Loads an existing config .ini file from the disk and returns its
-        contents as a dict
-        """
+
+    def _get_config(self):
         config = {}
         for section in self.DEFAULTS:
             config[section] = {}
             for key, default in self.DEFAULTS[section].items():
                 config[section][key] = self.config.getdef(section, key, default)
-
+        return config
+    
+    def get_config(self):
+        """Loads an existing config .ini file from the disk and returns its
+        contents as a dict
+        """
+        config = self._get_config()
         username = config['openlibrary'].pop('username')
         password = config['openlibrary'].pop('password')
         config['openlibrary']['credentials'] = Credentials(
