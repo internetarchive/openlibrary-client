@@ -87,35 +87,50 @@ class OpenLibrary(object):
             OL = ol_self
 
             def __init__(self, olid, **kwargs):
-                self._ol = ol_self
                 self.olid = olid
-                for k,v in kwargs:
-                    setattr(self, k, v)
+                self._editions = []
+
+                for kwarg in kwargs:
+                    setattr(self, kwarg, kwargs[kwarg])
 
             @property
             def editions(self):
                 """
-                Does this hit the search api?
-
                 >>> ol.Work(olid).editions
                 """
-                url = '%/works/%s/editions.json' % (self.OL.base_url, self.olid)
-                r = requests.get(url)
-                return [cls.OL.Edition.compose(ed) for ad in r.json()]
+                url = '%s/works/%s/editions.json' % (self.OL.base_url, self.olid)
+                try:
+                    r = self.OL.session.get(url)
+                    editions = r.json().get('entries', [])
+                except Exception as e:
+                    return []
+
+                print(editions)
+                self._editions = [
+                    self.OL.Edition(
+                        **self.OL.Edition._ol_edition_json_to_book_args(ed))
+                    for ed in editions]
+                return self._editions
 
             @classmethod
             def create(cls, book, debug=False):
                 return cls.OL.create_book(book, debug=debug)
 
-            @classmethod
-            def add_bookcover(cls, url):
-                url = '%s/works/%s/title/add-cover' % (cls.OL.base_url, self.olid)
-                data = {
-                    'imageUrl': url
-                }
-                r = ol_self.session.post(url, files=data)
-                return r.json()
+            def add_bookcover(self, url):
+                _url = '%s/works/%s/-/add-cover' % (self.OL.base_url, self.olid)
+                r = self.OL.session.post(_url, files={
+                    'file': '',
+                    'url': url,
+                    'upload': 'submit'
+                })
+                return r
 
+            @classmethod
+            def get(cls, olid):
+                url = '%s/works/%s.json' % (cls.OL.base_url, olid)
+                r = cls.OL.session.get(url)
+                return cls(olid, **r.json())
+            
             @classmethod
             def get_by_metadata(cls, title=None, author=None):
                 """Get the *closest* matching result in OpenLibrary based on a title
@@ -140,11 +155,11 @@ class OpenLibrary(object):
 
                 err = lambda e: logger.exception("Error retrieving metadata " \
                                                  "for book: %s", e)
-                url = '%s/search.json?title=%s' % (ol_self.base_url, title)
+                url = '%s/search.json?title=%s' % (cls.OL.base_url, title)
                 if author:
                     url += '&author=%s' % author
 
-                @backoff.on_exception(on_giveup=err, **ol_self.BACKOFF_KWARGS)
+                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_book_by_metadata(url):
                     """Makes best effort to perform request w/ exponential backoff"""
                     return requests.get(url)
@@ -162,11 +177,6 @@ class OpenLibrary(object):
 
                 return None
 
-            @classmethod
-            def get(cls, work_olid):
-                url = '%s/works/%s.json' % (cls.OL.base_url, work_olid)
-                return
-
         return Work
 
     @property
@@ -183,6 +193,7 @@ class OpenLibrary(object):
                     >>> e = ol.Edition(u'OL2514725W')
                     >>> e.book
                 """
+                self._work = None
                 self.work_olid = work_olid
                 self.olid = edition_olid
                 super(Edition, self).__init__(
@@ -191,11 +202,16 @@ class OpenLibrary(object):
                     publisher=publisher, publish_date=publish_date,
                     cover=cover, **kwargs)
 
+            @property
+            def work(self):
+                self._work = self.OL.Work.get(self.work_olid)
+                return self._work
+                
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
                 metadata = self.get_metadata('OLID', self.olid)
                 _url = '%s/add-cover' % metadata['preview_url']
-                r = ol_self.session.post(_url, files={
+                r = self.OL.session.post(_url, files={
                     'file': '',
                     'url': url,
                     'upload': 'submit'
@@ -223,6 +239,29 @@ class OpenLibrary(object):
             def json_to_book(cls):
                 pass
 
+            @classmethod
+            def _ol_edition_json_to_book_args(cls, data):
+                book_args = {
+                    'edition_olid': data.pop('key', u'').split('/')[-1],
+                    'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
+                    'title': data.pop('title', u''),
+                    'publisher': data.pop('publishers', u''),
+                    'publish_date': data.pop('publish_date', u''),
+                    'number_of_pages': data.pop('number_of_pages', u''),
+                    'identifiers': {
+                        'oclc': data.pop('oclc_numbers', []),
+                        'ocaid': data.pop('ocaid', []),
+                        'isbn_10': data.pop('isbn_10', []),
+                        'isbn_13': data.pop('isbn_13', []),
+                        'lccn': data.pop('lccn', [])
+                    },
+                    'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
+                                for author in data.pop('authors', [])]
+                }
+                book_args.update(data)
+                return book_args
+                    
+                
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None):
                 """Retrieves a single book from OpenLibrary as json by isbn or olid
@@ -281,34 +320,7 @@ class OpenLibrary(object):
                     # XXX Better error handling required
                     pass
 
-                edition_olid = olid
-                work_olid = data.pop('works', [])[0]['key'].split('/')[-1]
-                title = data.pop('title', u'')
-                publisher = data.pop('publishers', u'')
-                publish_date = data.pop('publish_date', u'')
-                number_of_pages = data.pop('number_of_pages', u'')
-                authors = []
-
-                for author in data.pop('authors', []):
-                    author_olid = author['key'].split('/')[-1]
-                    authors.append(cls.OL.Author.get(author_olid))
-
-                edition = cls(work_olid=work_olid, edition_olid=edition_olid,
-                              title=title, authors=authors,
-                              publisher=publisher, publish_date=publish_date,
-                              number_of_pages=number_of_pages, **data)
-
-                for oclc_id in data.pop('oclc_numbers', []):
-                    edition.add_id('oclc', oclc_id)
-                for oca_id in data.pop('ocaid', []):
-                    edition.add_id('ocaid', ocaid)
-                for isbn_10 in data.pop('isbn_10', []):
-                    edition.add_id('isbn_10', isbn_10)
-                for isbn_13 in data.pop('isbn_13', []):
-                    edition.add_id('isbn_13', isbn_13)
-                for lccn in data.pop('lccn', []):
-                    edition.add_id('lccn', lccn)
-
+                edition = cls(**_ol_edition_json_to_book_args(data))
                 return edition
 
             @classmethod
@@ -328,7 +340,7 @@ class OpenLibrary(object):
                 metadata = cls.get_metadata(key, value)
                 if metadata:
                     book_url = results[_key].get('info_url', '')
-                    return ol_self._extract_olid_from_url(book_url, url_type="books")
+                    return cls.OL._extract_olid_from_url(book_url, url_type="books")
 
             @classmethod
             def get_metadata(cls, key, value):
@@ -352,10 +364,10 @@ class OpenLibrary(object):
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "ID by isbn: %s", e)
-                url = ol_self.base_url + ('/api/books?bibkeys=%s:' % key) + \
+                url = cls.OL.base_url + ('/api/books?bibkeys=%s:' % key) + \
                     value + '&format=json'
 
-                @backoff.on_exception(on_giveup=err, **ol_self.BACKOFF_KWARGS)
+                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_olid(url):
                     """Makes best effort to perform request w/ exponential backoff"""
                     return requests.get(url)
@@ -398,7 +410,7 @@ class OpenLibrary(object):
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid"""
                 url = cls.OL.base_url + '/authors/%s.json' % olid
-                r = ol_self.session.get(url)
+                r = cls.OL.session.get(url)
 
                 try:
                     data = r.json()
