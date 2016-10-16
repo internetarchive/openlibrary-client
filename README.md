@@ -104,7 +104,6 @@ To run test cases (from the openlibrary-client directory):
 
 Other OpenLibrary client libraries include:
 - Ruby: https://github.com/jayfajardo/openlibrary
-- Golang: https://github.com/myearwood/openlibrary
 - Javascript: https://github.com/onaclovtech/openlibrary
 - Python: https://github.com/felipeborges/python-openlibrary and https://github.com/the-metalgamer/python-openlibrary-client
 - PHP: https://github.com/beezus/openlibrary-php
