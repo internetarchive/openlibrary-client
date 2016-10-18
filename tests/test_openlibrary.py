@@ -28,7 +28,7 @@ class TestOpenLibrary(unittest.TestCase):
 
     def test_get_work_by_metadata(self):
         title = u"The Autobiography of Benjamin Franklin"
-        book = self.ol.Work.get_by_metadata(title=title)
+        book = self.ol.Work.search(title=title)
         canonical_title = book.canonical_title
         self.assertTrue('franklin' in canonical_title,
                         "Expected 'franklin' to appear in result title: %s" % \

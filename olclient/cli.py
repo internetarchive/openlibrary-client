@@ -37,7 +37,8 @@ def argparser():
                         help='Get an olid by --title or --isbn')
     parser.add_argument('--olid', default=None,
                         help="Specify an olid as an argument")
-    parser.add_argument('--isbn', default=None,
+    parser.add_argument('--isbn', type=lambda s: unicode(s, 'utf8'),
+                        default=None,
                         help="Specify an isbn as an argument")
     parser.add_argument('--title', default=None,
                         help="Specify a title as an argument")
@@ -80,14 +81,14 @@ def main():
         return ol.Edition.get_olid_by_isbn(args.isbn)
     elif args.get_book:
         if args.olid:
-            return jsonpickle.encoe(ol.Edition.get(olid=args.olid))
+            return jsonpickle.encode(ol.Edition.get(olid=args.olid))
         elif args.isbn:
             return jsonpickle.encode(ol.Edition.get(isbn=args.isbn))
     elif args.get_work:
         if args.olid:
-            return json.encode(ol.Work.get(args.olid))
+            return jsonpickle.encode(ol.Work.get(args.olid))
         elif args.title:
-            return json.encode(ol.Work.search(args.title))
+            return jsonpickle.encode(ol.Work.search(args.title))
     else:
         return parser.print_help()
 

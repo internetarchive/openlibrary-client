@@ -133,7 +133,7 @@ class OpenLibrary(object):
                 return cls(olid, **r.json())
             
             @classmethod
-            def get_by_metadata(cls, title=None, author=None):
+            def search(cls, title=None, author=None):
                 """Get the *closest* matching result in OpenLibrary based on a title
                 and author.
 
@@ -169,9 +169,9 @@ class OpenLibrary(object):
 
                 try:
                     results = Results(**response.json())
-                except ValueError as e:
+                except Exception as e:
                     logger.exception(e)
-                    return None
+                    raise Exception("Work Search API failed return json")
 
                 if results.num_found:
                     return results.first.to_book()
@@ -317,12 +317,11 @@ class OpenLibrary(object):
 
                 try:
                     data = response.json()
+                    edition = cls(**cls._ol_edition_json_to_book_args(data))
+                    return edition
                 except:
                     # XXX Better error handling required
-                    pass
-
-                edition = cls(**cls._ol_edition_json_to_book_args(data))
-                return edition
+                    return None
 
             @classmethod
             def get_olid_by_isbn(cls, isbn):
@@ -418,7 +417,6 @@ class OpenLibrary(object):
                     bio=data.pop('bio', {}).get('value', u''),
                     created=data.pop('created', {}).get('value', u''),
                     links=data.pop('links', []))
-
 
             @classmethod
             def search(cls, name, limit=1):
@@ -530,7 +528,6 @@ class OpenLibrary(object):
         Returns:
             An (OpenLibrary.Edition)
         """
-
         if id_name not in self.VALID_IDS:
             raise ValueError("Invalid `id_name`. Must be one of %s, got %s" \
                              % (self.VALID_IDS, id_name))
@@ -560,6 +557,8 @@ class OpenLibrary(object):
 
         response = _create_book_post(url, data=data)
         _olid = self._extract_olid_from_url(response.url, url_type="books")
+        if _olid == u'add':
+            raise ValueError('Creation failed, book may already exist!')
         return self.Edition.get(_olid)
 
     @staticmethod
