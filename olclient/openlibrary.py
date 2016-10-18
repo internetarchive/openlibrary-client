@@ -131,7 +131,7 @@ class OpenLibrary(object):
                 url = '%s/works/%s.json' % (cls.OL.base_url, olid)
                 r = cls.OL.session.get(url)
                 return cls(olid, **r.json())
-            
+
             @classmethod
             def search(cls, title=None, author=None):
                 """Get the *closest* matching result in OpenLibrary based on a title
@@ -207,7 +207,7 @@ class OpenLibrary(object):
             def work(self):
                 self._work = self.OL.Work.get(self.work_olid)
                 return self._work
-                
+
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
                 metadata = self.get_metadata('OLID', self.olid)
@@ -261,8 +261,8 @@ class OpenLibrary(object):
                 }
                 book_args.update(data)
                 return book_args
-                    
-                
+
+
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None):
                 """Retrieves a single book from OpenLibrary as json by isbn or olid
@@ -506,8 +506,15 @@ class OpenLibrary(object):
             ...     isbn=u"3570028364", publish_date=u"1982"))
         """
         id_name, id_value = self.get_primary_identifier(book)
-        primary_author = book.primary_author
-        author_name = primary_author.name if primary_author else u""
+        author_name = None
+        for _author in book.authors:
+            if len(_author.name.split(" ")) > 1:
+                author_name = _author.name
+                continue
+
+        if not author_name:
+            raise ValueError("Unable to create_book without valid Author name")
+
         author_olid = self.Author.get_olid_by_name(author_name)
         author_key = ('/authors/' + author_olid) if author_olid else  u'__new__'
         return self._create_book(
