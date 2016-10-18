@@ -74,7 +74,7 @@ class OpenLibrary(object):
         response = _login(url, headers, data)
 
         if 'Set-Cookie' not in response.headers:
-            raise ValueException("No cookie set")
+            raise ValueError("No cookie set")
 
     @property
     def Work(ol_self):
