@@ -35,6 +35,8 @@ class Entity(object):
         self.identifiers[id_type] = list(_ids)
         return self.identifiers
 
+    def __repr__(self):
+        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
 
 class Author(Entity):
     """Represets a book Author and their identifier on a service
@@ -126,7 +128,7 @@ class Book(Entity):
         for ed in editions:
             isbns.extend(ed.get('isbn', []))
         return isbns
-            
+
     @classmethod
     def xisbn_to_books(cls, xisbn):
         books = []
@@ -139,7 +141,7 @@ class Book(Entity):
                 publisher=ed.get('publisher', u''),
                 identifiers={
                     'oclc': ed.get('oclcnum', []),
-                    'lccn': ed.get('lccn', []),                    
+                    'lccn': ed.get('lccn', []),
                 },
                 language=ed.get('lang', u''),
                 publish_date=ed.get('year', None)

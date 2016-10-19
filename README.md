@@ -13,15 +13,22 @@ Notes: Tested with Python 2.7, assumed 3.4 compatibility
 
 ## Installation
 
-    $ git clone git@git.archive.org:openlibrary/openlibrary-client.git
-	$ cd openlibrary-client
-	$ pip install .
+As a prerequisite, openlibrary-client requires libssl-dev for the
+cryptography used in openssl:
+
+    $ sudo apt-get install libssl-dev
 
 If you plan on doing MARC parsing, you'll need `yaz` (see:
 https://github.com/indexdata/yaz). Assuming ubuntu/debian, you can
 install `yaz` via apt-get:
 
     $ sudo apt-get install yaz
+
+To install the openlibrary-client package:
+
+    $ git clone https://github.com/internetarchive/openlibrary-client.git
+    $ cd openlibrary-client
+    $ pip install .
 
 ## Configuration
 

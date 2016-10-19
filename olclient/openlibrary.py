@@ -83,7 +83,7 @@ class OpenLibrary(object):
         >>> ol = OpenLibrary()
         >>> ol.Work.get(olid)
         """
-        class Work(object):
+        class Work(common.Entity):
 
             OL = ol_self
 
@@ -106,7 +106,6 @@ class OpenLibrary(object):
                 except Exception as e:
                     return []
 
-                print(editions)
                 self._editions = [
                     self.OL.Edition(
                         **self.OL.Edition._ol_edition_json_to_book_args(ed))
@@ -472,6 +471,15 @@ class OpenLibrary(object):
                 return None
         # This returns the Author class from the ol.Author factory method
         return Author
+
+    def get(self, olid):
+        _olid = olid.lower()
+        if _olid.endswith('m'):
+            return self.Edition.get(olid)
+        elif _olid.endswith('w'):
+            return self.Work.get(olid)
+        elif _olid.endswith('a'):
+            return self.Author.get(olid)
 
     @classmethod
     def get_primary_identifier(cls, book):
