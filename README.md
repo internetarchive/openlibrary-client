@@ -1,7 +1,7 @@
 openlibrary-client
 ==================
 
-A reference client library for the OpenLibrary API
+A reference client library for the Open Library API
 
 Notes: Tested with Python 2.7, assumed 3.4 compatibility
 
@@ -32,7 +32,7 @@ To install the openlibrary-client package:
 
 ## Configuration
 
-Many OpenLibrary actions (like creating Works and Editions) require
+Many Open Library actions (like creating Works and Editions) require
 authentication, i.e. certain requests must be provided a valid cookie
 of a user which has been logged in with their openlibrary account
 credentials.  The openlibrary-client can be configured to "remember
@@ -89,17 +89,31 @@ command line utility. Right now it does exactly nothing.
     ~usage: ol [-h] [-v] [--get-work] [--get-book] [--get-olid] [--olid OLID]
                [--isbn ISBN] [--title TITLE]
 
-    olclient
+optional arguments:
+  -h, --help           show this help message and exit
+  -v                   Displays the currently installed version of ol
+  --configure          Configure ol client with credentials
+  --get-work           Get a work by --title, --olid
+  --get-book           Get a book by --isbn, --olid
+  --get-olid           Get an olid by --title or --isbn
+  --olid OLID          Specify an olid as an argument
+  --isbn ISBN          Specify an isbn as an argument
+  --create CREATE      Create a new work from json
+  --title TITLE        Specify a title as an argument
+  --username USERNAME  An OL username for requests which require
+                       authentication. You will be prompted discretely for a
+                       password
+     
+You can create a new work from the command line using the following
+syntax. It's almost identical to the olclient.common.Book object
+construction, except instead of providing an Author object, you
+instead pass a key for "author" and a corresponding value:
 
-    optional arguments:
-      -h, --help     show this help message and exit
-      -v             Displays the currently installed version of ol
-      --get-work     Get a work by --title, --olid
-      --get-book     Get a book by --isbn, --olid
-      --get-olid     Get an olid by --title or --isbn
-      --olid OLID    Specify an olid as an argument
-      --isbn ISBN    Specify an isbn as an argument
-      --title TITLE  Specify a title as an argument
+
+    > ol --create '{"title": "The Cartoon Guide to Calculus", "publisher": "Teach Yourself", "publish_date": "2013", "identifiers": {"isbn_10": ["144419111X"]}, "cover": "https://images-na.ssl-images-amazon.com/images/I/51aJdEGttLL._SX328_BO1,204,203,200_.jpg", "author": "Hugh Neill"}'
+    OL26194598M
+
+Successful creation of a new Work results in the return of its Open Library edition ID.
 
 ## Testing
 
@@ -109,7 +123,7 @@ To run test cases (from the openlibrary-client directory):
 
 ## Other Client Libraries
 
-Other OpenLibrary client libraries include:
+Other Open Library client libraries include:
 - Ruby: https://github.com/jayfajardo/openlibrary
 - Javascript: https://github.com/onaclovtech/openlibrary
 - Python: https://github.com/felipeborges/python-openlibrary and https://github.com/the-metalgamer/python-openlibrary-client
