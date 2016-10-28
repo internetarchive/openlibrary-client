@@ -21,6 +21,7 @@ import sys
 from . import __title__, __version__, OpenLibrary, MARC
 from .config import Config, Credentials
 
+
 def argparser():
     """Parses command line options and returns an args object"""
     parser = argparse.ArgumentParser(description=__title__)
@@ -37,8 +38,7 @@ def argparser():
                         help='Get an olid by --title or --isbn')
     parser.add_argument('--olid', default=None,
                         help="Specify an olid as an argument")
-    parser.add_argument('--isbn', type=lambda s: unicode(s, 'utf8'),
-                        default=None,
+    parser.add_argument('--isbn', default=None,
                         help="Specify an isbn as an argument")
     parser.add_argument('--title', default=None,
                         help="Specify a title as an argument")
