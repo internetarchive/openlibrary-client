@@ -15,13 +15,14 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import getpass
+import json
 import jsonpickle
 import sys
 
-from . import __title__, __version__, OpenLibrary, MARC
+from . import __title__, __version__, OpenLibrary, MARC, common
 from .config import Config, Credentials
 
-
+            
 def argparser():
     """Parses command line options and returns an args object"""
     parser = argparse.ArgumentParser(description=__title__)
@@ -40,13 +41,15 @@ def argparser():
                         help="Specify an olid as an argument")
     parser.add_argument('--isbn', default=None,
                         help="Specify an isbn as an argument")
+    parser.add_argument('--create', default='',
+                        help='Create a new work from json')
     parser.add_argument('--title', default=None,
                         help="Specify a title as an argument")
     parser.add_argument('--username', default=None,
                         help="An OL username for requests which " \
                         "require authentication. You will be prompted " \
                         "discretely for a password")
-    
+
     # --marc : to convert marcs (e.g. --file <path> --from <line> --to <bin)>
     # --create : to create a book (e.g. --title, --author, --isbn, ...)
     # --edit : to edit an OL book (e.g. --olid OLXXXXX, ...)
@@ -89,6 +92,13 @@ def main():
             return jsonpickle.encode(ol.Work.get(args.olid))
         elif args.title:
             return jsonpickle.encode(ol.Work.search(args.title))
+    elif args.create:
+        data = json.loads(args.create)
+        title = data.pop('title')
+        author = common.Author(data.pop('author'))
+        book = common.Book(title, authors=[author], **data)
+        edition = ol.Work.create(book)
+        return edition.olid
     else:
         return parser.print_help()
 

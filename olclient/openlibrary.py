@@ -114,7 +114,16 @@ class OpenLibrary(object):
 
             @classmethod
             def create(cls, book, debug=False):
-                return cls.OL.create_book(book, debug=debug)
+                try:
+                    book.publish_date = re.findall(
+                        r'[\d]{4}', book.publish_date)[0]
+                except:
+                    book.publish_date = u''
+                ed = cls.OL.create_book(book, debug=debug)
+                ed.add_bookcover(book.cover)
+                work = ed.work
+                work.add_bookcover(book.cover)
+                return ed
 
             def add_bookcover(self, url):
                 _url = '%s/works/%s/-/add-cover' % (self.OL.base_url, self.olid)
