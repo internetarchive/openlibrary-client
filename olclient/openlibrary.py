@@ -77,6 +77,135 @@ class OpenLibrary(object):
             raise ValueError("No cookie set")
 
     @property
+    def List(ol_self):
+
+        class List(common.Entity):
+            OL = ol_self
+            POST_URL = u"/people/%s/lists.json" % OL.username
+            GET_URL = u"/people/%s/lists/%s"
+            NAME = 'lists'
+            
+            def __init__(self, olid, username, **kwargs):
+                self.olid = olid
+                self.username = username
+                self.identifiers = {
+                    u'olid': [olid]
+                }
+
+                for kwarg in kwargs:
+                    setattr(self, kwarg, kwargs[kwarg])
+
+            @property
+            def seeds(self):
+                """Returns a dict of seeds (i.e. editions/works) belonging to this
+                list.
+                
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> lst = ol.List.get(username=u'mekBot', olid=u'OL102669L')
+                    >>> lst.seeds
+                    {
+                      u'entries': [{
+                        u'ebook_count': 0,
+                        u'edition_count': 0,
+                        u'full_url': u'/works/OL1799456W/Benjamin_Franklin',
+                        u'last_update': u'2012-11-28T11:05:36.647178',
+                        u'picture': {u'url': u'//covers.openlibrary.org/w/id/6120536-S.jpg'},
+                        u'title': u'Benjamin Franklin',
+                        u'type': u'work',
+                        u'url': u'/works/OL1799456W',
+                        u'work_count': 0
+                      }],
+                      u'links': {u'list': u'/people/mekBot/lists/OL102669L',
+                      u'self': u'/people/mekBot/lists/OL102669L/seeds'},
+                      u'size': 1
+                    }
+
+                """
+                url = '%s/people/%s/lists/%s/seeds.json' \
+                      % (self.OL.base_url, self.username, self.olid)
+                return self.OL.session.get(url).json()
+                    
+            @classmethod        
+            def get(cls, username=None, olid=None):
+                """Retrieves the user's lists (or a specific list by olid). Defaults
+                to the logged
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+
+                    >>> # get all lists
+                    >>> ol.List.get(username=u'mekBot')
+                    [<class 'olclient.openlibrary.List' {'username': u'mekBot', 'seed_count': 1, 'edition_count': 0, 'url': u'/people/mekBot/lists/OL102669L', 'identifiers': {u'olid': [u'OL102669L']}, 'last_update': u'2012-11-28T11:05:36.647178', 'full_url': u'/people/mekBot/lists/OL102669L/Building_Habits', 'olid': u'OL102669L', 'name': u'Building Habits'}>]
+
+                    >>> # get specific list
+                    >>> ol.List.get(username=u'mekBot', olid=u'OL102669L')
+                    <class 'olclient.openlibrary.List' {'username': u'mekBot', 'seed_count': 1, 'description': None, 'links': {u'editions': u'/people/mekBot/lists/OL102669L/editions', u'self': u'/people/mekBot/lists/OL102669L', u'seeds': u'/people/mekBot/lists/OL102669L/seeds', u'subjects': u'/people/mekBot/lists/OL102669L/subjects'}, 'edition_count': 0, 'identifiers': {u'olid': [u'OL102669L']}, 'meta': {u'last_modified': u'2016-10-04T21:27:09.701372', u'revision': 1, u'created': u'2016-10-04T21:27:09.701372'}, 'olid': u'OL102669L', 'name': u'Building Habits'}>
+
+                XXX The set of all a user's lists contain different
+                metadata than accessing an individual list.
+
+                """
+                username = username or cls.OL.username
+
+                if not username:
+                    raise ValueError("A username required")
+                
+                def _get_list(olid):
+                    url = '%s/people/%s/lists/%s.json' \
+                           % (cls.OL.base_url, username, olid)
+                    r = cls.OL.session.get(url)
+                    data = r.json()
+                    return cls(olid, username, **r.json())
+
+                def _get_lists():
+                    url = cls.OL.base_url + ('/people/%s/lists.json' % username)
+                    r = cls.OL.session.get(url)
+                    lsts = r.json().get('entries', [])
+                    get_olid = lambda x: x['url'].split('/')[-1]
+                    return [cls(get_olid(lst), username, **lst) for lst in lsts]
+                
+                return _get_list(olid) if olid else _get_lists()
+            
+            @classmethod
+            def create(cls, olid, name, description=""):
+                """Creates a list with a single item"""
+                if not cls.OL.username:
+                    raise ValueError("Must be logged in to create list")
+                url =  "%s/people/%s/lists.json" % (cls.OL.base_url, cls.OL.username)
+                _type = cls.OL.get_olid_cls(olid).TYPE
+                data = {
+                    "name": name,
+                    "description": description,
+                    "seeds": [{
+                        "key": "/%s/%s" % (_type, olid)
+                    }]
+                }
+                r = cls.OL.session.post(
+                    url, data=json.dumps(data),
+                    headers={'Content-Type': 'application/json'})
+                list_olid = r.json()['key'].split('/')[-1]
+                return cls.get(cls.OL.username, list_olid)
+
+            def delete(self):
+                """Deletes this list from the user's lists"""
+                return self.remove(self.olid)
+            
+            @classmethod
+            def remove(cls, olid):
+                """Remove"""
+                if not cls.OL.username:
+                    raise ValueError("Must be logged in to create list")
+                url = '%s/people/%s/lists/%s/delete.json' \
+                      % (cls.OL.base_url, cls.OL.username, olid)
+                return cls.OL.session.post(url).json()
+
+        return List
+                                
+        
+    @property
     def Work(ol_self):
         """
         >>> from olclient import OpenLibrary
@@ -86,7 +215,8 @@ class OpenLibrary(object):
         class Work(common.Entity):
 
             OL = ol_self
-
+            TYPE = 'works'
+            
             def __init__(self, olid, **kwargs):
                 self.olid = olid
                 self._editions = []
@@ -94,6 +224,9 @@ class OpenLibrary(object):
                 for kwarg in kwargs:
                     setattr(self, kwarg, kwargs[kwarg])
 
+            def create_list(self, name, description=""):
+                self.OL.List.create(self.olid, name, description=description)
+                
             @property
             def editions(self):
                 """
@@ -193,6 +326,7 @@ class OpenLibrary(object):
         class Edition(common.Book):
 
             OL = ol_self
+            TYPE = 'editions'
 
             def __init__(self, work_olid, edition_olid, title, subtitle=u"",
                          identifiers=None, number_of_pages=None, authors=None,
@@ -400,7 +534,8 @@ class OpenLibrary(object):
         class Author(common.Author):
 
             OL = ol_self
-
+            TYPE = 'authors'
+            
             def __init__(self, olid, name, **author_kwargs):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
@@ -481,14 +616,21 @@ class OpenLibrary(object):
         # This returns the Author class from the ol.Author factory method
         return Author
 
-    def get(self, olid):
+    def get_olid_cls(self, olid):
         _olid = olid.lower()
         if _olid.endswith('m'):
-            return self.Edition.get(olid)
+            return self.Edition
         elif _olid.endswith('w'):
-            return self.Work.get(olid)
+            return self.Work
         elif _olid.endswith('a'):
-            return self.Author.get(olid)
+            return self.Author
+        elif _olid.endswith('l'):
+            return self.List
+    
+    def get(self, olid):
+        _olid = olid.lower()
+        obj = get_olid_cls(olid)
+        return obj.get(olid)
 
     @classmethod
     def get_primary_identifier(cls, book):

@@ -67,7 +67,8 @@ class Book(Entity):
 
     def __init__(self, title, subtitle=u"", identifiers=None,
                  number_of_pages=None, authors=None, publisher=None,
-                 publish_date=u"", cover=u"", **kwargs):
+                 publish_date=u"", cover=u"", description=u"",
+                 **kwargs):
         """
         Args:
             title (unicode) [required]
@@ -90,6 +91,7 @@ class Book(Entity):
         self.publisher = publisher
         self.publish_date = publish_date
         self.cover = cover
+        self.description = description
 
         for kwarg in kwargs:
             setattr(self, kwarg, kwargs[kwarg])
