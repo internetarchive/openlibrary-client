@@ -84,7 +84,7 @@ class OpenLibrary(object):
             POST_URL = u"/people/%s/lists.json" % OL.username
             GET_URL = u"/people/%s/lists/%s"
             NAME = 'lists'
-            
+
             def __init__(self, olid, username, **kwargs):
                 self.olid = olid
                 self.username = username
@@ -99,7 +99,7 @@ class OpenLibrary(object):
             def seeds(self):
                 """Returns a dict of seeds (i.e. editions/works) belonging to this
                 list.
-                
+
                 Usage:
                     >>> from olclient.openlibrary import OpenLibrary
                     >>> ol = OpenLibrary()
@@ -126,8 +126,8 @@ class OpenLibrary(object):
                 url = '%s/people/%s/lists/%s/seeds.json' \
                       % (self.OL.base_url, self.username, self.olid)
                 return self.OL.session.get(url).json()
-                    
-            @classmethod        
+
+            @classmethod
             def get(cls, username=None, olid=None):
                 """Retrieves the user's lists (or a specific list by olid). Defaults
                 to the logged
@@ -152,7 +152,7 @@ class OpenLibrary(object):
 
                 if not username:
                     raise ValueError("A username required")
-                
+
                 def _get_list(olid):
                     url = '%s/people/%s/lists/%s.json' \
                            % (cls.OL.base_url, username, olid)
@@ -166,9 +166,9 @@ class OpenLibrary(object):
                     lsts = r.json().get('entries', [])
                     get_olid = lambda x: x['url'].split('/')[-1]
                     return [cls(get_olid(lst), username, **lst) for lst in lsts]
-                
+
                 return _get_list(olid) if olid else _get_lists()
-            
+
             @classmethod
             def create(cls, olid, name, description=""):
                 """Creates a list with a single item"""
@@ -192,7 +192,7 @@ class OpenLibrary(object):
             def delete(self):
                 """Deletes this list from the user's lists"""
                 return self.remove(self.olid)
-            
+
             @classmethod
             def remove(cls, olid):
                 """Remove"""
@@ -203,8 +203,8 @@ class OpenLibrary(object):
                 return cls.OL.session.post(url).json()
 
         return List
-                                
-        
+
+
     @property
     def Work(ol_self):
         """
@@ -216,7 +216,7 @@ class OpenLibrary(object):
 
             OL = ol_self
             TYPE = 'works'
-            
+
             def __init__(self, olid, **kwargs):
                 self.olid = olid
                 self._editions = []
@@ -226,7 +226,7 @@ class OpenLibrary(object):
 
             def create_list(self, name, description=""):
                 self.OL.List.create(self.olid, name, description=description)
-                
+
             @property
             def editions(self):
                 """
@@ -535,7 +535,7 @@ class OpenLibrary(object):
 
             OL = ol_self
             TYPE = 'authors'
-            
+
             def __init__(self, olid, name, **author_kwargs):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
@@ -626,7 +626,7 @@ class OpenLibrary(object):
             return self.Author
         elif _olid.endswith('l'):
             return self.List
-    
+
     def get(self, olid):
         _olid = olid.lower()
         obj = get_olid_cls(olid)
