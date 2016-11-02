@@ -174,6 +174,11 @@ class OpenLibrary(object):
                 """Creates a list with a single item"""
                 if not cls.OL.username:
                     raise ValueError("Must be logged in to create list")
+                if not olid or not olid.lower().startswith("ol") or \
+                   olid[-1].lower() not in "lwae".split():
+                    raise ValueError("Must be a valid olid")
+                if not name:
+                    raise ValueError("List name required")
                 url =  "%s/people/%s/lists.json" % (cls.OL.base_url, cls.OL.username)
                 _type = cls.OL.get_olid_cls(olid).TYPE
                 data = {
