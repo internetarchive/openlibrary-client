@@ -134,6 +134,14 @@ class OpenLibrary(object):
                 })
                 return r
 
+            def add_subject(self, subject, comment=''):
+                url = self.base_url + "/works/" + self.olid + ".json"
+                r = self.session.get(url)
+                data = r.json()
+                data['_comment'] = comment
+                data['subjects'].append(subject)
+                return self.session.put(url, json.dumps(data))
+
             @classmethod
             def get(cls, olid):
                 url = '%s/works/%s.json' % (cls.OL.base_url, olid)
