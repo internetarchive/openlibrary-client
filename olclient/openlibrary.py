@@ -76,6 +76,18 @@ class OpenLibrary(object):
         if 'Set-Cookie' not in response.headers:
             raise ValueError("No cookie set")
 
+    def delete(self, olid, comment):
+        """Delete a single Open Library entity by olid (str)
+        CAUTION: This does not make any checks for backreference consistency,
+        Editions could be orphaned, or books left without Authors. Use with care!
+        """
+        data = json.dumps({
+                'type': { 'key': '/type/delete' },
+                '_comment': comment
+               })
+        url = self._generate_url_from_olid(olid)
+        return self.session.put(url, data=data)
+
     @property
     def Work(ol_self):
         """
@@ -592,6 +604,12 @@ class OpenLibrary(object):
         if _olid == u'add':
             raise ValueError('Creation failed, book may already exist!')
         return self.Edition.get(_olid)
+
+    def _generate_url_from_olid(self, olid):
+        """Returns the .json url for an olid (str)"""
+        ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
+        kind = re.sub('\d+', '..', olid)
+        return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
 
     @staticmethod
     def _extract_olid_from_url(url, url_type):
