@@ -3,6 +3,7 @@
 """Utility for parsing and inter-converting various types of MARC records"""
 
 from __future__ import absolute_import, division, print_function
+import six
 
 import subprocess
 import tempfile
@@ -159,7 +160,7 @@ class MARC(object):
         """
         reader = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                    force_utf8=True, utf8_handling='ignore')
-        record = reader.next()
+        record = six.next(reader)
         keyed_record = MARCRecord(record)
         data = {
             'identifiers': {},
@@ -184,7 +185,8 @@ class MARC(object):
             outformat (unicode) - convert to this format (a yaz flag)
         """
         with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
-            unicode_marc = marc if has_unicode(marc) else marc.encode("utf-8")
+            unicode_marc = marc if isinstance(marc, bytes) \
+                                else marc.encode("utf-8")
             tmp.write(unicode_marc)
             tmp.seek(0)
             new_marc = subprocess.check_output([
