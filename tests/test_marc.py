@@ -85,7 +85,7 @@ class TestMARC(unittest.TestCase):
                 marc = marcs.next()
                 self.assertTrue(marc.author() == \
                                 u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
-                                '1900-1980 Verfasser$0(DE-588)118536389$4aut',
+                                '1900-1980 Verfasser (DE-588)118536389 aut',
                                 "Line MARC title didn't match pymarc title")
 
     def test_unicode_line_marc_to_book(self):
