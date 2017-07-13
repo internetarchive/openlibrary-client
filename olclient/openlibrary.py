@@ -454,6 +454,12 @@ class OpenLibrary(object):
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
 
+                def extract_bio(bio):
+                    if 'value' in bio:
+                        return bio.get('value', u'')
+                    else:
+                        return bio
+
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
@@ -465,7 +471,7 @@ class OpenLibrary(object):
                     olid, name=data.pop('name', u''),
                     birth_date=data.pop('birth_date', u''),
                     alternate_names=data.pop('alternate_names', []),
-                    bio=data.pop('bio', {}).get('value', u''),
+                    bio=extract_bio(data.pop('bio', u'')),
                     created=data.pop('created', {}).get('value', u''),
                     links=data.pop('links', []))
 
