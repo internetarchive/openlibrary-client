@@ -151,7 +151,25 @@ class OpenLibrary(object):
                 r = self.OL.session.get(url)
                 data = r.json()
                 data['_comment'] = comment or ('adding subject: %s' % subject)
-                data['subjects'].append(subject)
+                data['subjects'] = list(set(data.get('subjects', []) + [subject]))
+                return self.OL.session.put(url, json.dumps(data))
+
+            def add_subjects(self, subjects, comment=''):
+                url = self.OL.base_url + "/works/" + self.olid + ".json"
+                r = self.OL.session.get(url)
+                data = r.json()
+                print(data)
+                data['_comment'] = comment or ('adding subjects: %s' % ', '.join(subjects))
+                data['subjects'] = list(set(data.get('subjects', []) + subjects))
+                return self.OL.session.put(url, json.dumps(data))
+
+
+            def rm_subjects(self, subjects, comment=''):
+                url = self.OL.base_url + "/works/" + self.olid + ".json"
+                r = self.OL.session.get(url)
+                data = r.json()
+                data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
+                data['subjects'] = list(set(data['subjects']) - set(subjects))
                 return self.OL.session.put(url, json.dumps(data))
 
             @classmethod
@@ -292,13 +310,12 @@ class OpenLibrary(object):
 
 
             @classmethod
-            def get(cls, olid=None, isbn=None, oclc=None, lccn=None):
+            def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
                 """Retrieves a single book from OpenLibrary as json by isbn or olid
                 and marshals it into an olclient Book.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
-                    identifier_type (unicode) - u'olid' or u'isbn'
 
                 Warnings:
                     Currently, the marshaling is not complete. While
@@ -322,15 +339,17 @@ class OpenLibrary(object):
                     >>> ol.Edition.get(u'OL25944230M')
                 """
                 if not olid:
-                    if any([isbn, oclc, lccn]):
+                    if any([isbn, oclc, lccn, ocaid]):
                         if isbn:
                             olid = cls.get_olid_by_isbn(isbn)
                         elif oclc:
                             olid = cls.get_olid_by_oclc(oclc)
+                        elif ocaid:
+                            olid = cls.get_olid_by_ocaid(ocaid)
                         else:
                             olid = cls.get_olid_by_lccn(lccn)
                     else:
-                        raise ValueError("Must supply valid olid, isbn, oclc, or lccn")
+                        raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "book: %s", e)
@@ -350,6 +369,10 @@ class OpenLibrary(object):
                 except:
                     # XXX Better error handling required
                     return None
+
+            @classmethod
+            def get_olid_by_ocaid(cls, ocaid):
+                return cls.get_olid('OCAID', ocaid)
 
             @classmethod
             def get_olid_by_isbn(cls, isbn):
@@ -387,8 +410,8 @@ class OpenLibrary(object):
                     ... ol.Edition.get_olid(u'ISBN', u'9780747550303')
                     u'OL1429049M'
                 """
-                if key not in ['OCLC', 'ISBN', 'LCCN', 'OLID']:
-                    raise ValueError("key must be one of OCLC, OLID, ISBN, or LCCN")
+                if key not in ['OCLC', 'ISBN', 'LCCN', 'OLID', 'OCAID']:
+                    raise ValueError("key must be one of OCLC, OLID, ISBN, OCAID, or LCCN")
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "ID by isbn: %s", e)
