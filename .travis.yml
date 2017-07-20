@@ -1,9 +1,12 @@
 language: python
 dist: trusty
-sudo: false
+sudo: true
 
 python:
   - "2.7"
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get -y install yaz
 install: pip install -r requirements.txt
 before_script: export PYTHONPATH=$PYTHONPATH:$(pwd)
 script: pytest
