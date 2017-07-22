@@ -11,6 +11,19 @@ python:
   - "3.5"
   - "3.6"
 
+matrix:
+  include:
+    - language: generic
+      python: 3.6
+      os: osx
+      before_install:
+        # brew install below does auto-update first which adds ~2 min.
+        # HOMEBREW_AUTO_UPDATE_SECS or HOMEBREW_NO_AUTO_UPDATE might help
+        - brew install python3 yaz
+        - virtualenv ~/env -p python3
+        - source ~/env/bin/activate
+        - pip install pytest
+
 addons:
   apt:
     sources:
