@@ -1,0 +1,29 @@
+language: python
+
+os:
+  - linux
+
+dist: trusty
+sudo: enabled
+
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+
+addons:
+  apt:
+    sources:
+    - sourceline: 'deb http://ftp.indexdata.dk/ubuntu trusty main'
+      key_url: http://ftp.indexdata.dk/debian/indexdata.asc
+    packages:
+    - yaz
+
+before_install:
+  - yaz-marcdump -V
+
+install: pip install -r requirements.txt
+
+before_script: export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+script: pytest
