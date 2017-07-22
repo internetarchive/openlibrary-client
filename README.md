@@ -1,9 +1,11 @@
 openlibrary-client
 ==================
 
-A reference client library for the Open Library API
+![Travis CI build status](https://travis-ci.org/internetarchive/openlibrary-client.svg?branch=master)
 
-Notes: Tested with Python 2.7, assumed 3.4 compatibility
+A reference client library for the Open Library API.
+Tested with Python 2.7, 3.5, 3.6.
+
 
 - [Installation](#installation)
 - [Usage](#usage)
