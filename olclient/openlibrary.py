@@ -147,22 +147,17 @@ class OpenLibrary(object):
                 return r
 
             def add_subject(self, subject, comment=''):
-                url = self.OL.base_url + "/works/" + self.olid + ".json"
-                r = self.OL.session.get(url)
-                data = r.json()
-                data['_comment'] = comment or ('adding subject: %s' % subject)
-                data['subjects'] = list(set(data.get('subjects', []) + [subject]))
-                return self.OL.session.put(url, json.dumps(data))
+                return self.add_subjects([subject], comment)
 
             def add_subjects(self, subjects, comment=''):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
                 r = self.OL.session.get(url)
                 data = r.json()
-                print(data)
-                data['_comment'] = comment or ('adding subjects: %s' % ', '.join(subjects))
-                data['subjects'] = list(set(data.get('subjects', []) + subjects))
-                return self.OL.session.put(url, json.dumps(data))
-
+                changed_subjects = self.OL._merge_unique_lists([data.get('subjects', []), subjects])
+                if changed_subjects != data.get('subjects', []):
+                    data['_comment'] = comment or ('adding %s to subjects' % subjects)
+                    data['subjects'] = changed_subjects
+                    return self.OL.session.put(url, json.dumps(data))
 
             def rm_subjects(self, subjects, comment=''):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
@@ -664,6 +659,20 @@ class OpenLibrary(object):
         except AttributeError:
             return None  # No match
 
+    @staticmethod
+    def _merge_unique_lists(lists, hash_fn=None):
+        """
+        Combine unique lists into a new unique list. Preserves ordering.
+        """
+        result = []
+        seen = set()
+        for lst in lists:
+            for el in lst:
+                hsh = hash_fn(el) if hash_fn else el
+                if hsh not in seen:
+                    result.append(el)
+                    seen.add(hsh)
+        return result
 
 class Results(object):
 

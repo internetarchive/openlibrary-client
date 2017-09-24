@@ -71,6 +71,18 @@ class TestOpenLibrary(unittest.TestCase):
         work = self.ol.Work.get(u'OL12938932W')
         self.assertTrue(work.title.lower() == 'all quiet on the western front',
                         "Failed to retrieve work")
+
+    def test_merge_unique_lists(self):
+        test_data = [
+            {'in': [[1,2], [2,3]], 'expect': [1, 2, 3]},
+            {'in': [[1,2,2,2], [2, 2, 3]], 'expect': [1, 2, 3]},
+            {'in': [[9, 10]], 'expect': [9, 10]},
+            {'in': [[1, 1, 1, 1]], 'expect': [1]},
+            {'in': [], 'expect': []},
+            {'in': [[2], [1]], 'expect': [2, 1]}
+        ]
+        for case in test_data:
+            assert(self.ol._merge_unique_lists(case['in']) == case['expect'])
         
     def test_cli(self):
         expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": "", "name": "Stuart J. Russell", "links": [], "created": "2008-04-01T03:28:50.625462", "identifiers": {}, "alternate_names": ["Stuart; Norvig, Peter Russell"], "birth_date": "", "olid": null}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "cover": "", "publish_date": "2003", "olid": "OL3702561M"}""")
