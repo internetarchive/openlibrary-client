@@ -155,7 +155,7 @@ class OpenLibrary(object):
                 data = r.json()
                 changed_subjects = self.OL._merge_unique_lists([data.get('subjects', []), subjects])
                 if changed_subjects != data.get('subjects', []):
-                    data['_comment'] = comment or ('adding %s to subjects' % subjects)
+                    data['_comment'] = comment or ('adding %s to subjects' % ', '.join(subjects))
                     data['subjects'] = changed_subjects
                     return self.OL.session.put(url, json.dumps(data))
 
