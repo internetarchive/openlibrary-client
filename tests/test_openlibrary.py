@@ -71,7 +71,22 @@ class TestOpenLibrary(unittest.TestCase):
         work = self.ol.Work.get(u'OL12938932W')
         self.assertTrue(work.title.lower() == 'all quiet on the western front',
                         "Failed to retrieve work")
-        
+
+    def test_ol_edition_json_to_book_args(self):
+        edition_data = {
+            'key': '/books/OL1234M',
+            'works': [{'key': '/works/OL12W'}],
+            'isbn_10': ['1234567890'],
+            'identifiers': {'goodreads': ['12345']}
+        }
+        actual = self.ol.Edition._ol_edition_json_to_book_args(edition_data)
+        self.assertEquals(actual['identifiers']['isbn_10'], '1234567890')
+
+    def test_ol_edition_without_work(self):
+        edition_data = {'key': '/books/OL1234M'} # has no 'works' key
+        actual = self.ol.Edition._ol_edition_json_to_book_args(edition_data)
+        self.assertIsNone(actual['work_olid'])
+
     def test_cli(self):
         expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": "", "name": "Stuart J. Russell", "links": [], "created": "2008-04-01T03:28:50.625462", "identifiers": {}, "alternate_names": ["Stuart; Norvig, Peter Russell"], "birth_date": "", "olid": null}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "cover": "", "publish_date": "2003", "olid": "OL3702561M"}""")
         
