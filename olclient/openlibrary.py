@@ -106,6 +106,11 @@ class OpenLibrary(object):
                 for kwarg in kwargs:
                     setattr(self, kwarg, kwargs[kwarg])
 
+            def json(self):
+                exclude = ['_editions', 'olid']
+                data = { k: v for k,v in self.__dict__.iteritems() if k not in exclude }
+                return json.dumps(data)
+
             @property
             def editions(self):
                 """
