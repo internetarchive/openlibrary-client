@@ -14,7 +14,7 @@ import requests
 
 from . import common
 from .config import Config
-
+from .utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
@@ -153,7 +153,7 @@ class OpenLibrary(object):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
                 data = self.OL.session.get(url).json()
                 original_subjects = data.get('subjects', [])
-                changed_subjects = self.OL._merge_unique_lists([original_subjects, subjects])
+                changed_subjects = merge_unique_lists([original_subjects, subjects])
                 data['_comment'] = comment or ('adding %s to subjects' % ', '.join(subjects))
                 data['subjects'] = changed_subjects
                 return self.OL.session.put(url, json.dumps(data))
@@ -658,18 +658,6 @@ class OpenLibrary(object):
         except AttributeError:
             return None  # No match
 
-    @staticmethod
-    def _merge_unique_lists(lists, hash_fn=None):
-        """ Combine unique lists into a new unique list. Preserves ordering."""
-        result = []
-        seen = set()
-        for lst in lists:
-            for el in lst:
-                hsh = hash_fn(el) if hash_fn else el
-                if hsh not in seen:
-                    result.append(el)
-                    seen.add(hsh)
-        return result
 
 class Results(object):
 
