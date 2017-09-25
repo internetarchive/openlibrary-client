@@ -151,13 +151,12 @@ class OpenLibrary(object):
 
             def add_subjects(self, subjects, comment=''):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
-                r = self.OL.session.get(url)
-                data = r.json()
-                changed_subjects = self.OL._merge_unique_lists([data.get('subjects', []), subjects])
-                if changed_subjects != data.get('subjects', []):
-                    data['_comment'] = comment or ('adding %s to subjects' % ', '.join(subjects))
-                    data['subjects'] = changed_subjects
-                    return self.OL.session.put(url, json.dumps(data))
+                data = self.OL.session.get(url).json()
+                original_subjects = data.get('subjects', [])
+                changed_subjects = self.OL._merge_unique_lists([original_subjects, subjects])
+                data['_comment'] = comment or ('adding %s to subjects' % ', '.join(subjects))
+                data['subjects'] = changed_subjects
+                return self.OL.session.put(url, json.dumps(data))
 
             def rm_subjects(self, subjects, comment=''):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
@@ -661,9 +660,7 @@ class OpenLibrary(object):
 
     @staticmethod
     def _merge_unique_lists(lists, hash_fn=None):
-        """
-        Combine unique lists into a new unique list. Preserves ordering.
-        """
+        """ Combine unique lists into a new unique list. Preserves ordering."""
         result = []
         seen = set()
         for lst in lists:
