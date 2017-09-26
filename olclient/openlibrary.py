@@ -290,7 +290,7 @@ class OpenLibrary(object):
             def _ol_edition_json_to_book_args(cls, data):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
-                    'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
+                    'work_olid': ('works' in data or None) and data.pop('works')[0]['key'].split('/')[-1],
                     'title': data.pop('title', u''),
                     'publisher': data.pop('publishers', u''),
                     'publish_date': data.pop('publish_date', u''),
