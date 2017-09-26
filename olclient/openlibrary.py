@@ -295,16 +295,17 @@ class OpenLibrary(object):
                     'publisher': data.pop('publishers', u''),
                     'publish_date': data.pop('publish_date', u''),
                     'number_of_pages': data.pop('number_of_pages', u''),
-                    'identifiers': {
-                        'oclc': data.pop('oclc_numbers', []),
-                        'ocaid': data.pop('ocaid', []),
-                        'isbn_10': data.pop('isbn_10', []),
-                        'isbn_13': data.pop('isbn_13', []),
-                        'lccn': data.pop('lccn', [])
-                    },
+                    'identifiers': data.pop('identifiers', {}),
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
+                book_args['identifiers'].update({
+                    'oclc': data.pop('oclc_numbers', []),
+                    'ocaid': data.pop('ocaid', []),
+                    'isbn_10': data.pop('isbn_10', []),
+                    'isbn_13': data.pop('isbn_13', []),
+                    'lccn': data.pop('lccn', [])
+                })
                 book_args.update(data)
                 return book_args
 
