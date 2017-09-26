@@ -290,21 +290,22 @@ class OpenLibrary(object):
             def _ol_edition_json_to_book_args(cls, data):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
-                    'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
+                    'work_olid': ('works' in data or None) and data.pop('works')[0]['key'].split('/')[-1],
                     'title': data.pop('title', u''),
                     'publisher': data.pop('publishers', u''),
                     'publish_date': data.pop('publish_date', u''),
                     'number_of_pages': data.pop('number_of_pages', u''),
-                    'identifiers': {
-                        'oclc': data.pop('oclc_numbers', []),
-                        'ocaid': data.pop('ocaid', []),
-                        'isbn_10': data.pop('isbn_10', []),
-                        'isbn_13': data.pop('isbn_13', []),
-                        'lccn': data.pop('lccn', [])
-                    },
+                    'identifiers': data.pop('identifiers', {}),
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
+                book_args['identifiers'].update({
+                    'oclc': data.pop('oclc_numbers', []),
+                    'ocaid': data.pop('ocaid', []),
+                    'isbn_10': data.pop('isbn_10', []),
+                    'isbn_13': data.pop('isbn_13', []),
+                    'lccn': data.pop('lccn', [])
+                })
                 book_args.update(data)
                 return book_args
 
