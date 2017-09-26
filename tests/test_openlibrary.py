@@ -80,8 +80,8 @@ class TestOpenLibrary(unittest.TestCase):
             'identifiers': {'goodreads': ['12345']}
         }
         actual = self.ol.Edition._ol_edition_json_to_book_args(edition_data)
-        self.assertEquals(actual['identifiers']['isbn_10'], '1234567890')
-        self.assertEquals(actual['identifiers']['goodreads'], '12345')
+        self.assertEquals(actual['identifiers']['isbn_10'], ['1234567890'])
+        self.assertEquals(actual['identifiers']['goodreads'], ['12345'])
 
     def test_ol_edition_without_work(self):
         edition_data = {'key': '/books/OL1234M'} # has no 'works' key
