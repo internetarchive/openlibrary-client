@@ -95,7 +95,13 @@
       ]
     },
     "isbn_13": {
-      "type": "array"
+      "type": "array",
+      "items": [
+        {
+          "type": "string",
+          "pattern": "([0-9][- ]*){13}"
+        }
+      ]
     },
     "authors": {
       "type": "array",
