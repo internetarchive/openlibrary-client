@@ -265,7 +265,8 @@ class OpenLibrary(object):
                 exclude = ['_work', 'olid', 'work_olid']
                 data = { k: v for k,v in self.__dict__.iteritems() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
-                data['works'] = [ { 'key': '/works/' + self.work_olid} ]
+                if self.work_olid:
+                    data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 return json.dumps(data)
 
             def validate(self):
@@ -310,18 +311,7 @@ class OpenLibrary(object):
             def _ol_edition_json_to_book_args(cls, data):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
-                    'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
-                    # 'title': data.pop('title', u''),
-                    # 'publisher': data.pop('publishers', u''),
-                    # 'publish_date': data.pop('publish_date', u''),
-                    # 'number_of_pages': data.pop('number_of_pages', u''),
-                    #'identifiers': {
-                    #    'oclc': data.pop('oclc_numbers', []),
-                    #    'ocaid': data.pop('ocaid', []),
-                    #    'isbn_10': data.pop('isbn_10', []),
-                    #    'isbn_13': data.pop('isbn_13', []),
-                    #    'lccn': data.pop('lccn', [])
-                    #},
+                    'work_olid': ('works' in data or None) and data.pop('works')[0]['key'].split('/')[-1],
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
