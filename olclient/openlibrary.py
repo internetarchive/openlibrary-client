@@ -426,8 +426,7 @@ class OpenLibrary(object):
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "ID by isbn: %s", e)
-                url = cls.OL.base_url + ('/api/books?bibkeys=%s:' % key) + \
-                    value + '&format=json'
+                url = cls.OL.base_url + ('/api/books.json?bibkeys=%s:%s' % (key, value))
 
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_olid(url):
