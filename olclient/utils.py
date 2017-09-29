@@ -25,7 +25,6 @@ def has_unicode(text):
     """
     return not all(ord(char) < 128 for char in text)
 
-
 def chunks(seq, chunk_size):
     """Returns a generator which yields contiguous chunks of the sequence
     of size (up to) `chunk_size`.
@@ -63,3 +62,15 @@ def parse_datetime(value):
     else:
         tokens = re.split(r'-|T|:|\.| ', value)
         return datetime.datetime(*map(int, tokens))
+
+def merge_unique_lists(lists, hash_fn=None):
+    """ Combine unique lists into a new unique list. Preserves ordering."""
+    result = []
+    seen = set()
+    for lst in lists:
+        for el in lst:
+            hsh = hash_fn(el) if hash_fn else el
+            if hsh not in seen:
+                result.append(el)
+                seen.add(hsh)
+    return result
