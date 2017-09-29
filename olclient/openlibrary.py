@@ -472,7 +472,7 @@ class OpenLibrary(object):
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
-                                                         url_type="books")
+                                                         url_type='authors')
                 except:
                     raise Exception("No author with olid: %s" % olid)
 
