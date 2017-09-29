@@ -262,9 +262,11 @@ class OpenLibrary(object):
                 return self._work
 
             def json(self):
-                exclude = ['_work', 'olid', 'work_olid']
+                exclude = ['_work', 'olid', 'work_olid', 'pages']
                 data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
+                if self.pages:
+                   data['number_of_pages'] = self.pages
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
