@@ -290,8 +290,11 @@ class OpenLibrary(object):
                 })
                 return r
 
-            def save(self):
-                raise NotImplementedError
+            def save(self, comment):
+                body = json.loads(self.json())
+                body['_comment'] = comment
+                url = self.OL.base_url + '/books/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
 
             @classmethod
             def create(cls, book, work_olid, debug=False):
