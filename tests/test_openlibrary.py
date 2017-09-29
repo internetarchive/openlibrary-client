@@ -79,10 +79,11 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertEqual(work_json['authors'][0]['author']['key'], "/authors/OL5864762A")
 
     def test_edition_json(self):
-        edition = self.ol.Edition.get(u'OL1111720M')
+        edition = self.ol.Edition.get(u'OL2183333M')
         edition_json = json.loads(edition.json())
-        self.assertEqual(edition_json['key'], "/books/OL1111720M")
-        self.assertEqual(edition_json['works'][0], {'key': '/works/OL17315390W'})
+        self.assertEqual(edition_json['key'], "/books/OL2183333M")
+        self.assertEqual(edition_json['works'][0], {'key': '/works/OL4771182W'})
+        self.assertEqual(edition_json['authors'][0], {'key': '/authors/OL1001788A'})
 
         self.assertNotIn('work_olid', edition_json)
         self.assertNotIn('cover', edition_json,

@@ -267,6 +267,8 @@ class OpenLibrary(object):
                 data['key'] = '/books/' + self.olid
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
+                if self.authors:
+                    data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
                 return json.dumps(data)
 
             def validate(self):
