@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 import json
 import jsonpickle
 import unittest
+import jsonschema
 
 from olclient.config import Config
 from olclient.common import Author, Book
@@ -88,6 +89,13 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertNotIn('work_olid', edition_json)
         self.assertNotIn('cover', edition_json,
                          "'cover' is not a valid Edition property, should be list: 'covers'")
+
+    def test_edition_validation(self):
+        edition = self.ol.Edition.get(u'OL2183333M')
+        self.assertIsNone(edition.validate())
+        orphaned_edition = self.ol.Edition.get(u'OL17922113M')
+        with self.assertRaises(jsonschema.exceptions.ValidationError):
+            orphaned_edition.validate()
 
     def xtest_cli(self):
         #TODO: re-write this test once edition loading becomes stable. Avoid live requests.
