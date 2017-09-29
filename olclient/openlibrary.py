@@ -5,6 +5,8 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
+from jsonschema import validate
+from pkg_resources import resource_filename
 import json
 import logging
 import re
@@ -254,6 +256,11 @@ class OpenLibrary(object):
                     publisher=publisher, publish_date=publish_date,
                     cover=cover, **kwargs)
 
+            @property
+            def work(self):
+                self._work = self.OL.Work.get(self.work_olid)
+                return self._work
+
             def json(self):
                 exclude = ['_work', 'olid', 'work_olid']
                 data = { k: v for k,v in self.__dict__.iteritems() if v and k not in exclude }
@@ -261,10 +268,11 @@ class OpenLibrary(object):
                 data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 return json.dumps(data)
 
-            @property
-            def work(self):
-                self._work = self.OL.Work.get(self.work_olid)
-                return self._work
+            def validate(self):
+                schema_path = resource_filename('olclient', 'schemata/edition.schema.json')
+                with open(schema_path) as schema_data:
+                    schema = json.load(schema_data)
+                    return validate(json.loads(self.json()), schema)
 
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
