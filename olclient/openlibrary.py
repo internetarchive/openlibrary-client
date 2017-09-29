@@ -110,7 +110,7 @@ class OpenLibrary(object):
 
             def json(self):
                 exclude = ['_editions', 'olid']
-                data = { k: v for k,v in self.__dict__.iteritems() if k not in exclude }
+                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
                 return json.dumps(data)
 
             @property
@@ -263,7 +263,7 @@ class OpenLibrary(object):
 
             def json(self):
                 exclude = ['_work', 'olid', 'work_olid']
-                data = { k: v for k,v in self.__dict__.iteritems() if v and k not in exclude }
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
