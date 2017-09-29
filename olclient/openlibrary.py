@@ -237,9 +237,9 @@ class OpenLibrary(object):
 
             OL = ol_self
 
-            def __init__(self, work_olid, edition_olid, title, subtitle=u"",
+            def __init__(self, work_olid, edition_olid, title, subtitle=None,
                          identifiers=None, number_of_pages=None, authors=None,
-                         publisher=None, publish_date=u"", cover=u"", **kwargs):
+                         publisher=None, publish_date=None, cover=None, **kwargs):
                 """
                 Usage:
                     >>> e = ol.Edition(u'OL2514725W')
@@ -253,6 +253,13 @@ class OpenLibrary(object):
                     number_of_pages=number_of_pages, authors=authors,
                     publisher=publisher, publish_date=publish_date,
                     cover=cover, **kwargs)
+
+            def json(self):
+                exclude = ['_work', 'olid', 'work_olid']
+                data = { k: v for k,v in self.__dict__.iteritems() if v and k not in exclude }
+                data['key'] = '/books/' + self.olid
+                data['works'] = [ { 'key': '/works/' + self.work_olid} ]
+                return json.dumps(data)
 
             @property
             def work(self):
@@ -296,17 +303,17 @@ class OpenLibrary(object):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
                     'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
-                    'title': data.pop('title', u''),
-                    'publisher': data.pop('publishers', u''),
-                    'publish_date': data.pop('publish_date', u''),
-                    'number_of_pages': data.pop('number_of_pages', u''),
-                    'identifiers': {
-                        'oclc': data.pop('oclc_numbers', []),
-                        'ocaid': data.pop('ocaid', []),
-                        'isbn_10': data.pop('isbn_10', []),
-                        'isbn_13': data.pop('isbn_13', []),
-                        'lccn': data.pop('lccn', [])
-                    },
+                    # 'title': data.pop('title', u''),
+                    # 'publisher': data.pop('publishers', u''),
+                    # 'publish_date': data.pop('publish_date', u''),
+                    # 'number_of_pages': data.pop('number_of_pages', u''),
+                    #'identifiers': {
+                    #    'oclc': data.pop('oclc_numbers', []),
+                    #    'ocaid': data.pop('ocaid', []),
+                    #    'isbn_10': data.pop('isbn_10', []),
+                    #    'isbn_13': data.pop('isbn_13', []),
+                    #    'lccn': data.pop('lccn', [])
+                    #},
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
@@ -316,8 +323,7 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
-                """Retrieves a single book from OpenLibrary as json by isbn or olid
-                and marshals it into an olclient Book.
+                """Retrieves a single book from OpenLibrary as json by isbn or olid.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
