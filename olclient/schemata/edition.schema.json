@@ -49,6 +49,10 @@
     "publish_places": {
       "type": "array"
     },
+    "links": {
+      "type": "array",
+      "items": [ { "$ref": "#/definitions/link" } ]
+    },
     "weight": {
       "type": "string",
       "examples": [
@@ -151,6 +155,19 @@
         }
       ]
    
+    },
+    "link": {
+      "type": "object",
+      "required": [ "url", "title" ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
     },
     "internal_datetime": {
       "type": "object",
