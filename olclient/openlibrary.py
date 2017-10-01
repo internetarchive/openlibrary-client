@@ -260,7 +260,7 @@ class OpenLibrary(object):
                 data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
                 if self.pages:
-                   data['number_of_pages'] = self.pages
+                    data['number_of_pages'] = self.pages
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
@@ -312,7 +312,7 @@ class OpenLibrary(object):
             def _ol_edition_json_to_book_args(cls, data):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
-                    'work_olid': ('works' in data or None) and data.pop('works')[0]['key'].split('/')[-1],
+                    'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
