@@ -69,31 +69,56 @@ class TestOpenLibrary(unittest.TestCase):
                         % (got_result, expected_result))
 
     def test_get_work(self):
-        work = self.ol.Work.get(u'OL12938932W')
+        work_json = {u'title': u'All Quiet on the Western Front'}
+        work = self.ol.Work(u'OL12938932W', **work_json)
         self.assertTrue(work.title.lower() == 'all quiet on the western front',
                         "Failed to retrieve work")
 
     def test_work_json(self):
-        work = self.ol.Work.get(u'OL12938932W')
-        work_json = json.loads(work.json())
+        authors=[{ "type": "/type/author_role",
+                   "author": { "key": "/authors/OL5864762A" }
+                }]
+        work = self.ol.Work('OL12938932W',
+                            key='/works/OL12938932W',
+                            authors=authors)
+        work_json = work.json()
         self.assertEqual(work_json['key'], "/works/OL12938932W")
         self.assertEqual(work_json['authors'][0]['author']['key'], "/authors/OL5864762A")
 
     def test_edition_json(self):
-        edition = self.ol.Edition.get(u'OL2183333M')
-        edition_json = json.loads(edition.json())
-        self.assertEqual(edition_json['key'], "/books/OL2183333M")
-        self.assertEqual(edition_json['works'][0], {'key': '/works/OL4771182W'})
-        self.assertEqual(edition_json['authors'][0], {'key': '/authors/OL1001788A'})
+        author = self.ol.Author('OL123A', 'Test Author')
+        edition = self.ol.Edition(edition_olid='OL123M',
+                                  work_olid='OL123W',
+                                  title='Test Title',
+                                  authors=[author])
+        edition_json = edition.json()
+        self.assertEqual(edition_json['key'], "/books/OL123M")
+        self.assertEqual(edition_json['works'][0], {'key': '/works/OL123W'})
+        self.assertEqual(edition_json['authors'][0], {'key': '/authors/OL123A'})
 
         self.assertNotIn('work_olid', edition_json)
         self.assertNotIn('cover', edition_json,
                          "'cover' is not a valid Edition property, should be list: 'covers'")
 
     def test_edition_validation(self):
-        edition = self.ol.Edition.get(u'OL2183333M')
+        author = self.ol.Author('OL123A', 'Test Author')
+        edition = self.ol.Edition(edition_olid='OL123M',
+                                  work_olid='OL123W',
+                                  title='Test Title',
+                                  type={'key': '/type/edition'},
+                                  revision=1,
+                                  last_modified={
+                                      'type': '/type/datetime',
+                                      'value': '2016-10-12T00:48:04.453554'
+                                  },
+                                  authors=[author])
+        #edition = self.ol.Edition.get(u'OL2183333M')
         self.assertIsNone(edition.validate())
-        orphaned_edition = self.ol.Edition.get(u'OL17922113M')
+        #orphaned_edition = self.ol.Edition.get(u'OL17922113M')
+        orphaned_edition = self.ol.Edition(edition_olid='OL123M',
+                                  work_olid=None,
+                                  title='Test Title',
+                                  authors=[author])
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             orphaned_edition.validate()
 
