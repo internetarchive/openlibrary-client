@@ -111,7 +111,7 @@ class OpenLibrary(object):
             def json(self):
                 exclude = ['_editions', 'olid']
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
-                return json.dumps(data)
+                return data
 
             @property
             def editions(self):
@@ -265,13 +265,13 @@ class OpenLibrary(object):
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
                     data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
-                return json.dumps(data)
+                return data
 
             def validate(self):
                 schema_path = resource_filename('olclient', 'schemata/edition.schema.json')
                 with open(schema_path) as schema_data:
                     schema = json.load(schema_data)
-                    return validate(json.loads(self.json()), schema)
+                    return validate(self.json(), schema)
 
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
@@ -285,7 +285,7 @@ class OpenLibrary(object):
                 return r
 
             def save(self, comment):
-                body = json.loads(self.json())
+                body = self.json()
                 body['_comment'] = comment
                 url = self.OL.base_url + '/books/%s.json' % self.olid
                 return self.OL.session.put(url, json.dumps(body))
