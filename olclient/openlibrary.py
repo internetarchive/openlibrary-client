@@ -116,6 +116,20 @@ class OpenLibrary(object):
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
                 return data
 
+            def validate(self):
+                """Validates a Work's json representation against the canonical
+                JSON Schema for Works using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Work is invalid.
+
+                """
+                schema_path = resource_filename('olclient', 'schemata/work.schema.json')
+                with open(schema_path) as schema_data:
+                    schema = json.load(schema_data)
+                    return validate(self.json(), schema)
+
             @property
             def editions(self):
                 """
@@ -175,6 +189,13 @@ class OpenLibrary(object):
                 data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
                 data['subjects'] = list(set(data['subjects']) - set(subjects))
                 return self.OL.session.put(url, json.dumps(data))
+
+            def save(self, comment):
+                """Saves this work back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/works/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
 
             @classmethod
             def get(cls, olid):
@@ -299,6 +320,7 @@ class OpenLibrary(object):
                 return r
 
             def save(self, comment):
+                """Saves this edition back to Open Library using the JSON API."""
                 body = self.json()
                 body['_comment'] = comment
                 url = self.OL.base_url + '/books/%s.json' % self.olid

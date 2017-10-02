@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Open Library edition",
+  "title": "Open Library Edition Schema",
   "type": "object",
   "required": [
     "key",

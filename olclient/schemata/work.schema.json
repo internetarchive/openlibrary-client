@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Work Schema",
+  "type": "object",
+  "required": [
+    "key",
+    "title",
+    "type",
+    "revision",
+    "last_modified"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "key": { "$ref": "#/definitions/work_key" },
+    "title":    { "type": "string" },
+    "subtitle": { "type": "string" },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["/type/work"]
+        }
+      }
+    },
+    "authors": {
+      "type": "array",
+      "items": { "$ref": "#definitions/author_role" }
+    },
+
+    "id": { 
+      "description": "Unsure what this is for, deprecate?",
+      "type": "number"
+     },
+    "lc_classifications":  { "$ref": "#/definitions/string_array" },
+    "subjects":            { "$ref": "#/definitions/string_array" },
+
+    "first_publish_date": { "type": "string" },
+
+    "revision":        { "type": "number" },
+    "latest_revision": { "type": "number" },
+    "created":         { "$ref": "#/definitions/internal_datetime" },
+    "last_modified":   { "$ref": "#/definitions/internal_datetime" }
+  },
+  "definitions": {
+
+    "author_key": {
+      "type": "string",
+      "pattern": "^/authors/OL[0-9]+A$"
+    },
+    "work_key": {
+      "type": "string",
+      "pattern": "^/works/OL[0-9]+W$"
+    },
+    "author_role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "type", "author" ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["/type/author_role"]
+        },
+        "author": { "$ref": "#/definitions/author" }
+      }
+    },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "key" ],
+      "properties": {
+        "key": { "$ref": "#/definitions/author_key" }
+      }
+    },
+    "string_array": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "internal_datetime": {
+      "type": "object",
+      "required": [ "type", "value" ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["/type/datetime"]
+        },
+        "value": { "type": "string" }
+      }
+    }
+  }
+}
