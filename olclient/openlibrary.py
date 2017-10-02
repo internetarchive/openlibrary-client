@@ -109,6 +109,9 @@ class OpenLibrary(object):
                     setattr(self, kwarg, kwargs[kwarg])
 
             def json(self):
+                """Returns a dict JSON representation of an OL Work suitable
+                for saving back to Open Library via its APIs.
+                """
                 exclude = ['_editions', 'olid']
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
                 return data
@@ -256,6 +259,9 @@ class OpenLibrary(object):
                 return self._work
 
             def json(self):
+                """Returns a dict JSON representation of an OL Edition suitable
+                for saving back to Open Library via its APIs.
+                """
                 exclude = ['_work', 'olid', 'work_olid', 'pages']
                 data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
@@ -268,6 +274,14 @@ class OpenLibrary(object):
                 return data
 
             def validate(self):
+                """Validates an Edition's json representation against the canonical
+                JSON Schema for Editions using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Edition is invalid.
+
+                """
                 schema_path = resource_filename('olclient', 'schemata/edition.schema.json')
                 with open(schema_path) as schema_data:
                     schema = json.load(schema_data)
