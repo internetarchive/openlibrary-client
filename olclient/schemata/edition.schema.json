@@ -11,6 +11,7 @@
     "works"
   ],
   "properties": {
+    "key": { "$ref": "#/definitions/edition_key" },
     "title": { "type": "string" },
     "subtitle": { "type": "string" },
     "type": {
@@ -23,22 +24,16 @@
         }
       }
     },
-    "key": { "$ref": "#/definitions/edition_key" },
-
-    "publish_date": {
-      "type": "string",
-      "examples": [
-        "1992",
-        "December 1992",
-        "12 January 2002"
-      ]
-    },
-
     "works": { "$ref": "#/definitions/works" },
     "identifiers": { "$ref": "#/definitions/identifiers" },
-    "isbn_10": { "$ref": "#/definitions/isbn_10" },
-    "isbn_13": { "$ref": "#/definitions/isbn_13" },
-
+    "isbn_10": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/isbn_10" }
+    },
+    "isbn_13": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/isbn_13" }
+    },
     "covers": {
       "type": "array",
       "items": { "type": "number" }
@@ -72,8 +67,16 @@
         "Spiral-bound"
       ]
     },
-    "publishers": { "$ref": "#/definitions/string_array" },
+    "publish_date": {
+      "type": "string",
+      "examples": [
+        "1992",
+        "December 1992",
+        "12 January 2002"
+      ]
+    },
     "publish_places": { "$ref": "#/definitions/string_array" },
+    "publishers": { "$ref": "#/definitions/string_array" },
     "subjects": { "$ref": "#/definitions/string_array" },
     "table_of_contents": { "type": "array" },
 
@@ -88,18 +91,12 @@
       "type": "object"
     },
     "isbn_10": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "([0-9][- ]*){9}[0-9X]"
-      }
+      "type": "string",
+      "pattern": "([0-9][- ]*){9}[0-9X]"
     },
     "isbn_13": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "([0-9][- ]*){13}"
-      }
+      "type": "string",
+      "pattern": "([0-9][- ]*){13}"
     },
     "authors": {
       "type": "array",
