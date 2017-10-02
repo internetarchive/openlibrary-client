@@ -11,12 +11,8 @@
     "works"
   ],
   "properties": {
-    "title": {
-      "type": "string"
-    },
-    "subtitle": {
-      "type": "string"
-    },
+    "title": { "type": "string" },
+    "subtitle": { "type": "string" },
     "type": {
       "type": "object",
       "additionalProperties": false,
@@ -44,14 +40,15 @@
     "isbn_13": { "$ref": "#/definitions/isbn_13" },
 
     "covers": {
-      "type": "array"
+      "type": "array",
+      "items": { "type": "number" }
     },
     "publish_places": {
       "type": "array"
     },
     "links": {
       "type": "array",
-      "items": [ { "$ref": "#/definitions/link" } ]
+      "items": { "$ref": "#/definitions/link" }
     },
     "weight": {
       "type": "string",
@@ -62,9 +59,7 @@
         "1 pounds"
       ]
     },
-    "number_of_pages": {
-      "type": "number"
-    },
+    "number_of_pages": { "type": "number" },
     "physical_dimensions": {
       "type": "string",
       "examples": [
@@ -91,49 +86,41 @@
     },
     "isbn_10": {
       "type": "array",
-      "items": [
-        {
-          "type": "string",
-          "pattern": "([0-9][- ]*){9}[0-9X]"
-        }
-      ]
+      "items": {
+        "type": "string",
+        "pattern": "([0-9][- ]*){9}[0-9X]"
+      }
     },
     "isbn_13": {
       "type": "array",
-      "items": [
-        {
-          "type": "string",
-          "pattern": "([0-9][- ]*){13}"
-        }
-      ]
+      "items": {
+        "type": "string",
+        "pattern": "([0-9][- ]*){13}"
+      }
     },
     "authors": {
       "type": "array",
-      "items": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [ "key" ],
-          "properties": {
-            "key": { "$ref": "#/definitions/author_key" }
-          }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [ "key" ],
+        "properties": {
+          "key": { "$ref": "#/definitions/author_key" }
         }
-      ]
+      }
     },
     "works": {
       "type": "array",
       "minItems": 1,
       "maxItems": 1,
-      "items": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [ "key" ],
-          "properties": {
-            "key": { "$ref": "#/definitions/work_key" }
-          }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [ "key" ],
+        "properties": {
+          "key": { "$ref": "#/definitions/work_key" }
         }
-      ]
+      }
     },
     "author_key": {
       "type": "string",
@@ -149,24 +136,15 @@
     },
     "subjects": {
       "type": "array",
-      "items": [
-        {
-          "type": "string"
-        }
-      ]
-   
+      "items": { "type": "string" }
     },
     "link": {
       "type": "object",
       "required": [ "url", "title" ],
       "additionalProperties": false,
       "properties": {
-        "url": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        }
+        "url": { "type": "string" },
+        "title": { "type": "string" }
       }
     },
     "internal_datetime": {
