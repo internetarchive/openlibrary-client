@@ -24,6 +24,10 @@
         }
       }
     },
+    "authors": {
+      "type": "array",
+      "items": { "$ref": "#definitions/author" }
+    },
     "works": { "$ref": "#/definitions/works" },
     "identifiers": { "$ref": "#/definitions/identifiers" },
     "isbn_10": {
@@ -98,15 +102,12 @@
       "type": "string",
       "pattern": "([0-9][- ]*){13}"
     },
-    "authors": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [ "key" ],
-        "properties": {
-          "key": { "$ref": "#/definitions/author_key" }
-        }
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "key" ],
+      "properties": {
+        "key": { "$ref": "#/definitions/author_key" }
       }
     },
     "works": {
