@@ -38,6 +38,29 @@
       "type": "array",
       "items": { "$ref": "#/definitions/isbn_13" }
     },
+    "lccn": {
+      "title": "Library of Congress Control Numbers",
+      "description": "Library of Congress Control Numbers, linkable via https://lccn.loc.gov/<lccn>",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
+    },
+    "ocaid": {
+      "title": "Internet Archive OCAID",
+      "description": "Links to the Internet Archive record via https://archive.org/details/<ocaid>",
+      "type": "string",
+      "pattern": "^[^ ]{,50}$"
+    },
+    "oclc_numbers": {
+      "description": "OCLC Online Computer Library Center / WorldCat id, linkable via https://www.worldcat.org/oclc/<oclc_number>",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
+    },
     "covers": {
       "type": "array",
       "items": { "type": "number" }
@@ -46,6 +69,7 @@
       "type": "array",
       "items": { "$ref": "#/definitions/link" }
     },
+    "by_statement": { "type": "string" },
     "weight": {
       "type": "string",
       "examples": [
@@ -81,8 +105,16 @@
     },
     "publish_places": { "$ref": "#/definitions/string_array" },
     "publishers": { "$ref": "#/definitions/string_array" },
+    "contributions": { "$ref": "#/definitions/string_array" },
+    "dewey_decimal_class": { "$ref": "#/definitions/string_array" },
+    "genres": { "$ref": "#/definitions/string_array" },
+    "lc_classifications": { "$ref": "#/definitions/string_array" },
+    "other_titles": { "$ref": "#/definitions/string_array" },
+    "source_records": { "$ref": "#/definitions/string_array" },
     "subjects": { "$ref": "#/definitions/string_array" },
     "table_of_contents": { "type": "array" },
+
+    "notes": { "$ref": "#/definitions/text_block" },
 
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
@@ -96,11 +128,11 @@
     },
     "isbn_10": {
       "type": "string",
-      "pattern": "([0-9][- ]*){9}[0-9X]"
+      "pattern": "^([0-9][- ]*){9}[0-9X]$"
     },
     "isbn_13": {
       "type": "string",
-      "pattern": "([0-9][- ]*){13}"
+      "pattern": "^([0-9][- ]*){13}$"
     },
     "author": {
       "type": "object",
@@ -138,6 +170,18 @@
     "string_array": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "text_block": {
+      "type": "object",
+      "required": [ "type", "value" ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["/type/text"]
+        },
+        "value": { "type": "string" }
+      }
     },
     "link": {
       "type": "object",
