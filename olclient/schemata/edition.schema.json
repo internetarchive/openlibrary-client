@@ -3,16 +3,16 @@
   "description": "Open Library edition",
   "type": "object",
   "required": [
-    "title",
     "key",
+    "title",
     "type",
+    "works",
     "revision",
-    "last_modified",
-    "works"
+    "last_modified"
   ],
   "properties": {
     "key": { "$ref": "#/definitions/edition_key" },
-    "title": { "type": "string" },
+    "title":    { "type": "string" },
     "subtitle": { "type": "string" },
     "type": {
       "type": "object",
@@ -95,6 +95,14 @@
         "Spiral-bound"
       ]
     },
+    "publish_country": {
+      "type": "string",
+      "examples": [
+        "it",
+        "fr",
+        "dcu"
+      ]
+    },
     "publish_date": {
       "type": "string",
       "examples": [
@@ -103,16 +111,16 @@
         "12 January 2002"
       ]
     },
-    "publish_places": { "$ref": "#/definitions/string_array" },
-    "publishers": { "$ref": "#/definitions/string_array" },
-    "contributions": { "$ref": "#/definitions/string_array" },
+    "publish_places":      { "$ref": "#/definitions/string_array" },
+    "publishers":          { "$ref": "#/definitions/string_array" },
+    "contributions":       { "$ref": "#/definitions/string_array" },
     "dewey_decimal_class": { "$ref": "#/definitions/string_array" },
-    "genres": { "$ref": "#/definitions/string_array" },
-    "lc_classifications": { "$ref": "#/definitions/string_array" },
-    "other_titles": { "$ref": "#/definitions/string_array" },
-    "source_records": { "$ref": "#/definitions/string_array" },
-    "subjects": { "$ref": "#/definitions/string_array" },
-    "table_of_contents": { "type": "array" },
+    "genres":              { "$ref": "#/definitions/string_array" },
+    "lc_classifications":  { "$ref": "#/definitions/string_array" },
+    "other_titles":        { "$ref": "#/definitions/string_array" },
+    "source_records":      { "$ref": "#/definitions/string_array" },
+    "subjects":            { "$ref": "#/definitions/string_array" },
+    "table_of_contents":   { "type": "array" },
 
     "notes": { "$ref": "#/definitions/text_block" },
 
@@ -188,7 +196,7 @@
       "required": [ "url", "title" ],
       "additionalProperties": false,
       "properties": {
-        "url": { "type": "string" },
+        "url":   { "type": "string" },
         "title": { "type": "string" }
       }
     },
