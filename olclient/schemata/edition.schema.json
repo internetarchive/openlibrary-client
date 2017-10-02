@@ -10,6 +10,7 @@
     "revision",
     "last_modified"
   ],
+  "additionalProperties": false,
   "properties": {
     "key": { "$ref": "#/definitions/edition_key" },
     "title":    { "type": "string" },
@@ -69,6 +70,10 @@
       "type": "array",
       "items": { "$ref": "#/definitions/link" }
     },
+    "languages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/language" }
+    },
     "by_statement": { "type": "string" },
     "weight": {
       "type": "string",
@@ -79,7 +84,9 @@
         "1 pounds"
       ]
     },
+    "edition_name": { "type": "string" },
     "number_of_pages": { "type": "number" },
+    "pagination": { "type": "string" },
     "physical_dimensions": {
       "type": "string",
       "examples": [
@@ -118,11 +125,15 @@
     "genres":              { "$ref": "#/definitions/string_array" },
     "lc_classifications":  { "$ref": "#/definitions/string_array" },
     "other_titles":        { "$ref": "#/definitions/string_array" },
+    "series":              { "$ref": "#/definitions/string_array" },
     "source_records":      { "$ref": "#/definitions/string_array" },
     "subjects":            { "$ref": "#/definitions/string_array" },
+    "work_title":          { "$ref": "#/definitions/string_array" },
+
     "table_of_contents":   { "type": "array" },
 
-    "notes": { "$ref": "#/definitions/text_block" },
+    "description": { "$ref": "#/definitions/text_block" },
+    "notes":       { "$ref": "#/definitions/text_block" },
 
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
@@ -189,6 +200,17 @@
           "enum": ["/type/text"]
         },
         "value": { "type": "string" }
+      }
+    },
+    "language": {
+      "type": "object",
+      "required": [ "key" ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^/languages/[a-z]{3}$"
+        }
       }
     },
     "link": {
