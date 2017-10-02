@@ -43,9 +43,6 @@
       "type": "array",
       "items": { "type": "number" }
     },
-    "publish_places": {
-      "type": "array"
-    },
     "links": {
       "type": "array",
       "items": { "$ref": "#/definitions/link" }
@@ -68,10 +65,16 @@
       ]
     },
     "physical_format": {
-      "type": "string"
+      "type": "string",
+      "examples": [
+        "Paperback",
+        "Hardcover",
+        "Spiral-bound"
+      ]
     },
-    "publishers": { "type": "array" },
-    "subjects": { "$ref": "#/definitions/subjects" },
+    "publishers": { "$ref": "#/definitions/string_array" },
+    "publish_places": { "$ref": "#/definitions/string_array" },
+    "subjects": { "$ref": "#/definitions/string_array" },
     "table_of_contents": { "type": "array" },
 
     "revision":        { "type": "number" },
@@ -134,7 +137,7 @@
       "type": "string",
       "pattern": "^/works/OL[0-9]+W$"
     },
-    "subjects": {
+    "string_array": {
       "type": "array",
       "items": { "type": "string" }
     },
