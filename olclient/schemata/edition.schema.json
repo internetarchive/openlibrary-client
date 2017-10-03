@@ -1,0 +1,238 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Edition Schema",
+  "type": "object",
+  "required": [
+    "key",
+    "title",
+    "type",
+    "works",
+    "revision",
+    "last_modified"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "key": { "$ref": "#/definitions/edition_key" },
+    "title":    { "type": "string" },
+    "subtitle": { "type": "string" },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["/type/edition"]
+        }
+      }
+    },
+    "authors": {
+      "type": "array",
+      "items": { "$ref": "#definitions/author" }
+    },
+    "works": { "$ref": "#/definitions/works" },
+    "identifiers": { "$ref": "#/definitions/identifiers" },
+    "isbn_10": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/isbn_10" }
+    },
+    "isbn_13": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/isbn_13" }
+    },
+    "lccn": {
+      "title": "Library of Congress Control Numbers",
+      "description": "Library of Congress Control Numbers, linkable via https://lccn.loc.gov/<lccn>",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
+    },
+    "ocaid": {
+      "title": "Internet Archive OCAID",
+      "description": "Links to the Internet Archive record via https://archive.org/details/<ocaid>",
+      "type": "string",
+      "pattern": "^[^ ]{,50}$"
+    },
+    "oclc_numbers": {
+      "description": "OCLC Online Computer Library Center / WorldCat id, linkable via https://www.worldcat.org/oclc/<oclc_number>",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
+    },
+    "covers": {
+      "type": "array",
+      "items": { "type": "number" }
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/link" }
+    },
+    "languages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/language" }
+    },
+    "by_statement": { "type": "string" },
+    "weight": {
+      "type": "string",
+      "examples": [
+        "300 grams",
+        "0.3 kilos",
+        "12 ounces",
+        "1 pounds"
+      ]
+    },
+    "edition_name": { "type": "string" },
+    "number_of_pages": { "type": "number" },
+    "pagination": { "type": "string" },
+    "physical_dimensions": {
+      "type": "string",
+      "examples": [
+        "5.4 x 4.7 x 0.2 inches",
+        "21 x 14,8 x 0,8 centimeters"
+      ]
+    },
+    "physical_format": {
+      "type": "string",
+      "examples": [
+        "Paperback",
+        "Hardcover",
+        "Spiral-bound"
+      ]
+    },
+    "publish_country": {
+      "type": "string",
+      "examples": [
+        "it",
+        "fr",
+        "dcu"
+      ]
+    },
+    "publish_date": {
+      "type": "string",
+      "examples": [
+        "1992",
+        "December 1992",
+        "12 January 2002"
+      ]
+    },
+    "publish_places":      { "$ref": "#/definitions/string_array" },
+    "publishers":          { "$ref": "#/definitions/string_array" },
+    "contributions":       { "$ref": "#/definitions/string_array" },
+    "dewey_decimal_class": { "$ref": "#/definitions/string_array" },
+    "genres":              { "$ref": "#/definitions/string_array" },
+    "lc_classifications":  { "$ref": "#/definitions/string_array" },
+    "other_titles":        { "$ref": "#/definitions/string_array" },
+    "series":              { "$ref": "#/definitions/string_array" },
+    "source_records":      { "$ref": "#/definitions/string_array" },
+    "subjects":            { "$ref": "#/definitions/string_array" },
+    "work_title":          { "$ref": "#/definitions/string_array" },
+
+    "table_of_contents":   { "type": "array" },
+
+    "description": { "$ref": "#/definitions/text_block" },
+    "notes":       { "$ref": "#/definitions/text_block" },
+
+    "revision":        { "type": "number" },
+    "latest_revision": { "type": "number" },
+    "created":         { "$ref": "#/definitions/internal_datetime" },
+    "last_modified":   { "$ref": "#/definitions/internal_datetime" }
+  },
+
+  "definitions": {
+    "identifiers": {
+      "type": "object"
+    },
+    "isbn_10": {
+      "type": "string",
+      "pattern": "^([0-9][- ]*){9}[0-9X]$"
+    },
+    "isbn_13": {
+      "type": "string",
+      "pattern": "^([0-9][- ]*){13}$"
+    },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "key" ],
+      "properties": {
+        "key": { "$ref": "#/definitions/author_key" }
+      }
+    },
+    "works": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [ "key" ],
+        "properties": {
+          "key": { "$ref": "#/definitions/work_key" }
+        }
+      }
+    },
+    "author_key": {
+      "type": "string",
+      "pattern": "^/authors/OL[0-9]+A$"
+    },
+    "edition_key": {
+      "type": "string",
+      "pattern": "^/books/OL[0-9]+M$"
+    },
+    "work_key": {
+      "type": "string",
+      "pattern": "^/works/OL[0-9]+W$"
+    },
+    "string_array": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "text_block": {
+      "type": "object",
+      "required": [ "type", "value" ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["/type/text"]
+        },
+        "value": { "type": "string" }
+      }
+    },
+    "language": {
+      "type": "object",
+      "required": [ "key" ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^/languages/[a-z]{3}$"
+        }
+      }
+    },
+    "link": {
+      "type": "object",
+      "required": [ "url", "title" ],
+      "additionalProperties": false,
+      "properties": {
+        "url":   { "type": "string" },
+        "title": { "type": "string" }
+      }
+    },
+    "internal_datetime": {
+      "type": "object",
+      "required": [ "type", "value" ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["/type/datetime"]
+        },
+        "value": { "type": "string" }
+      }
+    }
+  }
+}

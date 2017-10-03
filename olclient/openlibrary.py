@@ -5,6 +5,8 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
+from jsonschema import validate
+from pkg_resources import resource_filename
 import json
 import logging
 import re
@@ -106,6 +108,28 @@ class OpenLibrary(object):
                 for kwarg in kwargs:
                     setattr(self, kwarg, kwargs[kwarg])
 
+            def json(self):
+                """Returns a dict JSON representation of an OL Work suitable
+                for saving back to Open Library via its APIs.
+                """
+                exclude = ['_editions', 'olid']
+                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                return data
+
+            def validate(self):
+                """Validates a Work's json representation against the canonical
+                JSON Schema for Works using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Work is invalid.
+
+                """
+                schema_path = resource_filename('olclient', 'schemata/work.schema.json')
+                with open(schema_path) as schema_data:
+                    schema = json.load(schema_data)
+                    return validate(self.json(), schema)
+
             @property
             def editions(self):
                 """
@@ -165,6 +189,13 @@ class OpenLibrary(object):
                 data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
                 data['subjects'] = list(set(data['subjects']) - set(subjects))
                 return self.OL.session.put(url, json.dumps(data))
+
+            def save(self, comment):
+                """Saves this work back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/works/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
 
             @classmethod
             def get(cls, olid):
@@ -226,9 +257,9 @@ class OpenLibrary(object):
 
             OL = ol_self
 
-            def __init__(self, work_olid, edition_olid, title, subtitle=u"",
+            def __init__(self, work_olid, edition_olid, title, subtitle=None,
                          identifiers=None, number_of_pages=None, authors=None,
-                         publisher=None, publish_date=u"", cover=u"", **kwargs):
+                         publisher=None, publish_date=None, cover=None, **kwargs):
                 """
                 Usage:
                     >>> e = ol.Edition(u'OL2514725W')
@@ -248,6 +279,35 @@ class OpenLibrary(object):
                 self._work = self.OL.Work.get(self.work_olid)
                 return self._work
 
+            def json(self):
+                """Returns a dict JSON representation of an OL Edition suitable
+                for saving back to Open Library via its APIs.
+                """
+                exclude = ['_work', 'olid', 'work_olid', 'pages']
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
+                data['key'] = '/books/' + self.olid
+                if self.pages:
+                    data['number_of_pages'] = self.pages
+                if self.work_olid:
+                    data['works'] = [ { 'key': '/works/' + self.work_olid} ]
+                if self.authors:
+                    data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
+                return data
+
+            def validate(self):
+                """Validates an Edition's json representation against the canonical
+                JSON Schema for Editions using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Edition is invalid.
+
+                """
+                schema_path = resource_filename('olclient', 'schemata/edition.schema.json')
+                with open(schema_path) as schema_data:
+                    schema = json.load(schema_data)
+                    return validate(self.json(), schema)
+
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
                 metadata = self.get_metadata('OLID', self.olid)
@@ -259,8 +319,12 @@ class OpenLibrary(object):
                 })
                 return r
 
-            def save(self):
-                raise NotImplementedError
+            def save(self, comment):
+                """Saves this edition back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/books/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
 
             @classmethod
             def create(cls, book, work_olid, debug=False):
@@ -284,18 +348,7 @@ class OpenLibrary(object):
             def _ol_edition_json_to_book_args(cls, data):
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
-                    'work_olid': data.pop('works', [])[0]['key'].split('/')[-1],
-                    'title': data.pop('title', u''),
-                    'publisher': data.pop('publishers', u''),
-                    'publish_date': data.pop('publish_date', u''),
-                    'number_of_pages': data.pop('number_of_pages', u''),
-                    'identifiers': {
-                        'oclc': data.pop('oclc_numbers', []),
-                        'ocaid': data.pop('ocaid', []),
-                        'isbn_10': data.pop('isbn_10', []),
-                        'isbn_13': data.pop('isbn_13', []),
-                        'lccn': data.pop('lccn', [])
-                    },
+                    'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
                                 for author in data.pop('authors', [])]
                 }
@@ -305,8 +358,7 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
-                """Retrieves a single book from OpenLibrary as json by isbn or olid
-                and marshals it into an olclient Book.
+                """Retrieves a single book from OpenLibrary as json by isbn or olid.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
@@ -409,8 +461,7 @@ class OpenLibrary(object):
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
                                                  "ID by isbn: %s", e)
-                url = cls.OL.base_url + ('/api/books?bibkeys=%s:' % key) + \
-                    value + '&format=json'
+                url = cls.OL.base_url + ('/api/books.json?bibkeys=%s:%s' % (key, value))
 
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_olid(url):
@@ -457,7 +508,7 @@ class OpenLibrary(object):
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
-                                                         url_type="books")
+                                                         url_type='authors')
                 except:
                     raise Exception("No author with olid: %s" % olid)
 
