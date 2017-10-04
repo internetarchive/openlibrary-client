@@ -19,6 +19,8 @@ import json
 import jsonpickle
 import sys
 
+import internetarchive as ia
+
 from . import __title__, __version__, OpenLibrary, MARC, common
 from .config import Config, Credentials
 
@@ -45,8 +47,10 @@ def argparser():
                         help='Create a new work from json')
     parser.add_argument('--title', default=None,
                         help="Specify a title as an argument")
-    parser.add_argument('--username', default=None,
-                        help="An OL username for requests which " \
+    parser.add_argument('--baseurl', default='https://openlibrary.org',
+                        help="Which OL backend to use")
+    parser.add_argument('--email', default=None,
+                        help="An IA email for requests which " \
                         "require authentication. You will be prompted " \
                         "discretely for a password")
 
@@ -61,18 +65,19 @@ def main():
     args = parser.parse_args()
 
     if args.configure:
-        username = args.username
-        if not username:
-            raise ValueError("--username required for configuration")
+        email = args.email
+        if not email:
+            raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")
+
+        ia.configure(email, password)        
         config_tool = Config()
         config = config_tool._get_config()
-        config['openlibrary'] = {
-            u'username': username,
-            u'password': password
-        }
+        config['s3'] = ia.config.get_config()['s3']
+        
         try:
-            ol = OpenLibrary(credentials=Credentials(username, password))
+            ol = OpenLibrary(credentials=Credentials(**config['s3']),
+                             base_url=args.baseurl)
         except:
             return "Incorrect credentials, not updating config."
 
