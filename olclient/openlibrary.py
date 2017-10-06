@@ -54,7 +54,7 @@ class OpenLibrary(object):
         self.session = requests.Session()
         self.base_url = base_url
         credentials = credentials or \
-                      Config().get_config()['s3'].get('credentials')
+                      Config().get_config().get('s3', None)
         if credentials:
             self.login(credentials, test=test)
 
