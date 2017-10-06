@@ -1,1 +1,3 @@
+v0.0.15, Thu Oct 5, 19:22:00 2017 -- Uses IA S3 auth instead of user/password.
+v0.0.14, Tue Oct 3, 14:07:00 2017 -- Adds saving functionality.
 v0.0.1, Sat Sep  3 05:29:35 2016 -- Initial Release.

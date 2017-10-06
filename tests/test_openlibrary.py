@@ -17,9 +17,10 @@ from olclient.openlibrary import OpenLibrary
 class TestOpenLibrary(unittest.TestCase):
 
     def setUp(self):
-        ol_config = Config().get_config()['openlibrary']
-        ol_creds = ol_config.get('credentials')
-        self.ol = OpenLibrary(credentials=ol_creds)
+        ol_config = Config().get_config()
+        ol_creds = ol_config.get('s3')
+        test = not all([ol_creds.access, ol_creds.secret])
+        self.ol = OpenLibrary(credentials=ol_creds, test=test)
 
     def test_get_olid_by_isbn(self):
         olid = self.ol.Edition.get_olid_by_isbn(u'0374202915')

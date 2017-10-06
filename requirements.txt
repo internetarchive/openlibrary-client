@@ -13,3 +13,4 @@ requests==2.11.1
 six==1.10.0
 jsonpickle==0.9.3
 jsonschema==2.6.0
+internetarchive==1.7.3

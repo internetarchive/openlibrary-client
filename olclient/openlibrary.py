@@ -50,16 +50,15 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
-    def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
+    def __init__(self, credentials=None, base_url=u'https://openlibrary.org', test=False):
         self.session = requests.Session()
         self.base_url = base_url
         credentials = credentials or \
-                      Config().get_config()['openlibrary'].get('credentials')
+                      Config().get_config()['s3'].get('credentials')
         if credentials:
-            self.username = credentials.username
-            self.login(credentials)
+            self.login(credentials, test=test)
 
-    def login(self, credentials):
+    def login(self, credentials, test=False):
         """Login to Open Library with given credentials, ensures the requests
         session has valid cookies for future requests.
         """
@@ -75,7 +74,7 @@ class OpenLibrary(object):
 
         response = _login(url, headers, data)
 
-        if 'Set-Cookie' not in response.headers:
+        if 'Set-Cookie' not in response.headers and not test:
             raise ValueError("No cookie set")
 
     def delete(self, olid, comment):

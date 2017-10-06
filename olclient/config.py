@@ -37,7 +37,7 @@ def getdef(self, section, option, default_value):
 
 
 Credentials = namedtuple(
-    'Credentials', ['username', 'password'])
+    'Credentials', ['access', 'secret'])
 
 
 class Config(object):
@@ -45,9 +45,9 @@ class Config(object):
     """Manages configurations for the Python OpenLibrary API Client"""
 
     DEFAULTS = {
-        u'openlibrary': {
-            u'username': u'',
-            u'password': u''
+        u's3': {
+            u'access': u'',
+            u'secret': u''
         }
     }
 
@@ -127,9 +127,8 @@ class Config(object):
         contents as a dict
         """
         config = self._get_config()
-        username = config['openlibrary'].pop('username')
-        password = config['openlibrary'].pop('password')
-        config['openlibrary']['credentials'] = Credentials(
-            username, password) if (username and password) else None
-
+        access = config['s3'].pop('access')
+        secret = config['s3'].pop('secret')
+        config['s3'] = Credentials(
+            access, secret) if (access, secret) else None
         return config
