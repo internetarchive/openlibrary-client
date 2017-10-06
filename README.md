@@ -41,13 +41,12 @@ credentials.  The openlibrary-client can be configured to "remember
 you" so you don't have to provide credentials with each request.
 
 First time users may run the following command to enable the "remember
-me" feature. This process will ask for a username and password and
-save them in ~/.config/ol.ini (or whichever config location the user
-has specified). In the next version, the password will not be stored;
-instead the account will be authenticated and the username and
-resulting cookie (and not the password) will be stored in the config:
+me" feature. This process will ask for an Archive.org email and
+password, will authenticate the credentials, and then store the
+account's corresponding s3 keys in ~/.config/ol.ini (or whichever
+config location the user has specified):
 
-    $ ol --configure --username mekarpeles
+    $ ol --configure --email mek@archive.org
     password: ***********
     Successfully configured
 
@@ -88,23 +87,26 @@ command line utility. Right now it does exactly nothing.
 
     $ ol
 
-    ~usage: ol [-h] [-v] [--get-work] [--get-book] [--get-olid] [--olid OLID]
-               [--isbn ISBN] [--title TITLE]
+usage: ol [-h] [-v] [--configure] [--get-work] [--get-book] [--get-olid]
+          [--olid OLID] [--isbn ISBN] [--create CREATE] [--title TITLE]
+          [--baseurl BASEURL] [--email EMAIL]
+
+olclient
 
 optional arguments:
-  -h, --help           show this help message and exit
-  -v                   Displays the currently installed version of ol
-  --configure          Configure ol client with credentials
-  --get-work           Get a work by --title, --olid
-  --get-book           Get a book by --isbn, --olid
-  --get-olid           Get an olid by --title or --isbn
-  --olid OLID          Specify an olid as an argument
-  --isbn ISBN          Specify an isbn as an argument
-  --create CREATE      Create a new work from json
-  --title TITLE        Specify a title as an argument
-  --username USERNAME  An OL username for requests which require
-                       authentication. You will be prompted discretely for a
-                       password
+  -h, --help         show this help message and exit
+  -v                 Displays the currently installed version of ol
+  --configure        Configure ol client with credentials
+  --get-work         Get a work by --title, --olid
+  --get-book         Get a book by --isbn, --olid
+  --get-olid         Get an olid by --title or --isbn
+  --olid OLID        Specify an olid as an argument
+  --isbn ISBN        Specify an isbn as an argument
+  --create CREATE    Create a new work from json
+  --title TITLE      Specify a title as an argument
+  --baseurl BASEURL  Which OL backend to use
+  --email EMAIL      An IA email for requests which require authentication.
+                     You will be prompted discretely for a password
      
 You can create a new work from the command line using the following
 syntax. It's almost identical to the olclient.common.Book object
