@@ -128,7 +128,7 @@
     "series":              { "$ref": "#/definitions/string_array" },
     "source_records":      { "$ref": "#/definitions/string_array" },
     "subjects":            { "$ref": "#/definitions/string_array" },
-    "work_title":          { "$ref": "#/definitions/string_array" },
+    "work_titles":         { "$ref": "#/definitions/string_array" },
 
     "table_of_contents":   { "type": "array" },
 
