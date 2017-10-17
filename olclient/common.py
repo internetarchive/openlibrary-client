@@ -83,7 +83,7 @@ class Book(Entity):
             cover (unicode) - uri of bookcover
         """
         super(Book, self).__init__(identifiers=identifiers)
-        self.title = rm_punctuation(title)
+        self.title = title
         self.subtitle = subtitle
         self.pages = number_of_pages
         self.authors = authors or []
