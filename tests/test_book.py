@@ -32,7 +32,7 @@ XISBN_BOOKS = [
                       u'6066278', u'730964000', u'803233939']
          }, language=u'eng', pages=None, publish_date= u'1976',
          publisher=u'Atheneum', subtitle=u'',
-         title= u'Fat mutton and liberty of conscience  society in Rhode Island 16361690'),
+         title= u'Fat mutton and liberty of conscience : society in Rhode Island, 1636-1690'),
     Book(authors=[Author(name=u'Carl Bridenbaugh.')],         
          identifiers={
              'isbn_10': [u'0571097987'],
@@ -42,7 +42,7 @@ XISBN_BOOKS = [
          },
          language=u'eng', pages= None, publish_date= u'1972',
          cover=u'', publisher=u'Faber and Faber', subtitle=u'',
-         title= u'Extraterritorial  papers on literature and the language revolution')
+         title= u'Extraterritorial : papers on literature and the language revolution')
 ]
 
 
