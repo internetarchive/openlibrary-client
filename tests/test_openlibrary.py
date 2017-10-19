@@ -9,6 +9,11 @@ import jsonpickle
 import unittest
 import jsonschema
 
+try:
+    from mock import Mock, patch
+except ImportErrror:
+    from unittest.mock import Mock, patch
+
 from olclient.config import Config
 from olclient.common import Author, Book
 from olclient.openlibrary import OpenLibrary
@@ -22,15 +27,26 @@ class TestOpenLibrary(unittest.TestCase):
         test = not all([ol_creds.access, ol_creds.secret])
         self.ol = OpenLibrary(credentials=ol_creds, test=test)
 
-    def test_get_olid_by_isbn(self):
+    @patch('requests.get')
+    def test_get_olid_by_isbn(self, mock_get):
+        isbn_bibkeys = { 'ISBN:0374202915': { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
+        mock_get.return_value.json.return_value = isbn_bibkeys
         olid = self.ol.Edition.get_olid_by_isbn(u'0374202915')
         expected_olid = u'OL23575801M'
         self.assertTrue(olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, olid))
 
-    def test_get_work_by_metadata(self):
+    @patch('requests.get')
+    def test_get_work_by_metadata(self, mock_get):
+        doc = {
+            "key":    u"/works/OL2514747W",
+            "title":  u"The Autobiography of Benjamin Franklin",
+        }
+        search_results = { 'start': 0, 'num_found': 1, 'docs': [doc] }
         title = u"The Autobiography of Benjamin Franklin"
+        mock_get.return_value.json.return_value = search_results
         book = self.ol.Work.search(title=title)
+        mock_get.assert_called_with("%s/search.json?title=%s" % (self.ol.base_url, title))
         canonical_title = book.canonical_title
         self.assertTrue('franklin' in canonical_title,
                         "Expected 'franklin' to appear in result title: %s" % \

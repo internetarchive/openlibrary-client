@@ -241,7 +241,7 @@ class OpenLibrary(object):
                     results = Results(**response.json())
                 except Exception as e:
                     logger.exception(e)
-                    raise Exception("Work Search API failed return json")
+                    raise Exception("Work Search API failed to return json")
 
                 if results.num_found:
                     return results.first.to_book()
