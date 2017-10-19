@@ -12,6 +12,10 @@
 """
 
 from __future__ import absolute_import, division, print_function
+try:
+    raw_input
+except ImportError:
+    raw_input = input
 
 import argparse
 import getpass
@@ -65,7 +69,7 @@ def main():
     args = parser.parse_args()
 
     if args.configure:
-        email = args.email
+        email = raw_input("Archive.org Email: ")
         if not email:
             raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")
