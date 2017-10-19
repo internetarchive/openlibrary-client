@@ -52,8 +52,16 @@ class TestOpenLibrary(unittest.TestCase):
                         "Expected 'franklin' to appear in result title: %s" % \
                         canonical_title)
 
-    def test_get_edition_by_isbn(self):
+    @patch('requests.Session.get')
+    @patch('requests.get')
+    def test_get_edition_by_isbn(self, mock_get, mock_session_get):
+        isbn_lookup_response = { u'ISBN:0374202915': { 'info_url': u'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
+        edition_response = { 'key': u"/books/OL23575801M", 'title': 'test' }
+        mock_get.return_value.json.return_value = isbn_lookup_response
+        mock_session_get.return_value.json.return_value = edition_response
         book = self.ol.Edition.get(isbn=u'0374202915')
+        mock_get.assert_called_with("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url)
+        mock_session_get.assert_called_with("%s%s.json" % (self.ol.base_url, "/books/OL23575801M"))
         expected_olid = u'OL23575801M'
         self.assertTrue(book.olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, book.olid))
