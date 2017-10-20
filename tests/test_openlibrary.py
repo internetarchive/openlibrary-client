@@ -142,9 +142,7 @@ class TestOpenLibrary(unittest.TestCase):
                                       'value': '2016-10-12T00:48:04.453554'
                                   },
                                   authors=[author])
-        #edition = self.ol.Edition.get(u'OL2183333M')
         self.assertIsNone(edition.validate())
-        #orphaned_edition = self.ol.Edition.get(u'OL17922113M')
         orphaned_edition = self.ol.Edition(edition_olid='OL123M',
                                   work_olid=None,
                                   title='Test Title',
