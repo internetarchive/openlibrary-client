@@ -233,7 +233,7 @@ class OpenLibrary(object):
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_book_by_metadata(url):
                     """Makes best effort to perform request w/ exponential backoff"""
-                    return requests.get(url)
+                    return cls.OL.session.get(url)
 
                 response = _get_book_by_metadata(url)
 
@@ -465,7 +465,7 @@ class OpenLibrary(object):
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_olid(url):
                     """Makes best effort to perform request w/ exponential backoff"""
-                    return requests.get(url)
+                    return cls.OL.session.get(url)
 
                 # Let the exception be handled up the stack
                 response = _get_olid(url)

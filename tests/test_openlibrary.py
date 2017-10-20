@@ -10,9 +10,9 @@ import unittest
 import jsonschema
 
 try:
-    from mock import Mock, patch
+    from mock import Mock, call, patch
 except ImportErrror:
-    from unittest.mock import Mock, patch
+    from unittest.mock import Mock, call, patch
 
 from olclient.config import Config
 from olclient.common import Author, Book
@@ -27,7 +27,7 @@ class TestOpenLibrary(unittest.TestCase):
         test = not all([ol_creds.access, ol_creds.secret])
         self.ol = OpenLibrary(credentials=ol_creds, test=test)
 
-    @patch('requests.get')
+    @patch('requests.Session.get')
     def test_get_olid_by_isbn(self, mock_get):
         isbn_bibkeys = { 'ISBN:0374202915': { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
         mock_get.return_value.json.return_value = isbn_bibkeys
@@ -36,7 +36,7 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertTrue(olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, olid))
 
-    @patch('requests.get')
+    @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):
         doc = {
             "key":    u"/works/OL2514747W",
@@ -53,15 +53,17 @@ class TestOpenLibrary(unittest.TestCase):
                         canonical_title)
 
     @patch('requests.Session.get')
-    @patch('requests.get')
-    def test_get_edition_by_isbn(self, mock_get, mock_session_get):
+    def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = { u'ISBN:0374202915': { 'info_url': u'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
         edition_response = { 'key': u"/books/OL23575801M", 'title': 'test' }
-        mock_get.return_value.json.return_value = isbn_lookup_response
-        mock_session_get.return_value.json.return_value = edition_response
+        mock_get.return_value.json.side_effect = [isbn_lookup_response, edition_response]
         book = self.ol.Edition.get(isbn=u'0374202915')
-        mock_get.assert_called_with("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url)
-        mock_session_get.assert_called_with("%s%s.json" % (self.ol.base_url, "/books/OL23575801M"))
+        mock_get.assert_has_calls([
+            call("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url),
+            call().json(),
+            call("%s%s.json" % (self.ol.base_url, "/books/OL23575801M")),
+            call().json()
+        ])
         expected_olid = u'OL23575801M'
         self.assertTrue(book.olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, book.olid))
