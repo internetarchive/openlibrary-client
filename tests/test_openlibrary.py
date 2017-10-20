@@ -22,10 +22,7 @@ from olclient.openlibrary import OpenLibrary
 class TestOpenLibrary(unittest.TestCase):
 
     def setUp(self):
-        ol_config = Config().get_config()
-        ol_creds = ol_config.get('s3')
-        test = not all([ol_creds.access, ol_creds.secret])
-        self.ol = OpenLibrary(credentials=ol_creds, test=test)
+        self.ol = OpenLibrary(test=True)
 
     @patch('requests.Session.get')
     def test_get_olid_by_isbn(self, mock_get):

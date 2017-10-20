@@ -62,6 +62,8 @@ class OpenLibrary(object):
         """Login to Open Library with given credentials, ensures the requests
         session has valid cookies for future requests.
         """
+        if test:
+            return
         err = lambda e: logger.exception("Error at login: %s", e)
         headers = {'Content-Type': 'application/json'}
         url = self.base_url + '/account/login'
@@ -74,7 +76,7 @@ class OpenLibrary(object):
 
         response = _login(url, headers, data)
 
-        if 'Set-Cookie' not in response.headers and not test:
+        if 'Set-Cookie' not in response.headers:
             raise ValueError("No cookie set")
 
     def delete(self, olid, comment):
