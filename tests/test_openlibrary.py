@@ -65,18 +65,24 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertTrue(book.olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, book.olid))
 
-    def test_matching_authors_olid(self):
+    @patch('requests.Session.get')
+    def test_matching_authors_olid(self, mock_get):
+        author_autocomplete = [ {'name': u"Benjamin Franklin", 'key': u"/authors/OL26170A"} ]
+        mock_get.return_value.json.return_value = author_autocomplete
         name = u'Benjamin Franklin'
         got_olid = self.ol.Author.get_olid_by_name(name)
         expected_olid = u'OL26170A'
         self.assertTrue(got_olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, got_olid))
 
-    def test_create_book(self):
+    @patch('requests.Session.get')
+    def test_create_book(self, mock_get):
         book = Book(publisher=u'Karamanolis', title=u'Alles ber Mikrofone',
                     identifiers={'isbn_10': [u'3922238246']}, publish_date=1982,
                     authors=[Author(name=u'Karl Schwarzer')],
                     publish_location=u'Neubiberg bei Mnchen')
+        author_autocomplete = [ {'name': u"Karl Schwarzer", 'key': u"/authors/OL7292805A"} ]
+        mock_get.return_value.json.return_value = author_autocomplete
         got_result = self.ol.create_book(book, debug=True)
         expected_result = {
             '_save': '',
@@ -90,7 +96,7 @@ class TestOpenLibrary(unittest.TestCase):
         }
         self.assertTrue(got_result == expected_result,
                         "Expected create_book to return %s, got %s" \
-                        % (got_result, expected_result))
+                        % (expected_result, got_result))
 
     def test_get_work(self):
         work_json = {u'title': u'All Quiet on the Western Front'}
