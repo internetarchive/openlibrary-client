@@ -86,6 +86,7 @@ class TestOpenLibrary(unittest.TestCase):
         author_autocomplete = [ {'name': u"Karl Schwarzer", 'key': u"/authors/OL7292805A"} ]
         mock_get.return_value.json.return_value = author_autocomplete
         got_result = self.ol.create_book(book, debug=True)
+        mock_get.assert_called_with("%s/authors/_autocomplete?q=%s&limit=1" % (self.ol.base_url, "Karl Schwarzer"))
         expected_result = {
             '_save': '',
             'author_key': u'/authors/OL7292805A',
