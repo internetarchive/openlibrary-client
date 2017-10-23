@@ -21,8 +21,9 @@ from olclient.openlibrary import OpenLibrary
 
 class TestOpenLibrary(unittest.TestCase):
 
-    def setUp(self):
-        self.ol = OpenLibrary(test=True)
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
 
     @patch('requests.Session.get')
     def test_get_olid_by_isbn(self, mock_get):

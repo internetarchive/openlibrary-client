@@ -58,12 +58,10 @@ class OpenLibrary(object):
         if credentials:
             self.login(credentials, test=test)
 
-    def login(self, credentials, test=False):
+    def login(self, credentials):
         """Login to Open Library with given credentials, ensures the requests
         session has valid cookies for future requests.
         """
-        if test:
-            return
         err = lambda e: logger.exception("Error at login: %s", e)
         headers = {'Content-Type': 'application/json'}
         url = self.base_url + '/account/login'
