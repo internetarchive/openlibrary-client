@@ -26,9 +26,11 @@ class TestOpenLibrary(unittest.TestCase):
 
     @patch('requests.Session.get')
     def test_get_olid_by_isbn(self, mock_get):
-        isbn_bibkeys = { 'ISBN:0374202915': { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
+        isbn_key = 'ISBN:0374202915'
+        isbn_bibkeys = { isbn_key: { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
         mock_get.return_value.json.return_value = isbn_bibkeys
         olid = self.ol.Edition.get_olid_by_isbn(u'0374202915')
+        mock_get.assert_called_with("%s/api/books.json?bibkeys=%s" % (self.ol.base_url, isbn_key))
         expected_olid = u'OL23575801M'
         self.assertTrue(olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, olid))
