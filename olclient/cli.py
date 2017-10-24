@@ -12,6 +12,10 @@
 """
 
 from __future__ import absolute_import, division, print_function
+try:
+    raw_input
+except ImportError:
+    raw_input = input
 
 import argparse
 import getpass
@@ -24,7 +28,7 @@ import internetarchive as ia
 from . import __title__, __version__, OpenLibrary, MARC, common
 from .config import Config, Credentials
 
-            
+
 def argparser():
     """Parses command line options and returns an args object"""
     parser = argparse.ArgumentParser(description=__title__)
@@ -65,16 +69,16 @@ def main():
     args = parser.parse_args()
 
     if args.configure:
-        email = args.email
+        email = args.email or raw_input("Archive.org Email: ")
         if not email:
             raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")
 
-        ia.configure(email, password)        
+        ia.configure(email, password)
         config_tool = Config()
         config = config_tool._get_config()
         config['s3'] = ia.config.get_config()['s3']
-        
+
         try:
             ol = OpenLibrary(credentials=Credentials(**config['s3']),
                              base_url=args.baseurl)
