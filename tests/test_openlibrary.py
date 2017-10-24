@@ -169,7 +169,7 @@ class TestCLI(unittest.TestCase):
     @patch('requests.Session.get')
     def test_load_by_isbn(self, mock_get):
         isbn_key = 'ISBN:0137903952'
-        isbn_bibkeys = { isbn_key: { 'info_url': "http://openlibrary.org/books/%s/Artificial_intelligence" % self.target_olid } }
+        isbn_bibkeys = { isbn_key: { 'info_url': "https://openlibrary.org/books/%s/Artificial_intelligence" % self.target_olid } }
         mock_get.return_value.json.side_effect = [isbn_bibkeys, self.raw_edition.copy(), self.raw_author.copy()]
 
         actual = json.loads(jsonpickle.encode(self.ol.Edition.get(isbn=u'0137903952')))
