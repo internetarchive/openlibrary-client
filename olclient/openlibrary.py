@@ -50,13 +50,13 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
-    def __init__(self, credentials=None, base_url=u'https://openlibrary.org', test=False):
+    def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
         self.session = requests.Session()
         self.base_url = base_url
         credentials = credentials or \
                       Config().get_config().get('s3', None)
         if credentials:
-            self.login(credentials, test=test)
+            self.login(credentials)
 
     def login(self, credentials):
         """Login to Open Library with given credentials, ensures the requests
