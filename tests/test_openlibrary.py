@@ -11,7 +11,7 @@ import jsonschema
 
 try:
     from mock import Mock, call, patch
-except ImportErrror:
+except ImportError:
     from unittest.mock import Mock, call, patch
 
 from olclient.config import Config
