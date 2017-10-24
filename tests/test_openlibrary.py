@@ -154,13 +154,47 @@ class TestOpenLibrary(unittest.TestCase):
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             orphaned_edition.validate()
 
-    def xtest_cli(self):
-        #TODO: re-write this test once edition loading becomes stable. Avoid live requests.
-        expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": "", "name": "Stuart J. Russell", "links": [], "created": "2008-04-01T03:28:50.625462", "identifiers": {}, "alternate_names": ["Stuart; Norvig, Peter Russell"], "birth_date": "", "olid": null}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "cover": "", "publish_date": "2003", "olid": "OL3702561M"}""")
+
+class TestCLI(unittest.TestCase):
+    # TODO: Expected result includes an empty 'publisher': null, investigate
+    # TODO: Expected result Author's olid is null, investigate and fix
+    target_olid = u'OL3702561M'
+    raw_edition = json.loads("""{"number_of_pages": 1080, "subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "edition_name": "2nd ed.", "title": "Artificial intelligence", "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "publishers": ["Prentice Hall/Pearson Education"], "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "key": "/books/OL3702561M", "authors": [{"key": "/authors/OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pagination": "xxviii, 1080 p. :", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "publish_date": "2003", "works": [{"key": "/works/OL2896994W"}]}""")
+    raw_author = json.loads("""{"name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}}""")
+    expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": "", "name": "Stuart J. Russell", "links": [], "created": "2008-04-01T03:28:50.625462", "identifiers": {}, "alternate_names": [], "birth_date": "", "olid": null}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": null, "publishers": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "cover": null, "publish_date": "2003", "olid": "OL3702561M"}""")
         
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
+
+    @patch('requests.Session.get')
+    def test_load_by_isbn(self, mock_get):
+        isbn_key = 'ISBN:0137903952'
+        isbn_bibkeys = { isbn_key: { 'info_url': "http://openlibrary.org/books/%s/Artificial_intelligence" % self.target_olid } }
+        mock_get.return_value.json.side_effect = [isbn_bibkeys, self.raw_edition.copy(), self.raw_author.copy()]
+
         actual = json.loads(jsonpickle.encode(self.ol.Edition.get(isbn=u'0137903952')))
-        self.assertEquals(actual, expected,
-                        "Data didn't match for ISBN lookup: \n%s\n\nversus:\n\n %s" % (actual, expected))
-        actual = json.loads(jsonpickle.encode(self.ol.Edition.get(olid=u'OL3702561M')))
-        self.assertEquals(actual, expected,
-                        "Data didn't match for olid lookup: %s\n\nversus:\n\n %s" % (actual, expected))
+        mock_get.assert_has_calls([
+            call("%s/api/books.json?bibkeys=%s" % (self.ol.base_url, isbn_key)),
+            call().json(),
+            call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call().json(),
+            call("%s/authors/OL440500A.json" % self.ol.base_url),
+            call().json()
+        ])
+        self.assertEquals(actual, self.expected,
+                        "Data didn't match for ISBN lookup: \n%s\n\nversus:\n\n %s" % (actual, self.expected))
+
+    @patch('requests.Session.get')
+    def test_load_by_olid(self, mock_get):
+        mock_get.return_value.json.side_effect = [self.raw_edition.copy(), self.raw_author.copy()]
+
+        actual = json.loads(jsonpickle.encode(self.ol.Edition.get(olid=self.target_olid)))
+        mock_get.assert_has_calls([
+            call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call().json(),
+            call("%s/authors/OL440500A.json" % self.ol.base_url),
+            call().json()
+        ])
+        self.assertEquals(actual, self.expected,
+                        "Data didn't match for olid lookup: %s\n\nversus:\n\n %s" % (actual, self.expected))
