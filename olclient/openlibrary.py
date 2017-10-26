@@ -89,6 +89,19 @@ class OpenLibrary(object):
         url = self._generate_url_from_olid(olid)
         return self.session.put(url, data=data)
 
+    def save_many(self, docs, comment):
+        """Uses the Open Library save_many API endpoint to
+        write any number or combination of documents (Edition, Work, or Author)
+        back to Open Library.
+        Uses HTTP Exension Framework custom headers (RFC 2774).
+        """
+        headers = {
+            'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
+            '42-comment': comment
+        }
+        doc_json = [doc.json() for doc in docs]
+        return self.session.post('%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers)
+
     @property
     def Work(ol_self):
         """

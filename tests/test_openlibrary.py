@@ -10,9 +10,9 @@ import unittest
 import jsonschema
 
 try:
-    from mock import Mock, call, patch
+    from mock import Mock, call, patch, ANY
 except ImportError:
-    from unittest.mock import Mock, call, patch
+    from unittest.mock import Mock, call, patch, ANY
 
 from olclient.config import Config
 from olclient.common import Author, Book
@@ -153,6 +153,18 @@ class TestOpenLibrary(unittest.TestCase):
                                   authors=[author])
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             orphaned_edition.validate()
+
+    @patch('requests.Session.post')
+    def test_save_many(self, mock_post):
+        edition = self.ol.Edition(edition_olid='OL123M', work_olid='OL12W', title='minimal edition')
+        work    = self.ol.Work(olid='OL12W', title='minimal work')
+        self.ol.save_many([edition, work], "test comment")
+        mock_post.assert_called_with("%s/api/save_many" % self.ol.base_url, ANY, headers=ANY)
+        called_with_json    = json.loads(mock_post.call_args[0][1])
+        called_with_headers = mock_post.call_args[1]['headers']
+        assert(len(called_with_json) == 2)
+        self.assertIn('ns=42', called_with_headers['Opt'])
+        self.assertEqual('test comment', called_with_headers['42-comment'])
 
 @patch('requests.Session.get')
 class TestFullEditionGet(unittest.TestCase):
