@@ -216,9 +216,19 @@
     },
     "link": {
       "type": "object",
-      "required": [ "url", "title" ],
+      "required": [ "type", "url", "title" ],
       "additionalProperties": false,
       "properties": {
+        "type": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": {
+            "key": {
+              "enum": ["/type/link"]
+            }
+          }
+        },
         "url":   { "type": "string" },
         "title": { "type": "string" }
       }

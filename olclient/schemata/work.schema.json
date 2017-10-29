@@ -28,8 +28,15 @@
       "type": "array",
       "items": { "$ref": "#definitions/author_role" }
     },
-
-    "id": { 
+    "covers": {
+      "type": "array",
+      "items": { "type": "number" }
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/link" }
+    },
+    "id": {
       "description": "Unsure what this is for, deprecate?",
       "type": "number"
      },
@@ -59,10 +66,18 @@
       "required": [ "type", "author" ],
       "properties": {
         "type": {
-          "type": "string",
-          "enum": ["/type/author_role"]
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": {
+            "key": {
+              "enum": ["/type/author_role"]
+            }
+          }
         },
-        "author": { "$ref": "#/definitions/author" }
+        "author": { "$ref": "#/definitions/author" },
+        "role":   { "type": "string" },
+        "as":     { "type": "string" }
       }
     },
     "author": {
@@ -87,6 +102,25 @@
           "enum": ["/type/datetime"]
         },
         "value": { "type": "string" }
+      }
+    },
+    "link": {
+      "type": "object",
+      "required": [ "type", "url", "title" ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": {
+            "key": {
+              "enum": ["/type/link"]
+            }
+          }
+        },
+        "url":   { "type": "string" },
+        "title": { "type": "string" }
       }
     }
   }
