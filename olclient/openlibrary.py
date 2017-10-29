@@ -50,15 +50,15 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
-    def __init__(self, credentials=None, base_url=u'https://openlibrary.org', test=False):
+    def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
         self.session = requests.Session()
         self.base_url = base_url
         credentials = credentials or \
                       Config().get_config().get('s3', None)
         if credentials:
-            self.login(credentials, test=test)
+            self.login(credentials)
 
-    def login(self, credentials, test=False):
+    def login(self, credentials):
         """Login to Open Library with given credentials, ensures the requests
         session has valid cookies for future requests.
         """
@@ -74,7 +74,7 @@ class OpenLibrary(object):
 
         response = _login(url, headers, data)
 
-        if 'Set-Cookie' not in response.headers and not test:
+        if 'Set-Cookie' not in response.headers:
             raise ValueError("No cookie set")
 
     def delete(self, olid, comment):
@@ -233,7 +233,7 @@ class OpenLibrary(object):
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_book_by_metadata(url):
                     """Makes best effort to perform request w/ exponential backoff"""
-                    return requests.get(url)
+                    return cls.OL.session.get(url)
 
                 response = _get_book_by_metadata(url)
 
@@ -241,7 +241,7 @@ class OpenLibrary(object):
                     results = Results(**response.json())
                 except Exception as e:
                     logger.exception(e)
-                    raise Exception("Work Search API failed return json")
+                    raise Exception("Work Search API failed to return json")
 
                 if results.num_found:
                     return results.first.to_book()
@@ -465,7 +465,7 @@ class OpenLibrary(object):
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_olid(url):
                     """Makes best effort to perform request w/ exponential backoff"""
-                    return requests.get(url)
+                    return cls.OL.session.get(url)
 
                 # Let the exception be handled up the stack
                 response = _get_olid(url)
