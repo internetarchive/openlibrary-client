@@ -11,7 +11,7 @@
   ],
   "additionalProperties": true,
   "properties": {
-    "key": { "$ref": "#/definitions/work_key" },
+    "key": { "$ref": "shared_definitions.json#work_key" },
     "title":    { "type": "string" },
     "subtitle": { "type": "string" },
     "type": {
@@ -34,35 +34,26 @@
     },
     "links": {
       "type": "array",
-      "items": { "$ref": "#/definitions/link" }
+      "items": { "$ref": "shared_definitions.json#link" }
     },
     "id": {
       "description": "Unsure what this is for, deprecate?",
       "type": "number"
      },
-    "lc_classifications":  { "$ref": "#/definitions/string_array" },
-    "subjects":            { "$ref": "#/definitions/string_array" },
+    "lc_classifications":  { "$ref": "shared_definitions.json#string_array" },
+    "subjects":            { "$ref": "shared_definitions.json#string_array" },
 
     "first_publish_date": { "type": "string" },
 
-    "description":    { "$ref": "#/definitions/text_block" },
-    "notes":          { "$ref": "#/definitions/text_block" },
+    "description":    { "$ref": "shared_definitions.json#text_block" },
+    "notes":          { "$ref": "shared_definitions.json#text_block" },
 
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
-    "created":         { "$ref": "#/definitions/internal_datetime" },
-    "last_modified":   { "$ref": "#/definitions/internal_datetime" }
+    "created":         { "$ref": "shared_definitions.json#internal_datetime" },
+    "last_modified":   { "$ref": "shared_definitions.json#internal_datetime" }
   },
   "definitions": {
-
-    "author_key": {
-      "type": "string",
-      "pattern": "^/authors/OL[0-9]+A$"
-    },
-    "work_key": {
-      "type": "string",
-      "pattern": "^/works/OL[0-9]+W$"
-    },
     "author_role": {
       "type": "object",
       "additionalProperties": false,
@@ -78,64 +69,9 @@
             }
           }
         },
-        "author": { "$ref": "#/definitions/author" },
+        "author": { "$ref": "shared_definitions.json#author" },
         "role":   { "type": "string" },
         "as":     { "type": "string" }
-      }
-    },
-    "author": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [ "key" ],
-      "properties": {
-        "key": { "$ref": "#/definitions/author_key" }
-      }
-    },
-    "string_array": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "text_block": {
-      "type": "object",
-      "required": [ "type", "value" ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["/type/text"]
-        },
-        "value": { "type": "string" }
-      }
-    },
-    "internal_datetime": {
-      "type": "object",
-      "required": [ "type", "value" ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["/type/datetime"]
-        },
-        "value": { "type": "string" }
-      }
-    },
-    "link": {
-      "type": "object",
-      "required": [ "type", "url", "title" ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["key"],
-          "properties": {
-            "key": {
-              "enum": ["/type/link"]
-            }
-          }
-        },
-        "url":   { "type": "string" },
-        "title": { "type": "string" }
       }
     }
   }

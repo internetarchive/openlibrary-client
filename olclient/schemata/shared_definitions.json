@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Shared Schema Definitions",
+
+  "author": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [ "key" ],
+    "properties": {
+      "key": { "$ref": "#author_key" }
+    }
+  },
+  "author_key": {
+    "type": "string",
+    "pattern": "^/authors/OL[0-9]+A$"
+  },
+  "internal_datetime": {
+    "type": "object",
+    "required": [ "type", "value" ],
+    "additionalProperties": false,
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["/type/datetime"]
+      },
+      "value": { "type": "string" }
+    }
+  },
+  "link": {
+    "type": "object",
+    "required": [ "url", "title" ],
+    "additionalProperties": false,
+    "properties": {
+      "url":   { "type": "string" },
+      "title": { "type": "string" }
+    }
+  },
+  "string_array": {
+    "type": "array",
+    "items": { "type": "string" }
+  },
+  "text_block": {
+    "type": "object",
+    "required": [ "type", "value" ],
+    "additionalProperties": false,
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["/type/text"]
+      },
+      "value": { "type": "string" }
+    }
+  },
+  "work_key": {
+    "type": "string",
+    "pattern": "^/works/OL[0-9]+W$"
+  }
+}

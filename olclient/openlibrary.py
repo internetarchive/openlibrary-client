@@ -5,9 +5,9 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
-from jsonschema import validate
 from pkg_resources import resource_filename
 import json
+import jsonschema
 import logging
 import re
 
@@ -137,10 +137,11 @@ class OpenLibrary(object):
                    jsonschema.exceptions.ValidationError if the Work is invalid.
 
                 """
-                schema_path = resource_filename('olclient', 'schemata/work.schema.json')
-                with open(schema_path) as schema_data:
+                schemata_path = resource_filename('olclient', 'schemata/')
+                with open(schemata_path + 'work.schema.json') as schema_data:
                     schema = json.load(schema_data)
-                    return validate(self.json(), schema)
+                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
 
             @property
             def editions(self):
@@ -315,10 +316,11 @@ class OpenLibrary(object):
                    jsonschema.exceptions.ValidationError if the Edition is invalid.
 
                 """
-                schema_path = resource_filename('olclient', 'schemata/edition.schema.json')
-                with open(schema_path) as schema_data:
+                schemata_path = resource_filename('olclient', 'schemata/')
+                with open(schemata_path + 'edition.schema.json') as schema_data:
                     schema = json.load(schema_data)
-                    return validate(self.json(), schema)
+                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
 
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
