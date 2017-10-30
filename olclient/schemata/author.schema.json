@@ -27,10 +27,24 @@
     "bio":  { "$ref": "shared_definitions.json#text_block" },
     "birth_date": { "type": "string" },
     "death_date": { "type": "string" },
+    "location": {
+      "type": "string",
+      "examples": [
+        "England, U.K."
+      ]
+    },
+    "date": { "type": "string" },
+    "entity_type": { "type": "string" },
+    "fuller_name": { "type": "string" },
     "personal_name": { "type": "string" },
+    "title": { "type": "string" },
     "photos": {
       "type": "array",
       "items": { "type": "number" }
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "shared_definitions.json#link" }
     },
     "remote_ids": {
       "type": "object",

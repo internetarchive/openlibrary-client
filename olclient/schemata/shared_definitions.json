@@ -36,7 +36,17 @@
     "additionalProperties": false,
     "properties": {
       "url":   { "type": "string" },
-      "title": { "type": "string" }
+      "title": { "type": "string" },
+      "type": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key"],
+        "properties": {
+          "key": {
+              "enum": ["/type/link"]
+          }
+        }
+      }
     }
   },
   "string_array": {
