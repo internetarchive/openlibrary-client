@@ -136,7 +136,6 @@ class OpenLibrary(object):
                    None
                 Raises:
                    jsonschema.exceptions.ValidationError if the Work is invalid.
-
                 """
                 schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
                 with open(schemata_path + 'work.schema.json') as schema_data:
@@ -315,7 +314,6 @@ class OpenLibrary(object):
                    None
                 Raises:
                    jsonschema.exceptions.ValidationError if the Edition is invalid.
-
                 """
                 schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
                 with open(schemata_path + 'edition.schema.json') as schema_data:
@@ -553,11 +551,12 @@ class OpenLibrary(object):
 
                 return cls(
                     olid, name=data.pop('name', u''),
-                    birth_date=data.pop('birth_date', u''),
-                    alternate_names=data.pop('alternate_names', []),
-                    bio=extract_bio(data.pop('bio', u'')),
-                    created=data.pop('created', {}).get('value', u''),
-                    links=data.pop('links', []))
+                    #birth_date=data.pop('birth_date', u''),
+                    #alternate_names=data.pop('alternate_names', []),
+                    #bio=extract_bio(data.pop('bio', u'')),
+                    #created=data.pop('created', {}).get('value', u''),
+                    #links=data.pop('links', []),
+                    **data)
 
             @classmethod
             def search(cls, name, limit=1):
