@@ -532,6 +532,13 @@ class OpenLibrary(object):
                     resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
                     return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
 
+            def save(self, comment):
+                """Saves this author back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/authors/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
+
             @classmethod
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid"""
