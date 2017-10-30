@@ -513,6 +513,8 @@ class OpenLibrary(object):
                 """
                 exclude = ['olid', 'identifiers']
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data['key'] = u'/authors/' + self.olid
+                data['type'] = {u'key': u'/type/author'}
                 return data
 
             def validate(self):

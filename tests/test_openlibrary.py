@@ -187,9 +187,7 @@ class TestAuthors(unittest.TestCase):
 
     def test_author_validation(self):
         author = self.ol.Author('OL123A',
-                            key='/authors/OL123A',
                             name='Test Author',
-                            type={'key': '/type/author'},
                             revision=1,
                             last_modified={
                               'type': '/type/datetime',
