@@ -511,9 +511,11 @@ class OpenLibrary(object):
                 for saving back to Open Library via its APIs.
                 """
                 exclude = ['olid', 'identifiers']
-                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = u'/authors/' + self.olid
                 data['type'] = {u'key': u'/type/author'}
+                if 'bio' in data:
+                    data['bio'] = {u'type': u'/type/text', u'value': data['bio']}
                 return data
 
             def validate(self):
@@ -537,8 +539,8 @@ class OpenLibrary(object):
                 r = cls.OL.session.get(url)
 
                 def extract_bio(bio):
-                    if 'value' in bio:
-                        return bio.get('value', u'')
+                    if bio and 'value' in bio:
+                        return bio.get('value', None)
                     else:
                         return bio
 
@@ -547,13 +549,13 @@ class OpenLibrary(object):
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
                                                          url_type='authors')
                 except:
-                    raise Exception("No author with olid: %s" % olid)
+                    raise Exception("Unable to get Author with olid: %s" % olid)
 
                 return cls(
                     olid, name=data.pop('name', u''),
                     #birth_date=data.pop('birth_date', u''),
                     #alternate_names=data.pop('alternate_names', []),
-                    #bio=extract_bio(data.pop('bio', u'')),
+                    bio=extract_bio(data.pop('bio', None)),
                     #created=data.pop('created', {}).get('value', u''),
                     #links=data.pop('links', []),
                     **data)
