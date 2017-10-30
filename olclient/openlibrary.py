@@ -5,10 +5,10 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
-from pkg_resources import resource_filename
 import json
 import jsonschema
 import logging
+import os
 import re
 
 import backoff
@@ -137,7 +137,7 @@ class OpenLibrary(object):
                    jsonschema.exceptions.ValidationError if the Work is invalid.
 
                 """
-                schemata_path = resource_filename('olclient', 'schemata/')
+                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
                 with open(schemata_path + 'work.schema.json') as schema_data:
                     schema = json.load(schema_data)
                     resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
@@ -316,7 +316,7 @@ class OpenLibrary(object):
                    jsonschema.exceptions.ValidationError if the Edition is invalid.
 
                 """
-                schemata_path = resource_filename('olclient', 'schemata/')
+                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
                 with open(schemata_path + 'edition.schema.json') as schema_data:
                     schema = json.load(schema_data)
                     resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
