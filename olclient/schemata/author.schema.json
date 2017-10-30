@@ -23,6 +23,29 @@
         }
       }
     },
+    "alternate_names": { "$ref": "shared_definitions.json#string_array" },
+    "bio":  { "$ref": "shared_definitions.json#text_block" },
+    "birth_date": { "type": "string" },
+    "death_date": { "type": "string" },
+    "personal_name": { "type": "string" },
+    "photos": {
+      "type": "array",
+      "items": { "type": "number" }
+    },
+    "remote_ids": {
+      "type": "object",
+      "additionProperties": true,
+      "properties": {
+        "wikidata": {
+          "type": "string",
+          "pattern": "^Q[0-9]+$"
+        },
+        "viaf": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    },
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
     "created":         { "$ref": "shared_definitions.json#internal_datetime" },
