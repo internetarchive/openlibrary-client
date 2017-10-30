@@ -179,6 +179,24 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertIn('ns=42', called_with_headers['Opt'])
         self.assertEqual('test comment', called_with_headers['42-comment'])
 
+class TestAuthors(unittest.TestCase):
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
+
+    def test_author_validation(self):
+        author = self.ol.Author('OL123A',
+                            key='/authors/OL123A',
+                            name='Test Author',
+                            type={'key': '/type/author'},
+                            revision=1,
+                            last_modified={
+                              'type': '/type/datetime',
+                              'value': '2016-10-12T00:48:04.453554'
+                            })
+        self.assertIsNone(author.validate())
+
 @patch('requests.Session.get')
 class TestFullEditionGet(unittest.TestCase):
     # TODO: Expected result includes an empty 'publisher': null, investigate

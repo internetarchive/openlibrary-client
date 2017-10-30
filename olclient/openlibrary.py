@@ -507,6 +507,28 @@ class OpenLibrary(object):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
 
+            def json(self):
+                """Returns a dict JSON representation of an OL Author suitable
+                for saving back to Open Library via its APIs.
+                """
+                exclude = ['olid', 'identifiers']
+                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                return data
+
+            def validate(self):
+                """Validates an Author's json representation against the canonical
+                JSON Schema for Authors using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Author is invalid.
+                """
+                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
+                with open(schemata_path + 'author.schema.json') as schema_data:
+                    schema = json.load(schema_data)
+                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+
             @classmethod
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid"""

@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Author Schema",
+  "type": "object",
+  "required": [
+    "key",
+    "name",
+    "type",
+    "revision",
+    "last_modified"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "key": { "$ref": "shared_definitions.json#author_key" },
+    "name":    { "type": "string" },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["/type/author"]
+        }
+      }
+    },
+    "revision":        { "type": "number" },
+    "latest_revision": { "type": "number" },
+    "created":         { "$ref": "shared_definitions.json#internal_datetime" },
+    "last_modified":   { "$ref": "shared_definitions.json#internal_datetime" }
+  }
+}
