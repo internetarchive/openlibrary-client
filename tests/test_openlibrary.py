@@ -120,9 +120,7 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertEqual(work_json['authors'][0]['author']['key'], "/authors/OL5864762A")
 
     def test_work_validation(self):
-        # TODO: why does work key have to be specified twice when creating a work?
         work = self.ol.Work('OL123W',
-                            key='/works/OL123W',
                             title='Test Title',
                             type={'key': '/type/work'},
                             revision=1,

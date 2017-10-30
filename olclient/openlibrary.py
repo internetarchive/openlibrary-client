@@ -126,6 +126,7 @@ class OpenLibrary(object):
                 """
                 exclude = ['_editions', 'olid']
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data['key'] = u'/works/' + self.olid
                 return data
 
             def validate(self):
