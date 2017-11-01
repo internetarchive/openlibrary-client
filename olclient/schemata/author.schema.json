@@ -11,7 +11,7 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "key": { "$ref": "shared_definitions.json#author_key" },
+    "key": { "$ref": "shared_definitions.json#/author_key" },
     "name":    { "type": "string" },
     "type": {
       "type": "object",
@@ -23,8 +23,8 @@
         }
       }
     },
-    "alternate_names": { "$ref": "shared_definitions.json#string_array" },
-    "bio":  { "$ref": "shared_definitions.json#text_block" },
+    "alternate_names": { "$ref": "shared_definitions.json#/string_array" },
+    "bio":  { "$ref": "shared_definitions.json#/text_block" },
     "birth_date": { "type": "string" },
     "death_date": { "type": "string" },
     "location": {
@@ -44,7 +44,7 @@
     },
     "links": {
       "type": "array",
-      "items": { "$ref": "shared_definitions.json#link" }
+      "items": { "$ref": "shared_definitions.json#/link" }
     },
     "remote_ids": {
       "type": "object",
@@ -66,7 +66,7 @@
     },
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
-    "created":         { "$ref": "shared_definitions.json#internal_datetime" },
-    "last_modified":   { "$ref": "shared_definitions.json#internal_datetime" }
+    "created":         { "$ref": "shared_definitions.json#/internal_datetime" },
+    "last_modified":   { "$ref": "shared_definitions.json#/internal_datetime" }
   }
 }
