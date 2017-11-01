@@ -27,7 +27,7 @@
     },
     "authors": {
       "type": "array",
-      "items": { "$ref": "shared_definitions.json#author" }
+      "items": { "$ref": "shared_definitions.json#/author" }
     },
     "works": { "$ref": "#/definitions/works" },
     "identifiers": { "$ref": "#/definitions/identifiers" },
@@ -68,7 +68,7 @@
     },
     "links": {
       "type": "array",
-      "items": { "$ref": "shared_definitions.json#link" }
+      "items": { "$ref": "shared_definitions.json#/link" }
     },
     "languages": {
       "type": "array",
@@ -118,28 +118,28 @@
         "12 January 2002"
       ]
     },
-    "publish_places":      { "$ref": "shared_definitions.json#string_array" },
-    "publishers":          { "$ref": "shared_definitions.json#string_array" },
-    "contributions":       { "$ref": "shared_definitions.json#string_array" },
-    "dewey_decimal_class": { "$ref": "shared_definitions.json#string_array" },
-    "genres":              { "$ref": "shared_definitions.json#string_array" },
-    "lc_classifications":  { "$ref": "shared_definitions.json#string_array" },
-    "other_titles":        { "$ref": "shared_definitions.json#string_array" },
-    "series":              { "$ref": "shared_definitions.json#string_array" },
-    "source_records":      { "$ref": "shared_definitions.json#string_array" },
-    "subjects":            { "$ref": "shared_definitions.json#string_array" },
-    "work_titles":         { "$ref": "shared_definitions.json#string_array" },
+    "publish_places":      { "$ref": "shared_definitions.json#/string_array" },
+    "publishers":          { "$ref": "shared_definitions.json#/string_array" },
+    "contributions":       { "$ref": "shared_definitions.json#/string_array" },
+    "dewey_decimal_class": { "$ref": "shared_definitions.json#/string_array" },
+    "genres":              { "$ref": "shared_definitions.json#/string_array" },
+    "lc_classifications":  { "$ref": "shared_definitions.json#/string_array" },
+    "other_titles":        { "$ref": "shared_definitions.json#/string_array" },
+    "series":              { "$ref": "shared_definitions.json#/string_array" },
+    "source_records":      { "$ref": "shared_definitions.json#/string_array" },
+    "subjects":            { "$ref": "shared_definitions.json#/string_array" },
+    "work_titles":         { "$ref": "shared_definitions.json#/string_array" },
 
     "table_of_contents":   { "type": "array" },
 
-    "description":    { "$ref": "shared_definitions.json#text_block" },
-    "first_sentence": { "$ref": "shared_definitions.json#text_block" },
-    "notes":          { "$ref": "shared_definitions.json#text_block" },
+    "description":    { "$ref": "shared_definitions.json#/text_block" },
+    "first_sentence": { "$ref": "shared_definitions.json#/text_block" },
+    "notes":          { "$ref": "shared_definitions.json#/text_block" },
 
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
-    "created":         { "$ref": "shared_definitions.json#internal_datetime" },
-    "last_modified":   { "$ref": "shared_definitions.json#internal_datetime" }
+    "created":         { "$ref": "shared_definitions.json#/internal_datetime" },
+    "last_modified":   { "$ref": "shared_definitions.json#/internal_datetime" }
   },
 
   "definitions": {
@@ -163,7 +163,7 @@
         "additionalProperties": false,
         "required": [ "key" ],
         "properties": {
-          "key": { "$ref": "shared_definitions.json#work_key" }
+          "key": { "$ref": "shared_definitions.json#/work_key" }
         }
       }
     },
