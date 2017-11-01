@@ -14,6 +14,10 @@
     "type": "string",
     "pattern": "^/authors/OL[0-9]+A$"
   },
+  "edition_key": {
+    "type": "string",
+    "pattern": "^/books/OL[0-9]+M$"
+  },
   "internal_datetime": {
     "type": "object",
     "required": [ "type", "value" ],

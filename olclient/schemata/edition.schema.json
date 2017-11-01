@@ -12,7 +12,7 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "key": { "$ref": "#/definitions/edition_key" },
+    "key": { "$ref": "shared_definitions.json#/edition_key" },
     "title":    { "type": "string" },
     "subtitle": { "type": "string" },
     "type": {
@@ -166,10 +166,6 @@
           "key": { "$ref": "shared_definitions.json#/work_key" }
         }
       }
-    },
-    "edition_key": {
-      "type": "string",
-      "pattern": "^/books/OL[0-9]+M$"
     },
     "language": {
       "type": "object",
