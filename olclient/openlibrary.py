@@ -185,6 +185,12 @@ class OpenLibrary(object):
                 work.add_bookcover(book.cover)
                 return ed
 
+            def add_author(self, author):
+                author_role = {u'type': {u'key': u'/type/author_role'}}
+                author_role[u'author'] = {u'key': u'/authors/' + author.olid}
+                self.authors.append(author_role)
+                return author_role
+
             def add_bookcover(self, url):
                 _url = '%s/works/%s/-/add-cover' % (self.OL.base_url, self.olid)
                 r = self.OL.session.post(_url, files={
