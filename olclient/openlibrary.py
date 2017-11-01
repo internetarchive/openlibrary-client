@@ -77,6 +77,21 @@ class OpenLibrary(object):
         if 'Set-Cookie' not in response.headers:
             raise ValueError("No cookie set")
 
+    def validate(self, doc, schema_name):
+        """Validates a doc's json representation against
+        its JSON Schema using jsonschema.validate().
+        Returns:
+          None
+        Raises:
+          jsonschema.exceptions.ValidationError if validation fails.
+        """
+        path = os.path.dirname(os.path.realpath(__file__))
+        schemata_path = "%s/schemata/%s" % (path, schema_name)
+        with open(schemata_path) as schema_data:
+            schema = json.load(schema_data)
+            resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(doc.json())
+
     def delete(self, olid, comment):
         """Delete a single Open Library entity by olid (str)
         CAUTION: This does not make any checks for backreference consistency,
@@ -137,11 +152,7 @@ class OpenLibrary(object):
                 Raises:
                    jsonschema.exceptions.ValidationError if the Work is invalid.
                 """
-                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
-                with open(schemata_path + 'work.schema.json') as schema_data:
-                    schema = json.load(schema_data)
-                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+                return self.OL.validate(self, 'work.schema.json')
 
             @property
             def editions(self):
@@ -315,11 +326,7 @@ class OpenLibrary(object):
                 Raises:
                    jsonschema.exceptions.ValidationError if the Edition is invalid.
                 """
-                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
-                with open(schemata_path + 'edition.schema.json') as schema_data:
-                    schema = json.load(schema_data)
-                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+                return self.OL.validate(self, 'edition.schema.json')
 
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
@@ -526,11 +533,7 @@ class OpenLibrary(object):
                 Raises:
                    jsonschema.exceptions.ValidationError if the Author is invalid.
                 """
-                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
-                with open(schemata_path + 'author.schema.json') as schema_data:
-                    schema = json.load(schema_data)
-                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+                return self.OL.validate(self, 'author.schema.json')
 
             def save(self, comment):
                 """Saves this author back to Open Library using the JSON API."""
