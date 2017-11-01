@@ -560,11 +560,7 @@ class OpenLibrary(object):
 
                 return cls(
                     olid, name=data.pop('name', u''),
-                    #birth_date=data.pop('birth_date', u''),
-                    #alternate_names=data.pop('alternate_names', []),
                     bio=extract_bio(data.pop('bio', None)),
-                    #created=data.pop('created', {}).get('value', u''),
-                    #links=data.pop('links', []),
                     **data)
 
             @classmethod
