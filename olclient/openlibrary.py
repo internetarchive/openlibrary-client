@@ -627,6 +627,59 @@ class OpenLibrary(object):
         # This returns the Author class from the ol.Author factory method
         return Author
 
+    @property
+    def Redirect(ol_self):
+        class Redirect(common.Entity):
+            OL = ol_self
+
+            def __init__(self, **kwargs):
+                """
+                Usage:
+                    >>> r = ol.Redirect(f=u'OL2514725W', t=u'OL1234W')
+                  OR
+                    >>> r = ol.Redirect(f=<ol.Edition>, t=<ol.Edition>)
+                """
+                try:
+                    self.olid = kwargs['f'].olid
+                except AttributeError:
+                    self.olid = kwargs['f']
+
+                try:
+                    self.location = kwargs['t'].olid
+                except AttributeError:
+                    self.location = kwargs['t']
+
+                self.olid = self.olid.upper()
+                self.location = self.location.upper()
+
+                if self.get_type(self.olid) != self.get_type(self.location):
+                    raise Exception("Types don't match!")
+
+            def get_type(self, olid):
+                ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
+                kind = re.sub('\d+', '..', olid)
+                return ol_types[kind]
+
+            def full_key(self, olid):
+                return "/%ss/%s" % (self.get_type(olid), olid)
+
+            def json(self):
+                data = {
+                    'key': self.full_key(self.olid),
+                    'location': self.full_key(self.location),
+                    'type': { 'key': '/type/redirect' }
+                }
+                return data
+
+            def save(self, comment):
+                """Saves the redirect back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/works/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
+
+        return Redirect
+
     def get(self, olid):
         _olid = olid.lower()
         if _olid.endswith('m'):
