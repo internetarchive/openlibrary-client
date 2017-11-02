@@ -14,7 +14,7 @@
 from __future__ import absolute_import, division, print_function
 try:
     raw_input
-except ImportError:
+except NameError:
     raw_input = input
 
 import argparse
