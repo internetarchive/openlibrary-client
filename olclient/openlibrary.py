@@ -436,10 +436,11 @@ class OpenLibrary(object):
 
                 try:
                     data = response.json()
+                    data['title'] = data.get('title', None)
                     edition = cls(**cls._ol_edition_json_to_book_args(data))
                     return edition
-                except:
-                    raise Exception("Unable to get Edition with olid: %s" % olid)
+                except Exception as e:
+                    raise Exception("Unable to get Edition with olid: %s\nDetails: %s" % (olid, e))
 
             @classmethod
             def get_olid_by_ocaid(cls, ocaid):
