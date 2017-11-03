@@ -322,6 +322,10 @@ class OpenLibrary(object):
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
                     data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
+                if 'description' in data:
+                    data['description'] = {u'type': u'/type/text', u'value': data['description']}
+                if 'notes' in data:
+                    data['notes'] = {u'type': u'/type/text', u'value': data['notes']}
                 return data
 
             def validate(self):
@@ -376,11 +380,12 @@ class OpenLibrary(object):
                     'edition_olid': data.pop('key', u'').split('/')[-1],
                     'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
-                                for author in data.pop('authors', [])]
+                                for author in data.pop('authors', [])],
+                    'description': OpenLibrary.get_text_value(data.get('description', None)),
+                    'notes': OpenLibrary.get_text_value(data.get('notes', None))
                 }
                 book_args.update(data)
                 return book_args
-
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
@@ -554,12 +559,6 @@ class OpenLibrary(object):
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
 
-                def extract_bio(bio):
-                    if bio and 'value' in bio:
-                        return bio.get('value', None)
-                    else:
-                        return bio
-
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
@@ -569,7 +568,7 @@ class OpenLibrary(object):
 
                 return cls(
                     olid, name=data.pop('name', u''),
-                    bio=extract_bio(data.pop('bio', None)),
+                    bio=OpenLibrary.get_text_value(data.pop('bio', None)),
                     **data)
 
             @classmethod
@@ -811,6 +810,17 @@ class OpenLibrary(object):
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
         kind = re.sub('\d+', '..', olid)
         return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
+
+    @staticmethod
+    def get_text_value(text):
+        """Returns the text value from a property that can either be a properly
+        formed /type/text object, or a (incorrect) string.
+        Used for Work/Edition 'notes' and 'description' and Author 'bio'.
+        """
+        try:
+            return text.get('value')
+        except:
+            return text
 
     @staticmethod
     def get_type(olid):
