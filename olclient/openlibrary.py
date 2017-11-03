@@ -628,6 +628,29 @@ class OpenLibrary(object):
         return Author
 
     @property
+    def Delete(ol_self):
+        class Delete(common.Entity):
+            OL = ol_self
+
+            def __init__(self, doc):
+                """Creates a delete object from the either the <Author | Edition | Work>
+                OR an olid.
+                """
+                try:
+                    self.olid = doc.olid
+                except AttributeError:
+                    self.olid = doc
+
+            def json(self):
+                data = {
+                    u'key': OpenLibrary.full_key(self.olid),
+                    u'type': { u'key': u'/type/delete' }
+                }
+                return data
+
+        return Delete
+
+    @property
     def Redirect(ol_self):
         class Redirect(common.Entity):
             OL = ol_self
@@ -652,22 +675,14 @@ class OpenLibrary(object):
                 self.olid = self.olid.upper()
                 self.location = self.location.upper()
 
-                if self.get_type(self.olid) != self.get_type(self.location):
+                if OpenLibrary.get_type(self.olid) != OpenLibrary.get_type(self.location):
                     raise Exception("Types don't match!")
-
-            def get_type(self, olid):
-                ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
-                kind = re.sub('\d+', '..', olid)
-                return ol_types[kind]
-
-            def full_key(self, olid):
-                return "/%ss/%s" % (self.get_type(olid), olid)
 
             def json(self):
                 data = {
-                    'key': self.full_key(self.olid),
-                    'location': self.full_key(self.location),
-                    'type': { 'key': '/type/redirect' }
+                    u'key': OpenLibrary.full_key(self.olid),
+                    u'location': OpenLibrary.full_key(self.location),
+                    u'type': { u'key': u'/type/redirect' }
                 }
                 return data
 
@@ -789,6 +804,16 @@ class OpenLibrary(object):
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
         kind = re.sub('\d+', '..', olid)
         return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
+
+    @staticmethod
+    def get_type(olid):
+        ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
+        kind = re.sub('\d+', '..', olid)
+        return ol_types[kind]
+
+    @staticmethod
+    def full_key(olid):
+        return "/%ss/%s" % (OpenLibrary.get_type(olid), olid)
 
     @staticmethod
     def _extract_olid_from_url(url, url_type):

@@ -177,6 +177,17 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertIn('ns=42', called_with_headers['Opt'])
         self.assertEqual('test comment', called_with_headers['42-comment'])
 
+    def test_delete(self):
+        delete = self.ol.Delete('OL1W')
+        self.assertEqual(delete.olid, 'OL1W')
+        self.assertEqual('/type/delete', delete.json()['type']['key'])
+        self.assertEqual('/works/OL1W', delete.json()['key'])
+
+    def test_redirect(self):
+        redirect = self.ol.Redirect(f='OL1W', t='OL2W')
+        self.assertEqual('/type/redirect', redirect.json()['type']['key'])
+        self.assertIn('location', redirect.json())
+
 class TestAuthors(unittest.TestCase):
 
     @patch('olclient.openlibrary.OpenLibrary.login')
