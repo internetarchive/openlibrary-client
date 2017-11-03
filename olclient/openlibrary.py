@@ -648,6 +648,13 @@ class OpenLibrary(object):
                 }
                 return data
 
+            def save(self, comment='delete'):
+                """Saves the Delete back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL._generate_url_from_olid(self.olid)
+                return self.OL.session.put(url, json.dumps(body))
+
         return Delete
 
     @property
@@ -686,11 +693,11 @@ class OpenLibrary(object):
                 }
                 return data
 
-            def save(self, comment):
-                """Saves the redirect back to Open Library using the JSON API."""
+            def save(self, comment='redirect'):
+                """Saves the Redirect back to Open Library using the JSON API."""
                 body = self.json()
                 body['_comment'] = comment
-                url = self.OL.base_url + '/works/%s.json' % self.olid
+                url = self.OL._generate_url_from_olid(self.olid)
                 return self.OL.session.put(url, json.dumps(body))
 
         return Redirect
