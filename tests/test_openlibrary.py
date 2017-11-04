@@ -3,6 +3,7 @@
 """Test cases for the OpenLibrary module"""
 
 from __future__ import absolute_import, division, print_function
+from six import string_types
 
 import json
 import jsonpickle
@@ -289,7 +290,7 @@ class TestTextType(unittest.TestCase):
     def test_edition_text_type(self):
         edition = create_edition(self.ol, **self.texts)
         self.assertIsNone(edition.validate())
-        self.assertIsInstance(edition.description, basestring)
+        self.assertIsInstance(edition.description, string_types)
         self.assertIn('type', edition.json()['description'])
         self.assertEquals(edition.json()['description']['value'], "A Text Description")
 
@@ -302,5 +303,6 @@ class TestTextType(unittest.TestCase):
     def test_work_text_type(self):
         work = create_work(self.ol, **self.texts)
         self.assertIsNone(work.validate())
+        self.assertIsInstance(work.description, string_types)
         self.assertIn('type', work.json()['description'])
         self.assertEquals(work.json()['description']['value'], "A Text Description")
