@@ -18,6 +18,30 @@ from olclient.config import Config
 from olclient.common import Author, Book
 from olclient.openlibrary import OpenLibrary
 
+def create_edition(ol, **kwargs):
+    """Creates a basic test Edition."""
+    defaults = {'edition_olid': 'OL123M',
+                'work_olid': 'OL123W',
+                'title': 'Test Title',
+                'revision': 1,
+                'last_modified': {
+                     'type': '/type/datetime',
+                     'value': '2016-10-12T00:48:04.453554'
+                }}
+    defaults.update(kwargs)
+    return ol.Edition(**defaults)
+
+def create_work(ol, **kwargs):
+    """Creates a basic test Work."""
+    defaults = {'olid': 'OL123W',
+                'title':'Test Title',
+                'revision': 1,
+                'last_modified': {
+                    'type': '/type/datetime',
+                    'value': '2016-10-12T00:48:04.453554'
+                }}
+    defaults.update(kwargs)
+    return ol.Work(**defaults)
 
 class TestOpenLibrary(unittest.TestCase):
 
@@ -210,7 +234,7 @@ class TestFullEditionGet(unittest.TestCase):
     target_olid = u'OL3702561M'
     raw_edition = json.loads("""{"number_of_pages": 1080, "subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "edition_name": "2nd ed.", "title": "Artificial intelligence", "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "publishers": ["Prentice Hall/Pearson Education"], "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "key": "/books/OL3702561M", "authors": [{"key": "/authors/OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pagination": "xxviii, 1080 p. :", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "publish_date": "2003", "works": [{"key": "/works/OL2896994W"}]}""")
     raw_author = json.loads("""{"name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "key": "/authors/OL440500A"}""")
-    expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "description": null, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": null, "name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "identifiers": {}, "olid": "OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": null, "publishers": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "cover": null, "publish_date": "2003", "olid": "OL3702561M"}""")
+    expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "description": null, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": null, "name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "identifiers": {}, "olid": "OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": null, "publishers": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": "Includes bibliographical references (p. 987-1043) and index.", "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "cover": null, "publish_date": "2003", "olid": "OL3702561M"}""")
         
     @patch('olclient.openlibrary.OpenLibrary.login')
     def setUp(self, mock_login):
@@ -251,14 +275,32 @@ class TestTextType(unittest.TestCase):
     @patch('olclient.openlibrary.OpenLibrary.login')
     def setUp(self, mock_login):
         self.ol = OpenLibrary()
+        self.strings = {u'description':  u'A String Description',
+                        u'notes': u'A String Note'}
+        self.texts   = {u'description': {u'type': u'/type/text', u'value': u'A Text Description'},
+                        u'notes': {u'type': u'/type/text', u'value': u'A Text Note'}}
 
-    def test_edition_text(self):
+    def test_edition_text_type_from_string(self):
+        edition = create_edition(self.ol, **self.strings)
+        self.assertIsNone(edition.validate())
+        self.assertIn('type', edition.json()['description'])
+        self.assertEquals(edition.json()['description']['value'], "A String Description")
 
-        edition = self.ol.Edition(edition_olid='OL123M',
-                                  work_olid='OL123W',
-                                  title='Test Title',
-                                  description='A Text Description',
-                                  notes='A Text Note'
-                                  )
+    def test_edition_text_type(self):
+        edition = create_edition(self.ol, **self.texts)
+        self.assertIsNone(edition.validate())
+        self.assertIsInstance(edition.description, basestring)
         self.assertIn('type', edition.json()['description'])
         self.assertEquals(edition.json()['description']['value'], "A Text Description")
+
+    def test_work_text_type_from_string(self):
+        work = create_work(self.ol, **self.strings)
+        self.assertIsNone(work.validate())
+        self.assertIn('type', work.json()['description'])
+        self.assertEquals(work.json()['description']['value'], "A String Description")
+
+    def test_work_text_type(self):
+        work = create_work(self.ol, **self.texts)
+        self.assertIsNone(work.validate())
+        self.assertIn('type', work.json()['description'])
+        self.assertEquals(work.json()['description']['value'], "A Text Description")

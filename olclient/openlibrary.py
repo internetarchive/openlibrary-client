@@ -131,7 +131,8 @@ class OpenLibrary(object):
             def __init__(self, olid, **kwargs):
                 self.olid = olid
                 self._editions = []
-
+                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
+                self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
                 for kwarg in kwargs:
                     setattr(self, kwarg, kwargs[kwarg])
 
@@ -140,8 +141,13 @@ class OpenLibrary(object):
                 for saving back to Open Library via its APIs.
                 """
                 exclude = ['_editions', 'olid']
-                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = u'/works/' + self.olid
+                data['type'] = {u'key': u'/type/work'}
+                if data.get('description'):
+                    data['description'] = {u'type': u'/type/text', u'value': data['description']}
+                if data.get('notes'):
+                    data['notes'] = {u'type': u'/type/text', u'value': data['notes']}
                 return data
 
             def validate(self):
@@ -298,6 +304,8 @@ class OpenLibrary(object):
                 self._work = None
                 self.work_olid = work_olid
                 self.olid = edition_olid
+                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
+                self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
                 super(Edition, self).__init__(
                     title, subtitle=subtitle, identifiers=identifiers,
                     number_of_pages=number_of_pages, authors=authors,
@@ -316,15 +324,16 @@ class OpenLibrary(object):
                 exclude = ['_work', 'olid', 'work_olid', 'pages']
                 data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
+                data['type'] = {u'key': u'/type/edition'}
                 if self.pages:
                     data['number_of_pages'] = self.pages
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
                     data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
-                if 'description' in data:
+                if data.get('description'):
                     data['description'] = {u'type': u'/type/text', u'value': data['description']}
-                if 'notes' in data:
+                if data.get('notes'):
                     data['notes'] = {u'type': u'/type/text', u'value': data['notes']}
                 return data
 
@@ -380,9 +389,7 @@ class OpenLibrary(object):
                     'edition_olid': data.pop('key', u'').split('/')[-1],
                     'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
                     'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
-                                for author in data.pop('authors', [])],
-                    'description': OpenLibrary.get_text_value(data.get('description', None)),
-                    'notes': OpenLibrary.get_text_value(data.get('notes', None))
+                                for author in data.pop('authors', [])]
                 }
                 book_args.update(data)
                 return book_args
