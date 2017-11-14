@@ -48,7 +48,7 @@
     },
     "remote_ids": {
       "type": "object",
-      "additionProperties": true,
+      "additionalProperties": true,
       "properties": {
         "wikidata": {
           "type": "string",
