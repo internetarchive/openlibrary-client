@@ -77,6 +77,21 @@ class OpenLibrary(object):
         if 'Set-Cookie' not in response.headers:
             raise ValueError("No cookie set")
 
+    def validate(self, doc, schema_name):
+        """Validates a doc's json representation against
+        its JSON Schema using jsonschema.validate().
+        Returns:
+          None
+        Raises:
+          jsonschema.exceptions.ValidationError if validation fails.
+        """
+        path = os.path.dirname(os.path.realpath(__file__))
+        schemata_path = "%s/schemata/%s" % (path, schema_name)
+        with open(schemata_path) as schema_data:
+            schema = json.load(schema_data)
+            resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(doc.json())
+
     def delete(self, olid, comment):
         """Delete a single Open Library entity by olid (str)
         CAUTION: This does not make any checks for backreference consistency,
@@ -126,6 +141,7 @@ class OpenLibrary(object):
                 """
                 exclude = ['_editions', 'olid']
                 data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data['key'] = u'/works/' + self.olid
                 return data
 
             def validate(self):
@@ -135,13 +151,8 @@ class OpenLibrary(object):
                    None
                 Raises:
                    jsonschema.exceptions.ValidationError if the Work is invalid.
-
                 """
-                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
-                with open(schemata_path + 'work.schema.json') as schema_data:
-                    schema = json.load(schema_data)
-                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+                return self.OL.validate(self, 'work.schema.json')
 
             @property
             def editions(self):
@@ -314,13 +325,8 @@ class OpenLibrary(object):
                    None
                 Raises:
                    jsonschema.exceptions.ValidationError if the Edition is invalid.
-
                 """
-                schemata_path = os.path.dirname(os.path.realpath(__file__)) + '/schemata/'
-                with open(schemata_path + 'edition.schema.json') as schema_data:
-                    schema = json.load(schema_data)
-                    resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-                    return jsonschema.Draft4Validator(schema, resolver=resolver).validate(self.json())
+                return self.OL.validate(self, 'edition.schema.json')
 
             def add_bookcover(self, url):
                 """Adds a cover image to this edition"""
@@ -507,6 +513,35 @@ class OpenLibrary(object):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
 
+            def json(self):
+                """Returns a dict JSON representation of an OL Author suitable
+                for saving back to Open Library via its APIs.
+                """
+                exclude = ['olid', 'identifiers']
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
+                data['key'] = u'/authors/' + self.olid
+                data['type'] = {u'key': u'/type/author'}
+                if 'bio' in data:
+                    data['bio'] = {u'type': u'/type/text', u'value': data['bio']}
+                return data
+
+            def validate(self):
+                """Validates an Author's json representation against the canonical
+                JSON Schema for Authors using jsonschema.validate().
+                Returns:
+                   None
+                Raises:
+                   jsonschema.exceptions.ValidationError if the Author is invalid.
+                """
+                return self.OL.validate(self, 'author.schema.json')
+
+            def save(self, comment):
+                """Saves this author back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + '/authors/%s.json' % self.olid
+                return self.OL.session.put(url, json.dumps(body))
+
             @classmethod
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid"""
@@ -514,8 +549,8 @@ class OpenLibrary(object):
                 r = cls.OL.session.get(url)
 
                 def extract_bio(bio):
-                    if 'value' in bio:
-                        return bio.get('value', u'')
+                    if bio and 'value' in bio:
+                        return bio.get('value', None)
                     else:
                         return bio
 
@@ -524,15 +559,12 @@ class OpenLibrary(object):
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
                                                          url_type='authors')
                 except:
-                    raise Exception("No author with olid: %s" % olid)
+                    raise Exception("Unable to get Author with olid: %s" % olid)
 
                 return cls(
                     olid, name=data.pop('name', u''),
-                    birth_date=data.pop('birth_date', u''),
-                    alternate_names=data.pop('alternate_names', []),
-                    bio=extract_bio(data.pop('bio', u'')),
-                    created=data.pop('created', {}).get('value', u''),
-                    links=data.pop('links', []))
+                    bio=extract_bio(data.pop('bio', None)),
+                    **data)
 
             @classmethod
             def search(cls, name, limit=1):

@@ -1,5 +1,6 @@
 include README.md
 include requirements.txt
+include olclient/schemata/author.schema.json
 include olclient/schemata/edition.schema.json
 include olclient/schemata/work.schema.json
 include olclient/schemata/shared_definitions.json
