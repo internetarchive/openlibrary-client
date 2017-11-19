@@ -833,10 +833,15 @@ class OpenLibrary(object):
     def get_type(olid):
         ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
         kind = re.sub('\d+', '..', olid)
-        return ol_types[kind]
+        try:
+            return ol_types[kind]
+        except KeyError:
+            raise ValueError("Unknown type for olid: %s" % olid)
 
     @staticmethod
     def full_key(olid):
+        """Returns the Open Library JSON key of format /<type(plural)>/<olid> as used by the
+        Open Library API."""
         return "/%ss/%s" % (OpenLibrary.get_type(olid), olid)
 
     @staticmethod
