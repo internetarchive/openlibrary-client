@@ -131,7 +131,8 @@ class OpenLibrary(object):
             def __init__(self, olid, **kwargs):
                 self.olid = olid
                 self._editions = []
-
+                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
+                self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
                 for kwarg in kwargs:
                     setattr(self, kwarg, kwargs[kwarg])
 
@@ -140,8 +141,13 @@ class OpenLibrary(object):
                 for saving back to Open Library via its APIs.
                 """
                 exclude = ['_editions', 'olid']
-                data = { k: v for k,v in self.__dict__.items() if k not in exclude }
+                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = u'/works/' + self.olid
+                data['type'] = {u'key': u'/type/work'}
+                if data.get('description'):
+                    data['description'] = {u'type': u'/type/text', u'value': data['description']}
+                if data.get('notes'):
+                    data['notes'] = {u'type': u'/type/text', u'value': data['notes']}
                 return data
 
             def validate(self):
@@ -184,6 +190,12 @@ class OpenLibrary(object):
                 work = ed.work
                 work.add_bookcover(book.cover)
                 return ed
+
+            def add_author(self, author):
+                author_role = {u'type': {u'key': u'/type/author_role'}}
+                author_role[u'author'] = {u'key': u'/authors/' + author.olid}
+                self.authors.append(author_role)
+                return author_role
 
             def add_bookcover(self, url):
                 _url = '%s/works/%s/-/add-cover' % (self.OL.base_url, self.olid)
@@ -292,6 +304,8 @@ class OpenLibrary(object):
                 self._work = None
                 self.work_olid = work_olid
                 self.olid = edition_olid
+                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
+                self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
                 super(Edition, self).__init__(
                     title, subtitle=subtitle, identifiers=identifiers,
                     number_of_pages=number_of_pages, authors=authors,
@@ -310,12 +324,17 @@ class OpenLibrary(object):
                 exclude = ['_work', 'olid', 'work_olid', 'pages']
                 data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
                 data['key'] = '/books/' + self.olid
+                data['type'] = {u'key': u'/type/edition'}
                 if self.pages:
                     data['number_of_pages'] = self.pages
                 if self.work_olid:
                     data['works'] = [ { 'key': '/works/' + self.work_olid} ]
                 if self.authors:
                     data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
+                if data.get('description'):
+                    data['description'] = {u'type': u'/type/text', u'value': data['description']}
+                if data.get('notes'):
+                    data['notes'] = {u'type': u'/type/text', u'value': data['notes']}
                 return data
 
             def validate(self):
@@ -375,7 +394,6 @@ class OpenLibrary(object):
                 book_args.update(data)
                 return book_args
 
-
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
                 """Retrieves a single book from OpenLibrary as json by isbn or olid.
@@ -430,11 +448,11 @@ class OpenLibrary(object):
 
                 try:
                     data = response.json()
+                    data['title'] = data.get('title', None)
                     edition = cls(**cls._ol_edition_json_to_book_args(data))
                     return edition
-                except:
-                    # XXX Better error handling required
-                    return None
+                except Exception as e:
+                    raise Exception("Unable to get Edition with olid: %s\nDetails: %s" % (olid, e))
 
             @classmethod
             def get_olid_by_ocaid(cls, ocaid):
@@ -548,12 +566,6 @@ class OpenLibrary(object):
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
 
-                def extract_bio(bio):
-                    if bio and 'value' in bio:
-                        return bio.get('value', None)
-                    else:
-                        return bio
-
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
@@ -563,7 +575,7 @@ class OpenLibrary(object):
 
                 return cls(
                     olid, name=data.pop('name', u''),
-                    bio=extract_bio(data.pop('bio', None)),
+                    bio=OpenLibrary.get_text_value(data.pop('bio', None)),
                     **data)
 
             @classmethod
@@ -620,6 +632,81 @@ class OpenLibrary(object):
                 return None
         # This returns the Author class from the ol.Author factory method
         return Author
+
+    @property
+    def Delete(ol_self):
+        class Delete(common.Entity):
+            OL = ol_self
+
+            def __init__(self, doc):
+                """Creates a delete object from the either the <Author | Edition | Work>
+                OR an olid.
+                """
+                try:
+                    self.olid = doc.olid
+                except AttributeError:
+                    self.olid = doc
+
+            def json(self):
+                data = {
+                    u'key': OpenLibrary.full_key(self.olid),
+                    u'type': { u'key': u'/type/delete' }
+                }
+                return data
+
+            def save(self, comment='delete'):
+                """Saves the Delete back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL._generate_url_from_olid(self.olid)
+                return self.OL.session.put(url, json.dumps(body))
+
+        return Delete
+
+    @property
+    def Redirect(ol_self):
+        class Redirect(common.Entity):
+            OL = ol_self
+
+            def __init__(self, **kwargs):
+                """
+                Usage:
+                    >>> r = ol.Redirect(f=u'OL2514725W', t=u'OL1234W')
+                  OR
+                    >>> r = ol.Redirect(f=<ol.Edition>, t=<ol.Edition>)
+                """
+                try:
+                    self.olid = kwargs['f'].olid
+                except AttributeError:
+                    self.olid = kwargs['f']
+
+                try:
+                    self.location = kwargs['t'].olid
+                except AttributeError:
+                    self.location = kwargs['t']
+
+                self.olid = self.olid.upper()
+                self.location = self.location.upper()
+
+                if OpenLibrary.get_type(self.olid) != OpenLibrary.get_type(self.location):
+                    raise Exception("Types don't match!")
+
+            def json(self):
+                data = {
+                    u'key': OpenLibrary.full_key(self.olid),
+                    u'location': OpenLibrary.full_key(self.location),
+                    u'type': { u'key': u'/type/redirect' }
+                }
+                return data
+
+            def save(self, comment='redirect'):
+                """Saves the Redirect back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL._generate_url_from_olid(self.olid)
+                return self.OL.session.put(url, json.dumps(body))
+
+        return Redirect
 
     def get(self, olid):
         _olid = olid.lower()
@@ -730,6 +817,27 @@ class OpenLibrary(object):
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
         kind = re.sub('\d+', '..', olid)
         return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
+
+    @staticmethod
+    def get_text_value(text):
+        """Returns the text value from a property that can either be a properly
+        formed /type/text object, or a (incorrect) string.
+        Used for Work/Edition 'notes' and 'description' and Author 'bio'.
+        """
+        try:
+            return text.get('value')
+        except:
+            return text
+
+    @staticmethod
+    def get_type(olid):
+        ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
+        kind = re.sub('\d+', '..', olid)
+        return ol_types[kind]
+
+    @staticmethod
+    def full_key(olid):
+        return "/%ss/%s" % (OpenLibrary.get_type(olid), olid)
 
     @staticmethod
     def _extract_olid_from_url(url, url_type):
