@@ -26,21 +26,24 @@ class OpenLibrary(object):
     """Open Library API Client.
 
     Usage:
+        >>> from olclient.openlibrary import OpenLibrary
+        >>> import olclient.common as common
         >>> ol = OpenLibrary(base_url="http://0.0.0.0:8080")
-        ... #  Create a new book
-        ... book = ol.create_book(common.Book(
-        ...     title=u"Wie die Weißen Engel die Blauen Tiger zur " \
-        ...         "Schnecke machten",
-        ...     author=common.Author(name=u"Walter Kort"),
-        ...     publisher=u"Bertelsmann",
-        ...     isbn=u"3570028364", publish_date=u"1982"))
 
-        >>> ol = OpenLibrary("http://0.0.0.0:8080")
+        ... #  Create a new book
+        >>> book = common.Book(title=u"Warlight: A novel", \
+        ...     authors=[common.Author(name=u"Michael Ondaatje")], \ 
+        ...     publisher=u"Deckle Edge", publish_date=u"2018")
+        >>> book.add_id(u'isbn_10', u'0525521194')
+        >>> book.add_id(u'isbn_13', u'978-0525521198')
+        >>> new_book = ol.create_book(book)
+        >>> new_book.add_bookcover('https://images-na.ssl-images-amazon.com/images/I/51kmM%2BvVRJL._SX337_BO1,204,203,200_.jpg')
+
         ... #  Fetch and update an existing book
-        ... book = ol.get_book_by_isbn(u"3570028364")
-        ... book.title = u"Wie die Weißen Engel die Blauen Tiger zur " \
+        >>> book = ol.get_book_by_isbn(u"3570028364")
+        >>> book.title = u"Wie die Weißen Engel die Blauen Tiger zur " \
         ...     "Schnecke machten"
-        ... book.save(comment="correcting title")
+        >>> book.save(comment="correcting title")
     """
 
     VALID_IDS = ['isbn_10', 'isbn_13', 'lccn']
@@ -105,7 +108,8 @@ class OpenLibrary(object):
         return self.session.put(url, data=data)
 
     def save_many(self, docs, comment):
-        """Uses the Open Library save_many API endpoint to
+        """
+        Uses the Open Library save_many API endpoint to
         write any number or combination of documents (Edition, Work, or Author)
         back to Open Library.
         Uses HTTP Exension Framework custom headers (RFC 2774).
