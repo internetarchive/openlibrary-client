@@ -50,18 +50,18 @@ XISBN_BOOKS = [
 class TestBook(unittest.TestCase):
 
     def test_create_book(self):
-        book = Book(title="Test Book", author="Jane Doe", year=2015)
+        book = Book(title="Test Book", authors=["Jane Doe"], publish_date=2015)
         self.assertTrue(book.title == "Test Book",
                         "Book title should be %s, instead is %s" %
                         ("Test Book", book.title))
 
-        self.assertTrue(book.author == "Jane Doe",
+        self.assertTrue(book.authors[0] == "Jane Doe",
                         "Book author should be %s, instead is %s" %
-                        ("Jane Doe", book.author))
+                        ("Jane Doe", book.authors))
 
-        self.assertTrue(book.year == 2015,
+        self.assertTrue(book.publish_date == 2015,
                         "Book year should be %s, instead is %s" %
-                        (2015, book.year))
+                        (2015, book.publish_date))
 
     def test_canonical_title(self):
         """This also effectively tests `book.rm_punctuation`"""
