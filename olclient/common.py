@@ -8,7 +8,9 @@ from __future__ import absolute_import, division, print_function
 
 from .utils import rm_punctuation
 
-VALID_IDENTIFIERS = ('olid', 'oclc', 'isbn_10', 'isbn_13', 'lccn')
+VALID_IDENTIFIERS = (
+    'olid', 'oclc', 'isbn_10', 'isbn_13', 'isbns',
+    'lccn', 'goodreads', 'librarything')
 
 
 class Entity(object):
@@ -30,7 +32,7 @@ class Entity(object):
 
         Args:
             id_type (unicode) - valid identifier types:
-              [u'olid', u'oclc', u'isbn_10', u'isbn_13']
+              [u'olid', u'oclc', u'isbns']
 
         Usage:
              >>> book.identifiers
