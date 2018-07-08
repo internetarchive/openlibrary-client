@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from .utils import rm_punctuation
 
-VALID_IDENTIFIERS = ('olid', 'oclc', 'isbn_10', 'isbn_13')
+VALID_IDENTIFIERS = ('olid', 'oclc', 'isbn_10', 'isbn_13', 'lccn')
 
 
 class Entity(object):
