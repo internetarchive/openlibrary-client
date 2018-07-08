@@ -35,16 +35,17 @@ For Fedora/RHEL, use the following command to install `yaz`
 $ sudo dnf install yaz
 ```
 
-If you haven't got python dev tools yet, you need those too.
+You'll also need python dev tools:
 
 ```
 $ sudo apt install python-dev   # for python 2
 $ sudo apt install python3-dev  # for python 3
 ```
 
+For Fedora/RHEL, use:
 ```
-sudo dnf install python2-devel  # for python2.x installs
-sudo dnf install python3-devel  # for python3.x installs
+$ sudo dnf install python2-devel  # for python2.x installs
+$ sudo dnf install python3-devel  # for python3.x installs
 ```
 
 
