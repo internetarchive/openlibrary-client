@@ -8,10 +8,22 @@ from __future__ import absolute_import, division, print_function
 
 from .utils import rm_punctuation
 
+VALID_IDENTIFIERS = ('olid', 'oclc', 'isbn_10', 'isbn_13')
+
 
 class Entity(object):
     def __init__(self, identifiers):
+        if identifiers is not None:
+            self._validate_identifiers(identifiers)
         self.identifiers = identifiers or {}
+
+    @staticmethod
+    def _validate_identifiers(identifiers):
+        for id_type, values in identifiers.items():
+            if id_type not in VALID_IDENTIFIERS:
+                raise AttributeError("ID type '{}' is not one of {}".format(id_type, VALID_IDENTIFIERS))
+            if type(values) not in (list, tuple):
+                raise TypeError("Identifier values must be lists")
 
     def add_id(self, id_type, identifier):
         """Adds an identifier to this book
