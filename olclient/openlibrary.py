@@ -166,8 +166,17 @@ class OpenLibrary(object):
 
             @property
             def editions(self):
-                """
-                >>> ol.Work(olid).editions
+                """Returns a list of editions of related to a particular work
+                Args:
+                    None
+
+                Returns
+                    (List) of common.Edition books
+
+                Usage:
+                    >>> from olclient import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Work(olid).editions
                 """
                 url = '%s/works/%s/editions.json' % (self.OL.base_url, self.olid)
                 try:
@@ -185,10 +194,20 @@ class OpenLibrary(object):
             @classmethod
             def create(cls, book, debug=False):
                 """Creates a new work along with a new edition
-                >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
-                >>> book.add_id(u'isbn_10', u'0525521194')
-                >>> book.add_id(u'isbn_13', u'978-0525521198'))
-                >>> ol.Work.create(book)  
+                Args:
+                    book (common.Book object)
+
+                Returns:
+                    (common.Work)
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> import olclient.common as common
+
+                    >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
+                    >>> book.add_id(u'isbn_10', u'0525521194')
+                    >>> book.add_id(u'isbn_13', u'978-0525521198'))
+                    >>> ol.Work.create(book)  
                 """
                 try:
                     book.publish_date = re.findall(
@@ -246,9 +265,17 @@ class OpenLibrary(object):
             @classmethod
             def get(cls, olid):
                 """Fetches an OpenLibrary Work Object via the book's olid
-                >>> from olclient.openlibrary import OpenLibrary
-                >>> ol = OpenLibrary()
-                >>> ol.Work.get('OL26278461M')
+                Args:
+                    OLID - Open Library ID
+
+                Returns:
+                    (common.Work)
+
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Work.get('OL26278461M')
                 """
                 url = '%s/works/%s.json' % (cls.OL.base_url, olid)
                 r = cls.OL.session.get(url)
@@ -273,6 +300,14 @@ class OpenLibrary(object):
                     >>> ol = OpenLibrary()
                     >>> ol.get_book_by_metadata(
                     ...     title=u'The Autobiography of Benjamin Franklin')
+
+                    or
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.get_book_by_metadata(
+                    ...     author=u'Dan Brown')
+
+
                 """
                 if not (title or author):
                     raise ValueError("Author or title required for metadata search")
@@ -313,6 +348,9 @@ class OpenLibrary(object):
                          identifiers=None, number_of_pages=None, authors=None,
                          publisher=None, publish_date=None, cover=None, **kwargs):
                 """
+                Error:
+                    TypeError: __init__() missing 2 required positional arguments: 'edition_olid' and 'title'
+
                 Usage:
                     >>> from olclient.openlibrary import OpenLibrary
                     >>> ol = OpenLibrary()
@@ -390,19 +428,50 @@ class OpenLibrary(object):
 
                 Args:
                     book (common.Book)
-                    work_olid (unicode) - the olid of the work to add
-                                          this book to
+                    work_olid (unicode) - The olid of the work to add this book to
 
-                >>> = ol.Edition.create(Book(...), u'OL2514725W')
+                Returns:
+                    Edition Object
+
+                Usage:
+                    >>> from olclient import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> = ol.Edition.create(Book(...), u'OL2514725W')
                 """
                 return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
 
             @classmethod
-            def json_to_book(cls):
+            def json_to_book(cls, data):
+                """Creates a Book Object using the JSON that is input
+
+                Args:
+                    data - {"title":"XXX", "authors":["XXX","XXX"], "publisher":"XXX", "publish_date":"XXX"}
+
+                Returns:
+                    common.Book object
+
+                Usage:
+                    >>> from olclient import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> = ol.Edition.json_to_book(data)
+                """
                 pass
 
             @classmethod
             def _ol_edition_json_to_book_args(cls, data):
+                """Creates Book Arguments from OL Edition JSON
+
+                Args:
+                    json - {"edition_olid":"XXX", "authors":["XXX","XXX"], "work_olid":"XXX"}
+
+                Returns:
+                    book arguments Dictionary
+
+                Usage:
+                    >>> from olclient import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> = ol.Edition._ol_edition_json_to_book_args(data)
+                """
                 book_args = {
                     'edition_olid': data.pop('key', u'').split('/')[-1],
                     'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
@@ -414,31 +483,32 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
-                """Retrieves a single book from OpenLibrary as json by isbn or olid.
+                """Retrieves a single book from OpenLibrary as json by isbn or olid or ociad or lccn or oclc or olid.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
 
                 Warnings:
-                    Currently, the marshaling is not complete. While
-                    it generates/returns a valid book, ideally we want
-                    the OpenLibrary fields to be converted into a
-                    format which is consistent with how we are using
-                    olclient Book to create OpenLibrary books --
-                    i.e. authors = Author objects, publishers list
-                    instead of publisher, identifiers (instead of key
-                    and isbn). The goal is to enable service to
-                    interoperate with the Book object and for
-                    OpenLibrary to be able to marshal the book object
-                    into a form it can use (or marshal its internal
-                    book json into a form others can use).
+                    Currently, the marshaling is not complete. While it generates/returns a valid book, ideally we want
+                    the OpenLibrary fields to be converted into a format which is consistent with how we are using
+                    olclient Book to create OpenLibrary books -- i.e. authors = Author objects, publishers list
+                    instead of publisher, identifiers (instead of key and isbn). The goal is to enable service to
+                    interoperate with the Book object and for OpenLibrary to be able to marshal the book object
+                    into a form it can use (or marshal its internal book json into a form others can use).
 
                 Usage:
                     >>> from olclient import OpenLibrary
                     >>> ol = OpenLibrary()
-                    >>> ol.Edition.get(u'OL25944230M')
-                    <class 'olclient.common.Book' {'publisher': None, 'subtitle': '', 'last_modified': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'title': u'Analogschaltungen der Me und Regeltechnik', 'publishers': [u'Vogel-Verl.'], 'identifiers': {}, 'cover': '', 'created': {u'type': u'/type/datetime', u'value': u'2016-09-07T00:31:28.769832'}, 'isbn_10': [u'3802306813'], 'publish_date': 1982, 'key': u'/books/OL25944230M', 'authors': [], 'latest_revision': 1, 'works': [{u'key': u'/works/OL17365510W'}], 'type': {u'key': u'/type/edition'}, 'pages': None, 'revision': 1}>
-                    >>> ol.Edition.get(u'OL25944230M')
+
+                    >>> ol.Edition.get(olid=u'OL25944230M')
+                    or
+                    >>> ol.Edition.get(isbn=u'9706664998')
+                    or
+                    >>> ol.Edition.get(oclc=u'893562252')
+                    or
+                    >>> ol.Edition.get(lccn=u'XXX')
+                    or
+                    >>> ol.Edition.get(ocaid=u'XXX')
                 """
                 if not olid:
                     if any([isbn, oclc, lccn, ocaid]):
@@ -497,20 +567,27 @@ class OpenLibrary(object):
 
             @classmethod
             def get_metadata(cls, key, value):
-                """Looks up a key (LCCN, OCLC, ISBN10/13) in OpenLibrary and returns a
+                """Looks up a key (LCCN, OCLC, ISBN10/13, OCAID) in OpenLibrary and returns a
                 matching olid if a match exists.
 
                 Args:
-                    key (unicode) - u'OCLC', u'ISBN', u'LCCN'
+                    key (unicode) - u'OCLC', u'ISBN', u'LCCN', u'OCAID'
                     value (unicode) - identifier value
 
                 Returns:
                     olid (unicode) or None
 
                 Usage:
+                    >>> from olclient import OpenLibrary
                     >>> ol = OpenLibrary()
-                    ... ol.Edition.get_olid(u'ISBN', u'9780747550303')
-                    u'OL1429049M'
+
+                    >>> ol.Edition.get_metadata(u'ISBN', u'9780747550303')
+                    or
+                    >>> ol.Edition.get_metadata(u'OCLC', u'XXX')
+                    or
+                    >>> ol.Edition.get_metadata(u'LCCN', u'XXX')
+                    or
+                    >>> ol.Edition.get_metadata(u'OCAID', u'XXX')
                 """
                 if key not in ['OCLC', 'ISBN', 'LCCN', 'OLID', 'OCAID']:
                     raise ValueError("key must be one of OCLC, OLID, ISBN, OCAID, or LCCN")
@@ -581,9 +658,18 @@ class OpenLibrary(object):
             @classmethod
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid
-                >>> from olclient.openlibrary import OpenLibrary
-                >>> ol = OpenLibrary()
-                >>> ol.Author.get('OL39307A')
+                Args:
+                    olid (unicode) - OpenLibrary ID for author to search within 
+                                    Open Library's database of authors 
+
+                Returns:
+                    A (list) of author object from the OpenLibrary
+                    authors autocomplete API
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.get('OL39307A')
                 """
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
