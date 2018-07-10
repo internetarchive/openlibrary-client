@@ -32,7 +32,7 @@ class OpenLibrary(object):
 
         ... #  Create a new book
         >>> book = common.Book(title=u"Warlight: A novel", \
-        ...     authors=[common.Author(name=u"Michael Ondaatje")], \ 
+        ...     authors=[common.Author(name=u"Michael Ondaatje")], \
         ...     publisher=u"Deckle Edge", publish_date=u"2018")
         >>> book.add_id(u'isbn_10', u'0525521194')
         >>> book.add_id(u'isbn_13', u'978-0525521198')
@@ -46,7 +46,7 @@ class OpenLibrary(object):
         >>> book.save(comment="correcting title")
     """
 
-    VALID_IDS = ['isbn_10', 'isbn_13', 'lccn']
+    VALID_IDS = ['isbn_10', 'isbn_13', 'lccn', 'ocaid']
     BACKOFF_KWARGS = {
         'wait_gen': backoff.expo,
         'exception': requests.exceptions.RequestException,
