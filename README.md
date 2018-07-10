@@ -84,12 +84,13 @@ Fun things you can do with an Work:
 >>> work = ol.Work.get(u'OL12938932W')
 >>> editions = work.editions
 ```
-One thing to consider in the snippet above is that work.editions is a @property which makes several http requests to OpenLibrary in order to populate results. Once a call has been made to work.editions, its editions are saved/cached as work._editions.
+One thing to consider in the snippet above is that work.editions is a @property which makes several http requests to OpenLibrary in order to populate results. Once a call has been made to work.editions, its editions are saved/cached as work._editions_.
+
 
 #### Editions
 
 Fun things you can do with an Edition:
-```
+```python
 >>> from olclient.openlibrary import OpenLibrary
 >>> ol = OpenLibrary()
 >>> edition = ol.Edition.get(u'OL25952968M')
@@ -97,6 +98,16 @@ Fun things you can do with an Edition:
 >>> work = edition.work
 >>> work.add_bookcover(u'https://covers.openlibrary.org/b/id/7451891-L.jpg')
 >>> edition.add_bookcover(u'https://covers.openlibrary.org/b/id/7451891-L.jpg')
+```
+
+#### Authors
+
+Author Information for existing authors can be done in the following manner.
+```python
+>>> from olclient.openlibrary import OpenLibrary
+>>> ol = OpenLibrary
+>>> author_olid = ol.Book.get_olid_by_name('Dan Brown')
+>>> author_obj = ol.get(author_olid)
 ```
 
 ### Command Line Tool

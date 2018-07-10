@@ -184,6 +184,12 @@ class OpenLibrary(object):
 
             @classmethod
             def create(cls, book, debug=False):
+                """Creates a new work along with a new edition
+                >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
+                >>> book.add_id(u'isbn_10', u'0525521194')
+                >>> book.add_id(u'isbn_13', u'978-0525521198'))
+                >>> ol.Work.create(book)  
+                """
                 try:
                     book.publish_date = re.findall(
                         r'[\d]{4}', book.publish_date)[0]
@@ -239,6 +245,11 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid):
+                """Fetches an OpenLibrary Work Object via the book's olid
+                >>> from olclient.openlibrary import OpenLibrary
+                >>> ol = OpenLibrary()
+                >>> ol.Work.get('OL26278461M')
+                """
                 url = '%s/works/%s.json' % (cls.OL.base_url, olid)
                 r = cls.OL.session.get(url)
                 return cls(olid, **r.json())
@@ -258,8 +269,9 @@ class OpenLibrary(object):
                     (common.Book)
 
                 Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
                     >>> ol = OpenLibrary()
-                    ... ol.get_book_by_metadata(
+                    >>> ol.get_book_by_metadata(
                     ...     title=u'The Autobiography of Benjamin Franklin')
                 """
                 if not (title or author):
@@ -302,6 +314,8 @@ class OpenLibrary(object):
                          publisher=None, publish_date=None, cover=None, **kwargs):
                 """
                 Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
                     >>> e = ol.Edition(u'OL2514725W')
                     >>> e.book
                 """
@@ -566,7 +580,11 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid):
-                """Retrieves an OpenLibrary Author by author_olid"""
+                """Retrieves an OpenLibrary Author by author_olid
+                >>> from olclient.openlibrary import OpenLibrary
+                >>> ol = OpenLibrary()
+                >>> ol.Author.get('OL39307A')
+                """
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
 
@@ -590,10 +608,18 @@ class OpenLibrary(object):
                 Args:
                     name (unicode) - name of author to search for within OpenLibrary's
                                      database of authors
+                    limit (integer) - number of objects with similar names
 
                 Returns:
                     A (list) of matching authors from the OpenLibrary
                     authors autocomplete API
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.search('Dan Brown')
+                    or
+                    >>> ol.Author.search('Dan Brown', 5)
                 """
                 if name:
                     err = lambda e: logger.exception(
@@ -627,6 +653,10 @@ class OpenLibrary(object):
                 Returns:
                     olid (unicode)
 
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.get_olid_by_name('Dan Brown')
                 """
                 authors = cls.search(name)
                 _name = name.lower().strip()
@@ -723,7 +753,8 @@ class OpenLibrary(object):
 
     @classmethod
     def get_primary_identifier(cls, book):
-        """XXX needs docs"""
+        """XXX needs docs
+        """
         id_name, id_value = None, None
         for valid_key in cls.VALID_IDS:
             if valid_key in book.identifiers:
