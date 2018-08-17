@@ -68,9 +68,10 @@ class TestOpenLibrary(unittest.TestCase):
 
     @patch('requests.Session.get')
     def test_get_olid_notfound_by_isbn(self, mock_get):
-        mock_get.return_value.raise_for_status = raise_http_error
-        with pytest.raises(requests.HTTPError):
+        mock_get.json_data = {}
+        with pytest.raises(Exception) as e:
             self.ol.Edition.get(isbn='foobar')
+        assert 'No olid found for isbn = foobar' == str(e.value)
 
     @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):

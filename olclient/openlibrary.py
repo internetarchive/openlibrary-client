@@ -514,20 +514,27 @@ class OpenLibrary(object):
                 if not olid:
                     if any([isbn, oclc, lccn, ocaid]):
                         if isbn:
+                            _id, value = ('isbn', isbn)
                             olid = cls.get_olid_by_isbn(isbn)
                         elif oclc:
+                            _id, value = ('oclc', oclc)
                             olid = cls.get_olid_by_oclc(oclc)
                         elif ocaid:
+                            _id, value = ('ocaid', ocaid)
                             olid = cls.get_olid_by_ocaid(ocaid)
                         else:
+                            _id, value = ('lccn', lccn)
                             olid = cls.get_olid_by_lccn(lccn)
                     else:
                         raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
 
-                err = lambda e: logger.exception("Error retrieving OpenLibrary " \
-                                                 "book: %s", e)
+                if olid is None:
+                    raise Exception("No olid found for %s = %s" % (_id, value))
+
                 url = cls.OL.base_url + '/books/%s.json' % olid
 
+                err = lambda e: logger.exception("Error retrieving OpenLibrary " \
+                                                 "book: %s", e)
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                 def _get_book_by_olid(url):
                     """Makes best effort to perform request w/ exponential backoff"""
