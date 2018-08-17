@@ -67,6 +67,12 @@ class TestOpenLibrary(unittest.TestCase):
                         "Expected olid %s, got %s" % (expected_olid, olid))
 
     @patch('requests.Session.get')
+    def test_get_olid_notfound_by_isbn(self, mock_get):
+        mock_get.return_value.raise_for_status = raise_for_status
+        with pytest.raises(requests.HTTPError):
+            self.ol.Edition.get(isbn='foobar')
+
+    @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):
         doc = {
             "key":    u"/works/OL2514747W",
