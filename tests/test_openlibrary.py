@@ -46,7 +46,7 @@ def create_work(ol, **kwargs):
     defaults.update(kwargs)
     return ol.Work(**defaults)
 
-def raise_for_status():
+def raise_http_error():
     raise requests.HTTPError("test HTTPError")
 
 class TestOpenLibrary(unittest.TestCase):
@@ -68,7 +68,7 @@ class TestOpenLibrary(unittest.TestCase):
 
     @patch('requests.Session.get')
     def test_get_olid_notfound_by_isbn(self, mock_get):
-        mock_get.return_value.raise_for_status = raise_for_status
+        mock_get.return_value.raise_for_status = raise_http_error
         with pytest.raises(requests.HTTPError):
             self.ol.Edition.get(isbn='foobar')
 
@@ -207,7 +207,7 @@ class TestOpenLibrary(unittest.TestCase):
     def test_get_notfound(self, mock_get):
         # This tests that if requests.raise_for_status() raises an exception,
         # (e.g. 404 or 500 HTTP response) it is not swallowed by the client.
-        mock_get.return_value.raise_for_status = raise_for_status
+        mock_get.return_value.raise_for_status = raise_http_error
         suffixes = {'edition': 'M', 'work': 'W', 'author': 'A'}
         for _type, suffix in suffixes.items():
             target = "OLnotfound%s" % suffix
