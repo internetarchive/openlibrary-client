@@ -209,7 +209,7 @@ class TestOpenLibrary(unittest.TestCase):
         # (e.g. 404 or 500 HTTP response) it is not swallowed by the client.
         mock_get.return_value.raise_for_status = raise_for_status
         suffixes = {'edition': 'M', 'work': 'W', 'author': 'A'}
-        for _type, suffix in suffixes.iteritems():
+        for _type, suffix in suffixes.items():
             target = "OLnotfound%s" % suffix
             with pytest.raises(requests.HTTPError, message="HTTPError not raised for %s: %s" % (_type, target)):
                 r = self.ol.get(target)
