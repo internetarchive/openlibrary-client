@@ -275,10 +275,11 @@ class OpenLibrary(object):
                 Usage:
                     >>> from olclient.openlibrary import OpenLibrary
                     >>> ol = OpenLibrary()
-                    >>> ol.Work.get('OL26278461M')
+                    >>> ol.Work.get('OL26278461W')
                 """
                 url = '%s/works/%s.json' % (cls.OL.base_url, olid)
                 r = cls.OL.session.get(url)
+                r.raise_for_status()
                 return cls(olid, **r.json())
 
             @classmethod
@@ -533,7 +534,7 @@ class OpenLibrary(object):
                     return cls.OL.session.get(url)
 
                 response = _get_book_by_olid(url)
-
+                response.raise_for_status()
                 try:
                     data = response.json()
                     data['title'] = data.get('title', None)
@@ -603,7 +604,7 @@ class OpenLibrary(object):
 
                 # Let the exception be handled up the stack
                 response = _get_olid(url)
-
+                response.raise_for_status()
                 try:
                     results = response.json()
                 except ValueError as e:
@@ -673,7 +674,7 @@ class OpenLibrary(object):
                 """
                 url = cls.OL.base_url + '/authors/%s.json' % olid
                 r = cls.OL.session.get(url)
-
+                r.raise_for_status()
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
