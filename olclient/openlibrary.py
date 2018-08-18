@@ -50,6 +50,7 @@ class OpenLibrary(object):
     BACKOFF_KWARGS = {
         'wait_gen': backoff.expo,
         'exception': requests.exceptions.RequestException,
+        'giveup': lambda e: hasattr(e.response, 'status_code') and 400 <= e.response.status_code < 500,
         'max_tries': 5
     }
 

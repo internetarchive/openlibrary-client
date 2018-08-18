@@ -47,7 +47,11 @@ def create_work(ol, **kwargs):
     return ol.Work(**defaults)
 
 def raise_http_error():
-    raise requests.HTTPError("test HTTPError")
+    r = requests.Response
+    # Non 4xx status will trigger backoff retries
+    r.status_code = 404
+    kwargs = {'response': r}
+    raise requests.HTTPError("test HTTPError", **kwargs)
 
 class TestOpenLibrary(unittest.TestCase):
 
