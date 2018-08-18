@@ -484,7 +484,7 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
-                """Retrieves a single book from OpenLibrary as json by isbn or olid or ociad or lccn or oclc or olid.
+                """Retrieves a single book from OpenLibrary as json by isbn or olid or ocaid or lccn or oclc or olid.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
@@ -568,13 +568,6 @@ class OpenLibrary(object):
 
             @classmethod
             def get_olid(cls, key, value):
-                metadata = cls.get_metadata(key, value)
-                if metadata:
-                    book_url = metadata.get('info_url', '')
-                    return cls.OL._extract_olid_from_url(book_url, url_type="books")
-
-            @classmethod
-            def get_metadata(cls, key, value):
                 """Looks up a key (LCCN, OCLC, ISBN10/13, OCAID) in OpenLibrary and returns a
                 matching olid if a match exists.
 
@@ -584,6 +577,32 @@ class OpenLibrary(object):
 
                 Returns:
                     olid (unicode) or None
+                """
+                metadata = cls.get_metadata(key, value)
+                if metadata:
+                    book_url = metadata.get('info_url', '')
+                    return cls.OL._extract_olid_from_url(book_url, url_type="books")
+
+            @classmethod
+            def get_metadata(cls, key, value):
+                """Looks up a key (LCCN, OCLC, ISBN10/13, OCAID) using the Open Library
+                Books API https://openlibrary.org/dev/docs/api/books
+                Returns first matched JSON object for the bibliographic key,
+                or None if there is no match.
+
+                Response keys:
+                    'bib_key': Identifier used to query this book.
+                    'info_url': A URL to the book page.
+                    'preview': Preview state, 'noview' or 'full'.
+                    'preview_url': A URL to the preview of the book.
+                    'thumbnail_url': A URL to a bookcover thumbnail.
+
+                Args:
+                    key (unicode) - u'OCLC', u'ISBN', u'LCCN', u'OCAID'
+                    value (unicode) - identifier value
+
+                Returns:
+                    Dict or None
 
                 Usage:
                     >>> from olclient import OpenLibrary
@@ -601,7 +620,7 @@ class OpenLibrary(object):
                     raise ValueError("key must be one of OCLC, OLID, ISBN, OCAID, or LCCN")
 
                 err = lambda e: logger.exception("Error retrieving OpenLibrary " \
-                                                 "ID by isbn: %s", e)
+                                                 "metadata by bibkey: %s", e)
                 url = cls.OL.base_url + ('/api/books.json?bibkeys=%s:%s' % (key, value))
 
                 @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
