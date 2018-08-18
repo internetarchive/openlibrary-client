@@ -71,11 +71,10 @@ class TestOpenLibrary(unittest.TestCase):
                         "Expected olid %s, got %s" % (expected_olid, olid))
 
     @patch('requests.Session.get')
-    def test_get_olid_notfound_by_isbn(self, mock_get):
+    def test_get_olid_notfound_by_bibkey(self, mock_get):
         mock_get.json_data = {}
-        with pytest.raises(Exception) as e:
-            self.ol.Edition.get(isbn='foobar')
-        assert 'No olid found for isbn = foobar' == str(e.value)
+        edition = self.ol.Edition.get(isbn='foobar')
+        assert edition is None
 
     @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):

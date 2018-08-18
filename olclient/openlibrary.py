@@ -519,25 +519,15 @@ class OpenLibrary(object):
                     or
                     >>> ol.Edition.get(ocaid=u'XXX')
                 """
-                if not olid:
-                    if any([isbn, oclc, lccn, ocaid]):
-                        if isbn:
-                            _id, value = ('isbn', isbn)
-                            olid = cls.get_olid_by_isbn(isbn)
-                        elif oclc:
-                            _id, value = ('oclc', oclc)
-                            olid = cls.get_olid_by_oclc(oclc)
-                        elif ocaid:
-                            _id, value = ('ocaid', ocaid)
-                            olid = cls.get_olid_by_ocaid(ocaid)
-                        else:
-                            _id, value = ('lccn', lccn)
-                            olid = cls.get_olid_by_lccn(lccn)
-                    else:
-                        raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
-
-                if olid is None:
-                    raise Exception("No olid found for %s = %s" % (_id, value))
+                if not any([olid, isbn, oclc, lccn, ocaid]):
+                    raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
+                elif not olid:
+                    bibkeys = {'ISBN': isbn, 'OCLC': oclc, 'OCAID': ocaid, 'LCCN': lccn}
+                    bibkey, value = [(k, v) for k,v in bibkeys.items() if v][0]
+                    olid = cls.get_olid(bibkey, value)
+                    if not olid:
+                        # No edition found by bibkey
+                        return
 
                 path = '/books/%s.json' % olid
                 response = cls.OL._get_ol_response(path)
