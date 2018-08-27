@@ -77,7 +77,7 @@ class OpenLibrary(object):
 
         response = _login(url, headers, data)
 
-        if 'Set-Cookie' not in response.headers:
+        if not self.session.cookies:
             raise ValueError("No cookie set")
 
     def validate(self, doc, schema_name):
