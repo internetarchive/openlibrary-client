@@ -10,6 +10,7 @@ import jsonschema
 import logging
 import os
 import re
+import urllib
 
 import backoff
 import requests
@@ -65,11 +66,16 @@ class OpenLibrary(object):
         """Login to Open Library with given credentials, ensures the requests
         session has valid cookies for future requests.
         """
-        err = lambda e: logger.exception("Error at login: %s", e)
-        headers = {'Content-Type': 'application/json'}
-        url = self.base_url + '/account/login'
-        data = json.dumps(credentials._asdict())
 
+        if 'username' in credentials._asdict():
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            data = urllib.urlencode(credentials._asdict())
+        else: # s3 login
+             headers = {'Content-Type': 'application/json'}
+             data = json.dumps(credentials._asdict())
+        url = self.base_url + '/account/login'
+
+        err = lambda e: logger.exception("Error at login: %s", e)
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _login(url, headers, data):
             """Makes best effort to perform request w/ exponential backoff"""
