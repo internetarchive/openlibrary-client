@@ -7,8 +7,10 @@ from six import string_types
 
 import json
 import jsonpickle
-import unittest
 import jsonschema
+import pytest
+import requests
+import unittest
 
 try:
     from mock import Mock, call, patch, ANY
@@ -44,6 +46,13 @@ def create_work(ol, **kwargs):
     defaults.update(kwargs)
     return ol.Work(**defaults)
 
+def raise_http_error():
+    r = requests.Response
+    # Non 4xx status will trigger backoff retries
+    r.status_code = 404
+    kwargs = {'response': r}
+    raise requests.HTTPError("test HTTPError", **kwargs)
+
 class TestOpenLibrary(unittest.TestCase):
 
     @patch('olclient.openlibrary.OpenLibrary.login')
@@ -60,6 +69,12 @@ class TestOpenLibrary(unittest.TestCase):
         expected_olid = u'OL23575801M'
         self.assertTrue(olid == expected_olid,
                         "Expected olid %s, got %s" % (expected_olid, olid))
+
+    @patch('requests.Session.get')
+    def test_get_olid_notfound_by_bibkey(self, mock_get):
+        mock_get.json_data = {}
+        edition = self.ol.Edition.get(isbn='foobar')
+        assert edition is None
 
     @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):
@@ -85,8 +100,10 @@ class TestOpenLibrary(unittest.TestCase):
         book = self.ol.Edition.get(isbn=u'0374202915')
         mock_get.assert_has_calls([
             call("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url),
+            call().raise_for_status(),
             call().json(),
             call("%s%s.json" % (self.ol.base_url, "/books/OL23575801M")),
+            call().raise_for_status(),
             call().json()
         ])
         expected_olid = u'OL23575801M'
@@ -190,6 +207,17 @@ class TestOpenLibrary(unittest.TestCase):
         with self.assertRaises(jsonschema.exceptions.ValidationError):
             orphaned_edition.validate()
 
+    @patch('requests.Session.get')
+    def test_get_notfound(self, mock_get):
+        # This tests that if requests.raise_for_status() raises an exception,
+        # (e.g. 404 or 500 HTTP response) it is not swallowed by the client.
+        mock_get.return_value.raise_for_status = raise_http_error
+        suffixes = {'edition': 'M', 'work': 'W', 'author': 'A'}
+        for _type, suffix in suffixes.items():
+            target = "OLnotfound%s" % suffix
+            with pytest.raises(requests.HTTPError, message="HTTPError not raised for %s: %s" % (_type, target)):
+                r = self.ol.get(target)
+
     @patch('requests.Session.post')
     def test_save_many(self, mock_post):
         edition = self.ol.Edition(edition_olid='OL123M', work_olid='OL12W', title='minimal edition')
@@ -249,10 +277,13 @@ class TestFullEditionGet(unittest.TestCase):
         actual = json.loads(jsonpickle.encode(self.ol.Edition.get(isbn=u'0137903952')))
         mock_get.assert_has_calls([
             call("%s/api/books.json?bibkeys=%s" % (self.ol.base_url, isbn_key)),
+            call().raise_for_status(),
             call().json(),
             call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call().raise_for_status(),
             call().json(),
             call("%s/authors/OL440500A.json" % self.ol.base_url),
+            call().raise_for_status(),
             call().json()
         ])
         self.assertEquals(actual, self.expected,
@@ -264,8 +295,10 @@ class TestFullEditionGet(unittest.TestCase):
         actual = json.loads(jsonpickle.encode(self.ol.Edition.get(olid=self.target_olid)))
         mock_get.assert_has_calls([
             call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call().raise_for_status(),
             call().json(),
             call("%s/authors/OL440500A.json" % self.ol.base_url),
+            call().raise_for_status(),
             call().json()
         ])
         self.assertEquals(actual, self.expected,

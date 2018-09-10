@@ -50,6 +50,7 @@ class OpenLibrary(object):
     BACKOFF_KWARGS = {
         'wait_gen': backoff.expo,
         'exception': requests.exceptions.RequestException,
+        'giveup': lambda e: hasattr(e.response, 'status_code') and 400 <= e.response.status_code < 500,
         'max_tries': 5
     }
 
@@ -120,6 +121,14 @@ class OpenLibrary(object):
         }
         doc_json = [doc.json() for doc in docs]
         return self.session.post('%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers)
+
+    err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
+    @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
+    def _get_ol_response(self, path):
+        """Makes best effort to perform request w/ exponential backoff"""
+        response = self.session.get(self.base_url + path)
+        response.raise_for_status()
+        return response
 
     @property
     def Work(ol_self):
@@ -275,10 +284,10 @@ class OpenLibrary(object):
                 Usage:
                     >>> from olclient.openlibrary import OpenLibrary
                     >>> ol = OpenLibrary()
-                    >>> ol.Work.get('OL26278461M')
+                    >>> ol.Work.get('OL26278461W')
                 """
-                url = '%s/works/%s.json' % (cls.OL.base_url, olid)
-                r = cls.OL.session.get(url)
+                path = '/works/%s.json' % olid
+                r = cls.OL._get_ol_response(path)
                 return cls(olid, **r.json())
 
             @classmethod
@@ -483,7 +492,7 @@ class OpenLibrary(object):
 
             @classmethod
             def get(cls, olid=None, isbn=None, oclc=None, lccn=None, ocaid=None):
-                """Retrieves a single book from OpenLibrary as json by isbn or olid or ociad or lccn or oclc or olid.
+                """Retrieves a single book from OpenLibrary as json by isbn or olid or ocaid or lccn or oclc or olid.
 
                 Args:
                     identifier (unicode) - identifier value, e.g. u'OL20933604M'
@@ -510,29 +519,18 @@ class OpenLibrary(object):
                     or
                     >>> ol.Edition.get(ocaid=u'XXX')
                 """
-                if not olid:
-                    if any([isbn, oclc, lccn, ocaid]):
-                        if isbn:
-                            olid = cls.get_olid_by_isbn(isbn)
-                        elif oclc:
-                            olid = cls.get_olid_by_oclc(oclc)
-                        elif ocaid:
-                            olid = cls.get_olid_by_ocaid(ocaid)
-                        else:
-                            olid = cls.get_olid_by_lccn(lccn)
-                    else:
-                        raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
+                if not any([olid, isbn, oclc, lccn, ocaid]):
+                    raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
+                elif not olid:
+                    bibkeys = {'ISBN': isbn, 'OCLC': oclc, 'OCAID': ocaid, 'LCCN': lccn}
+                    bibkey, value = [(k, v) for k,v in bibkeys.items() if v][0]
+                    olid = cls.get_olid(bibkey, value)
+                    if not olid:
+                        # No edition found by bibkey
+                        return
 
-                err = lambda e: logger.exception("Error retrieving OpenLibrary " \
-                                                 "book: %s", e)
-                url = cls.OL.base_url + '/books/%s.json' % olid
-
-                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
-                def _get_book_by_olid(url):
-                    """Makes best effort to perform request w/ exponential backoff"""
-                    return cls.OL.session.get(url)
-
-                response = _get_book_by_olid(url)
+                path = '/books/%s.json' % olid
+                response = cls.OL._get_ol_response(path)
 
                 try:
                     data = response.json()
@@ -560,13 +558,6 @@ class OpenLibrary(object):
 
             @classmethod
             def get_olid(cls, key, value):
-                metadata = cls.get_metadata(key, value)
-                if metadata:
-                    book_url = metadata.get('info_url', '')
-                    return cls.OL._extract_olid_from_url(book_url, url_type="books")
-
-            @classmethod
-            def get_metadata(cls, key, value):
                 """Looks up a key (LCCN, OCLC, ISBN10/13, OCAID) in OpenLibrary and returns a
                 matching olid if a match exists.
 
@@ -576,6 +567,32 @@ class OpenLibrary(object):
 
                 Returns:
                     olid (unicode) or None
+                """
+                metadata = cls.get_metadata(key, value)
+                if metadata:
+                    book_url = metadata.get('info_url', '')
+                    return cls.OL._extract_olid_from_url(book_url, url_type="books")
+
+            @classmethod
+            def get_metadata(cls, key, value):
+                """Looks up a key (LCCN, OCLC, ISBN10/13, OCAID) using the Open Library
+                Books API https://openlibrary.org/dev/docs/api/books
+                Returns first matched JSON object for the bibliographic key,
+                or None if there is no match.
+
+                Response keys:
+                    'bib_key': Identifier used to query this book.
+                    'info_url': A URL to the book page.
+                    'preview': Preview state, 'noview' or 'full'.
+                    'preview_url': A URL to the preview of the book.
+                    'thumbnail_url': A URL to a bookcover thumbnail.
+
+                Args:
+                    key (unicode) - u'OCLC', u'ISBN', u'LCCN', u'OCAID'
+                    value (unicode) - identifier value
+
+                Returns:
+                    Dict or None
 
                 Usage:
                     >>> from olclient import OpenLibrary
@@ -592,17 +609,8 @@ class OpenLibrary(object):
                 if key not in ['OCLC', 'ISBN', 'LCCN', 'OLID', 'OCAID']:
                     raise ValueError("key must be one of OCLC, OLID, ISBN, OCAID, or LCCN")
 
-                err = lambda e: logger.exception("Error retrieving OpenLibrary " \
-                                                 "ID by isbn: %s", e)
-                url = cls.OL.base_url + ('/api/books.json?bibkeys=%s:%s' % (key, value))
-
-                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
-                def _get_olid(url):
-                    """Makes best effort to perform request w/ exponential backoff"""
-                    return cls.OL.session.get(url)
-
-                # Let the exception be handled up the stack
-                response = _get_olid(url)
+                path = '/api/books.json?bibkeys=%s:%s' % (key, value)
+                response = cls.OL._get_ol_response(path)
 
                 try:
                     results = response.json()
@@ -671,9 +679,8 @@ class OpenLibrary(object):
                     >>> ol = OpenLibrary()
                     >>> ol.Author.get('OL39307A')
                 """
-                url = cls.OL.base_url + '/authors/%s.json' % olid
-                r = cls.OL.session.get(url)
-
+                path = '/authors/%s.json' % olid
+                r = cls.OL._get_ol_response(path)
                 try:
                     data = r.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
