@@ -10,7 +10,7 @@ import jsonschema
 import logging
 import os
 import re
-import urllib
+from six.moves.urllib.parse import urlencode
 
 import backoff
 import requests
@@ -70,7 +70,7 @@ class OpenLibrary(object):
 
         if 'username' in credentials._asdict():
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-            data = urllib.urlencode(credentials._asdict())
+            data = urlencode(credentials._asdict())
         else: # s3 login
              headers = {'Content-Type': 'application/json'}
              data = json.dumps(credentials._asdict())
