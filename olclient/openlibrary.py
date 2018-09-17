@@ -700,6 +700,41 @@ class OpenLibrary(object):
                     **data)
 
             @classmethod
+            def advanced_search(cls, name=None, birth_date=None, death_date=None, limit=5):
+                """Searches for an Open Library authors using author API endpoint
+
+                Args:
+                    name (str) - The first, last, nickname, or full name of the author
+                    birth_date (str) - The birth date of the Author exactly as it
+                                       appears in OL (e.g. "January 5, 2013").
+                                       Must be in quotes if the date is mult-terms,
+                                       e.g. "\"January 5\""
+                                       You can also do something like "*1982*"
+                                       (without quotes) to partial match on, e.g. year
+                    date_date (str) - The death date of the Author; same conditions
+                                      as birth_date
+                    limit (int) - How many results to limit by
+
+                Usage:
+                    >>> ol.common.Author.search(
+                    ...   name='tolkien', birth_date="*1892*", death_date="*1973*")
+                    [u'OL26320A]'
+
+                Returns:
+                    List of Author olid from API if results, else None
+                """
+                params = {'name': name, 'birth_date': birth_date, 'death_date': death_date}
+                paramstr = '+'.join(['%s:%s' % (k, v) for (k, v) in params.items() if v])
+                url = cls.OL.base_url + '/search/authors.json?limit=%s&q=%s' % (limit, paramstr)
+                r = requests.get(url)
+                try:
+                    authors = r.json().get('docs', [])
+                except requests.JSONDecodeError as e:
+                    return []
+                return [a['key'] for a in authors]
+
+
+            @classmethod
             def search(cls, name, limit=1):
                 """Finds a list of OpenLibrary authors with similar names to the
                 search query using the Author auto-complete API.
