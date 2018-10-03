@@ -456,23 +456,6 @@ class OpenLibrary(object):
                 return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
 
             @classmethod
-            def json_to_book(cls, data):
-                """Creates a Book Object using the JSON that is input
-
-                Args:
-                    data - {"title":"XXX", "authors":["XXX","XXX"], "publisher":"XXX", "publish_date":"XXX"}
-
-                Returns:
-                    common.Book object
-
-                Usage:
-                    >>> from olclient import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> = ol.Edition.json_to_book(data)
-                """
-                pass
-
-            @classmethod
             def _ol_edition_json_to_book_args(cls, data):
                 """Creates Book Arguments from OL Edition JSON
 
