@@ -52,6 +52,7 @@ class Entity(object):
     def __repr__(self):
         return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
 
+
 class Author(Entity):
     """Represets a book Author and their identifier on a service
     (currently only OpenLibrary -- this should be refactored to
@@ -64,6 +65,8 @@ class Author(Entity):
 
     def __init__(self, name, identifiers=None, **kwargs):
         super(Author, self).__init__(identifiers=identifiers)
+        if ',' in name: 
+            raise ValueError("{} is not a valid Author name - No commas allowed (first last)".format(name))
         self.name = name
 
         for kwarg in kwargs:
