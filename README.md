@@ -167,7 +167,7 @@ Successful creation of a new Work results in the return of its Open Library edit
 To run test cases (from the openlibrary-client directory):
 
 ```
-$ py.test tests/
+$ pytest
 ```
 
 ## Other Client Libraries
