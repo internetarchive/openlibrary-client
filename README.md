@@ -13,17 +13,6 @@ A reference client library for the Open Library API. Tested with Python 2.7, 3.5
 
 ## Installation
 
-As a prerequisite, openlibrary-client requires libssl-dev for the cryptography used in openssl. for Ubuntu kindly use the following command:
-
-```
-$ sudo apt install libssl-dev
-```
-
-For Fedora/RHEL, use the following command to install libssl-dev for crypptography used in openssl.
-```
-$ sudo dnf install openssl-dev
-```
-
 If you plan on doing MARC parsing, you'll need `yaz` (see: https://github.com/indexdata/yaz). Assuming Ubuntu/debian, you can install `yaz` via apt:
 
 ```
