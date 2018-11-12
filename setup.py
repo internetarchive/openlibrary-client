@@ -61,7 +61,7 @@ setup(
     ],
     author='Internet Archive',
     author_email='mek@archive.org',
-    url='https://github.com/ArchiveLabs/openlibrary-client',
+    url='https://github.com/internetarchive/openlibrary-client',
     include_package_data=True,
     packages=[
         'olclient',
