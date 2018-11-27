@@ -108,8 +108,8 @@ Fun things you can do with an Edition:
 Author Information for existing authors can be done in the following manner.
 ```python
 >>> from olclient.openlibrary import OpenLibrary
->>> ol = OpenLibrary
->>> author_olid = ol.Book.get_olid_by_name('Dan Brown')
+>>> ol = OpenLibrary()
+>>> author_olid = ol.Author.get_olid_by_name('Dan Brown')
 >>> author_obj = ol.get(author_olid)
 ```
 
