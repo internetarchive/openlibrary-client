@@ -14,6 +14,8 @@ matrix:
   include:
     - python: "3.7"
       dist: xenial # required for Python >= 3.7 (travis-ci/travis-ci#9069)
+  allow_failures:
+    - python: "3.7"
 
 addons:
   apt:
