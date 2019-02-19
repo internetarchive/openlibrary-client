@@ -21,7 +21,6 @@ from .utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
-
 class OpenLibrary(object):
 
     """Open Library API Client.
@@ -36,7 +35,7 @@ class OpenLibrary(object):
         ...     authors=[common.Author(name=u"Michael Ondaatje")], \
         ...     publisher=u"Deckle Edge", publish_date=u"2018")
         >>> book.add_id(u'isbn_10', u'0525521194')
-        >>> book.add_id(u'isbn_13', u'978-0525521198')
+        >>> book.add_id(u'isbn_13', u'9780525521198')
         >>> new_book = ol.create_book(book)
         >>> new_book.add_bookcover('https://images-na.ssl-images-amazon.com/images/I/51kmM%2BvVRJL._SX337_BO1,204,203,200_.jpg')
 
@@ -382,6 +381,11 @@ class OpenLibrary(object):
                     number_of_pages=number_of_pages, authors=authors,
                     publisher=publisher, publish_date=publish_date,
                     cover=cover, **kwargs)
+
+            @staticmethod
+            def _validate_identifiers(identifiers):
+                """Don't reject existing identifiers from Open Library."""
+                return
 
             @property
             def work(self):
