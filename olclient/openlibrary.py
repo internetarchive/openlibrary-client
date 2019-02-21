@@ -84,12 +84,7 @@ class OpenLibrary(object):
         response = _login(url, headers, data)
 
         if not self.session.cookies:
-            try:
-                raise ValueError("No cookie set")
-            except ValueError as e:
-                print("Seems like you haven't configured your olclient with credentials.\n"\
-                      "You can configure olclient using the following command:\n"\
-                      "$ol --configure --email <EMAIL>\n")
+            raise ValueError("No cookie set")
 
     def validate(self, doc, schema_name):
         """Validates a doc's json representation against
