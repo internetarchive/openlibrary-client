@@ -91,7 +91,6 @@ def main():
     # prompt first time users to configure credentials for olclient
     try:
         if len(ia.config.get_config()) == 0:
-            print(ia.config.get_config())
             raise ValueError("No configuration set")
     except ValueError as e:
         print("Seems like you haven't configured your olclient with credentials.\n"
