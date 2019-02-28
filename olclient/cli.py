@@ -88,17 +88,18 @@ def main():
         config_tool.update(config)
         return "Successfully configured "
 
-    # prompt first time users to configure credentials for olclient
+    # prompt first time users to configure their OpenLibrary credentials
     try:
-        if not len(ia.config.get_config()):
-            raise ValueError("No configuration set")
+        ol = OpenLibrary()
     except ValueError as e:
-        print("Seems like you haven't configured your olclient with credentials.\n"
+        if str(e) == 'No cookie set':
+            print("Seems like you haven't configured your olclient with credentials.\n"
               "You can configure olclient using the following command:\n"
               "$ol --configure --email <EMAIL>\n")
-        return parser.print_help()
+            return parser.print_help()
+        else:
+            raise
 
-    ol = OpenLibrary()
     if args.get_olid:
         return ol.Edition.get_olid_by_isbn(args.isbn)
     elif args.get_book:
