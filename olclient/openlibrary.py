@@ -1037,6 +1037,12 @@ class Results(object):
             work_olid = OpenLibrary._extract_olid_from_url(key, "works")
             edition_olids = edition_key
 
+            # clean author_names to compose result object:
+            # remove comma in an author's name if its not None only while retrieving data
+            if author_name:
+                for i in range(len(author_name)):
+                    author_name[i] = author_name[i].replace(',', '')
+
             self.title = title
             self.subtitle = subtitle
             self.subjects = subject
