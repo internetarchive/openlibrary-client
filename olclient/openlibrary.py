@@ -627,6 +627,10 @@ class OpenLibrary(object):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
 
+            @staticmethod
+            def _validate_author_name(name):
+                return name
+
             def json(self):
                 """Returns a dict JSON representation of an OL Author suitable
                 for saving back to Open Library via its APIs.
@@ -1008,6 +1012,8 @@ class Results(object):
     class Document(object):
         """An aggregate OpenLibrary Work summarizing all Editions of a Book"""
 
+        OL = OpenLibrary()
+
         def __init__(self, key, title=u"", subtitle=None, subject=None,
                      author_name=u"", author_key=None, edition_key=None,
                      language="", publisher=None, publish_date=None,
@@ -1037,19 +1043,13 @@ class Results(object):
             work_olid = OpenLibrary._extract_olid_from_url(key, "works")
             edition_olids = edition_key
 
-            # clean author_names to compose result object:
-            # remove comma in an author's name if its not None only while retrieving data
-            if author_name:
-                for i in range(len(author_name)):
-                    author_name[i] = author_name[i].replace(',', '')
-
             self.title = title
             self.subtitle = subtitle
             self.subjects = subject
             # XXX test that during the zip, author_name and author_key
             # correspond to each other one-to-one, in order
             self.authors = [
-                common.Author(name=name, identifiers={u'olid': [author_olid]})
+                self.OL.Author(olid=author_olid, name=name)
                 for (name, author_olid) in
                 zip(author_name or [], author_key or [])]
             self.publishers = publisher
