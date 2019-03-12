@@ -627,10 +627,6 @@ class OpenLibrary(object):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
 
-            @staticmethod
-            def _validate_author_name(name):
-                return name
-
             def json(self):
                 """Returns a dict JSON representation of an OL Author suitable
                 for saving back to Open Library via its APIs.
@@ -1049,7 +1045,7 @@ class Results(object):
             # XXX test that during the zip, author_name and author_key
             # correspond to each other one-to-one, in order
             self.authors = [
-                self.OL.Author(olid=author_olid, name=name)
+                {'name' : name, 'olid' : author_olid}
                 for (name, author_olid) in
                 zip(author_name or [], author_key or [])]
             self.publishers = publisher
