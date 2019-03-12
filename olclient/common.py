@@ -65,19 +65,15 @@ class Author(Entity):
 
     def __init__(self, name, identifiers=None, **kwargs):
         super(Author, self).__init__(identifiers=identifiers)
-        self.name = self._validate_author_name(name)
+        if ',' in name: 
+            raise ValueError("{} is not a valid Author name - No commas allowed (first last)".format(name))
+        self.name = name
 
         for kwarg in kwargs:
             setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
         return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
-
-    @staticmethod
-    def _validate_author_name(name):
-        if ',' in name:
-            raise ValueError("{} is not a valid Author name - No commas allowed (first last)".format(name))
-        return name
 
 
 class Book(Entity):
