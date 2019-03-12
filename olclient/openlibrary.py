@@ -1008,8 +1008,6 @@ class Results(object):
     class Document(object):
         """An aggregate OpenLibrary Work summarizing all Editions of a Book"""
 
-        OL = OpenLibrary()
-
         def __init__(self, key, title=u"", subtitle=None, subject=None,
                      author_name=u"", author_key=None, edition_key=None,
                      language="", publisher=None, publish_date=None,
