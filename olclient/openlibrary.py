@@ -1043,7 +1043,7 @@ class Results(object):
             # XXX test that during the zip, author_name and author_key
             # correspond to each other one-to-one, in order
             self.authors = [
-                {'name' : name, 'olid' : author_olid}
+                {'name': name, 'olid': author_olid}
                 for (name, author_olid) in
                 zip(author_name or [], author_key or [])]
             self.publishers = publisher
