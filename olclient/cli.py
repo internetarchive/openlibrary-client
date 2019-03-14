@@ -39,6 +39,8 @@ def argparser():
                         help='Configure ol client with credentials')
     parser.add_argument('--get-work', action='store_true',
                         help='Get a work by --title, --olid')
+    parser.add_argument('--get-works-of-author', action='store_true',
+                        help='Get a works by an author')
     parser.add_argument('--get-book', action='store_true',
                         help='Get a book by --isbn, --olid')
     parser.add_argument('--get-olid', action='store_true',
@@ -51,6 +53,8 @@ def argparser():
                         help='Create a new work from json')
     parser.add_argument('--title', default=None,
                         help="Specify a title as an argument")
+    parser.add_argument('--author', default=None,
+                        help="Specify an author as an argument")
     parser.add_argument('--baseurl', default='https://openlibrary.org',
                         help="Which OL backend to use")
     parser.add_argument('--email', default=None,
@@ -112,6 +116,11 @@ def main():
             return jsonpickle.encode(ol.Work.get(args.olid))
         elif args.title:
             return jsonpickle.encode(ol.Work.search(args.title))
+    elif args.get_works_of_author:
+        if args.olid:
+            return jsonpickle.encode(ol.Author.get_works(args.olid))
+        elif args.author:
+            return jsonpickle.encode(ol.Author.get_works(ol.Author.get_olid_by_name(args.author)))
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
