@@ -687,6 +687,42 @@ class OpenLibrary(object):
                     **data)
 
             @classmethod
+            def get_works(cls, olid, limit=50):
+                """Returns a list of OpenLibrary Works associated with an OpenLibrary Author.
+
+                Args:
+                    olid (unicode) - OpenLibrary ID for author to search within
+                                    Open Library's database of authors to retrieve his Works.
+                    name (unicode) - name of an Author to search for within OpenLibrary.
+                    limit (integer) - number of Author's Works to return.
+
+                Returns:
+                    A (list) of Works from the OpenLibrary associated with the
+                    Author.
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.get_works('OL39307A')
+                    or
+                    >>> ol.Author.get_works('OL39307A', 5)
+                    or
+                    >>> ol.Author.get_works(ol.Author.get_olid_by_name('Dan Brown'))
+                """
+                path = '/authors/%s/works.json' % olid
+
+                if limit:
+                    # by default the limit is set in the function definition
+                    path += '/?limit=%s' % limit
+
+                try:
+                    response = cls.OL._get_ol_response(path)
+                    return response.json()
+                except Exception as e:
+                    logger.exception(e)
+                    raise Exception("Author API failed to return json")
+
+            @classmethod
             def search(cls, name, limit=1):
                 """Finds a list of OpenLibrary authors with similar names to the
                 search query using the Author auto-complete API.
