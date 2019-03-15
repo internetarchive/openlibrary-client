@@ -54,6 +54,10 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
+    # constants to aid works.json API request's pagination
+    WORKS_LIMIT = 50
+    WORKS_PAGINATION_OFFSET = 0
+
     def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
         self.session = requests.Session()
         self.base_url = base_url
@@ -656,7 +660,7 @@ class OpenLibrary(object):
                 url = self.OL.base_url + '/authors/%s.json' % self.olid
                 return self.OL.session.put(url, json.dumps(body))
 
-            def works(self, limit=50, offset=0):
+            def works(self, limit=OL.WORKS_LIMIT, offset=OL.WORKS_PAGINATION_OFFSET):
                 """Returns a list of OpenLibrary Works associated with an OpenLibrary Author.
 
                 Args:
@@ -684,13 +688,12 @@ class OpenLibrary(object):
                 """
                 path = '/authors/%s/works.json' % self.olid
 
-                if limit:
-                    # by default the limit is set in the function definition
-                    path += '/?limit=%s' % limit
+                # check to prevent 'None' value
+                limit = limit or self.OL.WORKS_LIMIT
+                offset = offset or self.OL.WORKS_PAGINATION_OFFSET
 
-                if offset:
-                    # by default the offset is set in the function definition
-                    path += '&offset=%s' % offset
+                # including limit and offset querystrings to the url
+                path += '/?limit=%s&offset=%s' % (limit, offset)
 
                 try:
                     response = self.OL._get_ol_response(path)
