@@ -39,7 +39,7 @@ def argparser():
                         help='Configure ol client with credentials')
     parser.add_argument('--get-work', action='store_true',
                         help='Get a work by --title, --olid')
-    parser.add_argument('--get-works-of-author', action='store_true',
+    parser.add_argument('--get-author-works', action='store_true',
                         help='Get a works by an author')
     parser.add_argument('--get-book', action='store_true',
                         help='Get a book by --isbn, --olid')
@@ -116,11 +116,11 @@ def main():
             return jsonpickle.encode(ol.Work.get(args.olid))
         elif args.title:
             return jsonpickle.encode(ol.Work.search(args.title))
-    elif args.get_works_of_author:
+    elif args.get_author_works:
         if args.olid:
-            return jsonpickle.encode(ol.Author.get_works(args.olid))
+            return jsonpickle.encode(ol.Author.get(args.olid).works())
         elif args.author:
-            return jsonpickle.encode(ol.Author.get_works(ol.Author.get_olid_by_name(args.author)))
+            return jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author)).works())
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
