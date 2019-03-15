@@ -656,6 +656,49 @@ class OpenLibrary(object):
                 url = self.OL.base_url + '/authors/%s.json' % self.olid
                 return self.OL.session.put(url, json.dumps(body))
 
+            def works(self, limit=50, offset=0):
+                """Returns a list of OpenLibrary Works associated with an OpenLibrary Author.
+
+                Args:
+                    olid (unicode) - OpenLibrary ID for author to search within
+                                    Open Library's database of authors to retrieve his Works.
+                    name (unicode) - name of an Author to search for within OpenLibrary.
+                    limit (integer) - number of Author's Works to return.
+                    offset (integer) - offset number to aid pagination.
+                Returns:
+                    A (list) of Works from the OpenLibrary associated with the
+                    Author.
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.get('OL39307A').works()
+                    or
+                    >>> ol.Author.get('OL39307A').works(limit=20)# to obtain the first 20 works of the author
+                    >>> ol.Author.get('OL39307A').works(limit=20, offset=20)# to obtain the next 20 works of the author
+                    or
+                    >>> author_obj = ol.Author.get(ol.Author.get_olid_by_name('Dan Brown'))
+                    >>> author_obj.works()
+                    or
+                    >>> ol.Author.get(ol.Author.get_olid_by_name('Dan Brown')).works()
+                """
+                path = '/authors/%s/works.json' % self.olid
+
+                if limit:
+                    # by default the limit is set in the function definition
+                    path += '/?limit=%s' % limit
+
+                if offset:
+                    # by default the offset is set in the function definition
+                    path += '&offset=%s' % offset
+
+                try:
+                    response = self.OL._get_ol_response(path)
+                    return response.json()
+                except Exception as e:
+                    logger.exception(e)
+                    raise Exception("Author API failed to return json")
+
             @classmethod
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid
@@ -685,42 +728,6 @@ class OpenLibrary(object):
                     olid, name=data.pop('name', u''),
                     bio=OpenLibrary.get_text_value(data.pop('bio', None)),
                     **data)
-
-            @classmethod
-            def get_works(cls, olid, limit=50):
-                """Returns a list of OpenLibrary Works associated with an OpenLibrary Author.
-
-                Args:
-                    olid (unicode) - OpenLibrary ID for author to search within
-                                    Open Library's database of authors to retrieve his Works.
-                    name (unicode) - name of an Author to search for within OpenLibrary.
-                    limit (integer) - number of Author's Works to return.
-
-                Returns:
-                    A (list) of Works from the OpenLibrary associated with the
-                    Author.
-
-                Usage:
-                    >>> from olclient.openlibrary import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> ol.Author.get_works('OL39307A')
-                    or
-                    >>> ol.Author.get_works('OL39307A', 5)
-                    or
-                    >>> ol.Author.get_works(ol.Author.get_olid_by_name('Dan Brown'))
-                """
-                path = '/authors/%s/works.json' % olid
-
-                if limit:
-                    # by default the limit is set in the function definition
-                    path += '/?limit=%s' % limit
-
-                try:
-                    response = cls.OL._get_ol_response(path)
-                    return response.json()
-                except Exception as e:
-                    logger.exception(e)
-                    raise Exception("Author API failed to return json")
 
             @classmethod
             def search(cls, name, limit=1):
