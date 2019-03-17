@@ -54,6 +54,10 @@ class OpenLibrary(object):
         'max_tries': 5
     }
 
+    # constants to aid works.json API request's pagination
+    WORKS_LIMIT = 50
+    WORKS_PAGINATION_OFFSET = 0
+
     def __init__(self, credentials=None, base_url=u'https://openlibrary.org'):
         self.session = requests.Session()
         self.base_url = base_url
@@ -655,6 +659,48 @@ class OpenLibrary(object):
                 body['_comment'] = comment
                 url = self.OL.base_url + '/authors/%s.json' % self.olid
                 return self.OL.session.put(url, json.dumps(body))
+
+            def works(self, limit=OL.WORKS_LIMIT, offset=OL.WORKS_PAGINATION_OFFSET):
+                """Returns a list of OpenLibrary Works associated with an OpenLibrary Author.
+
+                Args:
+                    olid (unicode) - OpenLibrary ID for author to search within
+                                    Open Library's database of authors to retrieve his Works.
+                    name (unicode) - name of an Author to search for within OpenLibrary.
+                    limit (integer) - number of Author's Works to return.
+                    offset (integer) - offset number to aid pagination.
+                Returns:
+                    A (list) of Works from the OpenLibrary associated with the
+                    Author.
+
+                Usage:
+                    >>> from olclient.openlibrary import OpenLibrary
+                    >>> ol = OpenLibrary()
+                    >>> ol.Author.get('OL39307A').works()
+                    or
+                    >>> ol.Author.get('OL39307A').works(limit=20)# to obtain the first 20 works of the author
+                    >>> ol.Author.get('OL39307A').works(limit=20, offset=20)# to obtain the next 20 works of the author
+                    or
+                    >>> author_obj = ol.Author.get(ol.Author.get_olid_by_name('Dan Brown'))
+                    >>> author_obj.works()
+                    or
+                    >>> ol.Author.get(ol.Author.get_olid_by_name('Dan Brown')).works()
+                """
+                path = '/authors/%s/works.json' % self.olid
+
+                # check to prevent 'None' value
+                limit = limit or self.OL.WORKS_LIMIT
+                offset = offset or self.OL.WORKS_PAGINATION_OFFSET
+
+                # including limit and offset querystrings to the url
+                path += '/?limit=%s&offset=%s' % (limit, offset)
+
+                try:
+                    response = self.OL._get_ol_response(path)
+                    return response.json()
+                except Exception as e:
+                    logger.exception(e)
+                    raise Exception("Author API failed to return json")
 
             @classmethod
             def get(cls, olid):
