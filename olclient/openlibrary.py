@@ -198,8 +198,8 @@ class OpenLibrary(object):
                 """
                 url = '%s/works/%s/editions.json' % (self.OL.base_url, self.olid)
                 try:
-                    r = self.OL.session.get(url)
-                    editions = r.json().get('entries', [])
+                    response = self.OL.session.get(url)
+                    editions = response.json().get('entries', [])
                 except Exception as e:
                     return []
 
@@ -246,12 +246,12 @@ class OpenLibrary(object):
 
             def add_bookcover(self, url):
                 _url = '%s/works/%s/-/add-cover' % (self.OL.base_url, self.olid)
-                r = self.OL.session.post(_url, files={
+                response = self.OL.session.post(_url, files={
                     'file': '',
                     'url': url,
                     'upload': 'submit'
                 })
-                return r
+                return response
 
             def add_subject(self, subject, comment=''):
                 return self.add_subjects([subject], comment)
@@ -267,8 +267,8 @@ class OpenLibrary(object):
 
             def rm_subjects(self, subjects, comment=''):
                 url = self.OL.base_url + "/works/" + self.olid + ".json"
-                r = self.OL.session.get(url)
-                data = r.json()
+                response = self.OL.session.get(url)
+                data = response.json()
                 data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
                 data['subjects'] = list(set(data['subjects']) - set(subjects))
                 return self.OL.session.put(url, json.dumps(data))
@@ -296,8 +296,8 @@ class OpenLibrary(object):
                     >>> ol.Work.get('OL26278461W')
                 """
                 path = '/works/%s.json' % olid
-                r = cls.OL._get_ol_response(path)
-                return cls(olid, **r.json())
+                response = cls.OL._get_ol_response(path)
+                return cls(olid, **response.json())
 
             @classmethod
             def search(cls, title=None, author=None):
@@ -430,12 +430,12 @@ class OpenLibrary(object):
                 """Adds a cover image to this edition"""
                 metadata = self.get_metadata('OLID', self.olid)
                 _url = '%s/add-cover' % metadata['preview_url']
-                r = self.OL.session.post(_url, files={
+                response = self.OL.session.post(_url, files={
                     'file': '',
                     'url': url,
                     'upload': 'submit'
                 })
-                return r
+                return response
 
             def save(self, comment):
                 """Saves this edition back to Open Library using the JSON API."""
@@ -719,9 +719,9 @@ class OpenLibrary(object):
                     >>> ol.Author.get('OL39307A')
                 """
                 path = '/authors/%s.json' % olid
-                r = cls.OL._get_ol_response(path)
+                response = cls.OL._get_ol_response(path)
                 try:
-                    data = r.json()
+                    data = response.json()
                     olid = cls.OL._extract_olid_from_url(data.pop('key', u''),
                                                          url_type='authors')
                 except:
