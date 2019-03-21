@@ -83,11 +83,24 @@ class OpenLibrary(object):
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _login(url, headers, data):
             """Makes best effort to perform request w/ exponential backoff"""
-            return self.session.post(url, data=data, headers=headers)
+            try:
+                return self.session.post(url, data=data, headers=headers)
+            except requests.exceptions.ConnectionError as e:
+                print(str(e) + '\n' + 'Login request failed to process due to connectivity issue.')
+            except requests.exceptions.Timeout as e:
+                print(str(e) + '\n' + 'Login request exceeded timeout limit to return response.')
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 404:
+                    error_message = 'The generated URL does not seem to point to an available resource.'
+                else:
+                    error_message = 'An invalid HTTP response was returned.'
+                print(str(e) + '\n' + error_message)
+
 
         response = _login(url, headers, data)
 
-        if not self.session.cookies:
+        # if response:
+        if not (self.session.cookies and response):
             raise ValueError("No cookie set")
 
     def validate(self, doc, schema_name):
@@ -135,9 +148,20 @@ class OpenLibrary(object):
     @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
     def _get_ol_response(self, path):
         """Makes best effort to perform request w/ exponential backoff"""
-        response = self.session.get(self.base_url + path)
-        response.raise_for_status()
-        return response
+        try:
+            response = self.session.get(self.base_url + path)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.ConnectionError as e:
+            print(str(e) + '\n' + 'Request failed to process due to connectivity issue.')
+        except requests.exceptions.Timeout as e:
+            print(str(e) + '\n' + 'Request exceeded timeout limit to return response.')
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                error_message = 'The generated URL does not seem to point to an available resource.'
+            else:
+                error_message = 'An invalid HTTP response was returned.'
+            print(str(e) + '\n' + error_message)
 
     @property
     def Work(ol_self):
