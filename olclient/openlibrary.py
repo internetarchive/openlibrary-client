@@ -47,6 +47,28 @@ class OpenLibrary(object):
     """
 
     VALID_IDS = ['isbn_10', 'isbn_13', 'lccn', 'ocaid']
+
+    def err_descriptor_ConnectionError(e):
+        logger.exception('Request failed to process due to connectivity issues.')
+    def err_descriptor_TimeoutError(e):
+        logger.exception('Request exceeded timeout limit to return response.')
+    def err_descriptor_HTTPError(e):
+        print(e)
+        logger.exception('An invalid HTTP response was returned.')
+
+    def err_descriptor(e):
+        error_message = ''
+        if e is requests.exceptions.ConnectionError:
+            error_message = 'Request failed to process due to connectivity issue.'
+        if e is requests.exceptions.Timeout:
+            error_message = 'Request exceeded timeout limit to return response.'
+        if e is requests.exceptions.HTTPError :
+            if e.response.status_code == 404:
+                error_message = 'The generated URL does not seem to point to an available resource.'
+            else:
+                error_message = 'An invalid HTTP response was returned.'
+        return error_message
+
     BACKOFF_KWARGS = {
         'wait_gen': backoff.expo,
         'exception': requests.exceptions.RequestException,
@@ -80,21 +102,22 @@ class OpenLibrary(object):
         url = self.base_url + '/account/login'
 
         err = lambda e: logger.exception("Error at login: %s", e)
-        @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
+        @backoff.on_exception(on_giveup= err, **self.BACKOFF_KWARGS)
+
         def _login(url, headers, data):
             """Makes best effort to perform request w/ exponential backoff"""
-            try:
-                return self.session.post(url, data=data, headers=headers)
-            except requests.exceptions.ConnectionError as e:
-                print(str(e) + '\n' + 'Login request failed to process due to connectivity issue.')
-            except requests.exceptions.Timeout as e:
-                print(str(e) + '\n' + 'Login request exceeded timeout limit to return response.')
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 404:
-                    error_message = 'The generated URL does not seem to point to an available resource.'
-                else:
-                    error_message = 'An invalid HTTP response was returned.'
-                print(str(e) + '\n' + error_message)
+            # try:
+            return self.session.post(url, data=data, headers=headers)
+            # except requests.exceptions.ConnectionError as e:
+            #     print(str(e) + '\n' + 'Login request failed to process due to connectivity issue.')
+            # except requests.exceptions.Timeout as e:
+            #     print(str(e) + '\n' + 'Login request exceeded timeout limit to return response.')
+            # except requests.exceptions.HTTPError as e:
+            #     if e.response.status_code == 404:
+            #         error_message = 'The generated URL does not seem to point to an available resource.'
+            #     else:
+            #         error_message = 'An invalid HTTP response was returned.'
+            #     print(str(e) + '\n' + error_message)
 
 
         response = _login(url, headers, data)
@@ -144,24 +167,27 @@ class OpenLibrary(object):
         doc_json = [doc.json() for doc in docs]
         return self.session.post('%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers)
 
-    err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
-    @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
+    # err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
+    # @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
+    @backoff.on_exception(wait_gen=backoff.expo,exception=requests.exceptions.ConnectionError, max_tries= 5, on_giveup=err_descriptor_ConnectionError)
+    @backoff.on_exception(wait_gen=backoff.expo,exception=requests.exceptions.Timeout, max_tries= 5, on_giveup=err_descriptor_TimeoutError)
+    @backoff.on_exception(wait_gen=backoff.expo,exception=requests.exceptions.HTTPError, max_tries= 5, on_giveup=err_descriptor_HTTPError)
     def _get_ol_response(self, path):
         """Makes best effort to perform request w/ exponential backoff"""
-        try:
-            response = self.session.get(self.base_url + path)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.ConnectionError as e:
-            print(str(e) + '\n' + 'Request failed to process due to connectivity issue.')
-        except requests.exceptions.Timeout as e:
-            print(str(e) + '\n' + 'Request exceeded timeout limit to return response.')
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                error_message = 'The generated URL does not seem to point to an available resource.'
-            else:
-                error_message = 'An invalid HTTP response was returned.'
-            print(str(e) + '\n' + error_message)
+        # try:
+        response = self.session.get(self.base_url + path)
+        response.raise_for_status()
+        return response
+        # except requests.exceptions.ConnectionError as e:
+        #     raise Exception(str(e) + '\n' + 'Request failed to process due to connectivity issue.')
+        # except requests.exceptions.Timeout as e:
+        #     raise Exception(str(e) + '\n' + 'Request exceeded timeout limit to return response.')
+        # except requests.exceptions.HTTPError as e:
+        #     if e.response.status_code == 404:
+        #         error_message = 'The generated URL does not seem to point to an available resource.'
+        #     else:
+        #         error_message = 'An invalid HTTP response was returned.'
+        #     raise Exception(str(e) + '\n' + error_message)
 
     @property
     def Work(ol_self):
