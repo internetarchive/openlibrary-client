@@ -631,6 +631,11 @@ class OpenLibrary(object):
                 self.olid = olid
                 super(Author, self).__init__(name, **author_kwargs)
 
+            @staticmethod
+            def _validate_name(name):
+                """Don't reject existing author names from Open Library."""
+                return
+
             def json(self):
                 """Returns a dict JSON representation of an OL Author suitable
                 for saving back to Open Library via its APIs.
