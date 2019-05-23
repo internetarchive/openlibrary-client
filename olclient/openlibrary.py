@@ -426,13 +426,12 @@ class OpenLibrary(object):
                 """
                 return self.OL.validate(self, 'edition.schema.json')
 
-            def add_bookcover(self, url):
+            def add_bookcover(self, cover_url):
                 """Adds a cover image to this edition"""
-                metadata = self.get_metadata('OLID', self.olid)
-                _url = '%s/add-cover' % metadata['preview_url']
-                r = self.OL.session.post(_url, files={
+                url = '%s/books/%s/-/add-cover' % (self.OL.base_url, self.olid)
+                r = self.OL.session.post(url, files={
                     'file': '',
-                    'url': url,
+                    'url': cover_url,
                     'upload': 'submit'
                 })
                 return r
