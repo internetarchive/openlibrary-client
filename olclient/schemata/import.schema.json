@@ -4,12 +4,59 @@
   "type": "object",
   "required": [
     "title",
-    "source_records"
+    "source_records",
+    "authors",
+    "publishers",
+    "publish_date"
   ],
   "additionalProperties": true,
   "properties": {
     "title":    { "type": "string" },
-    "source_records":   { "$ref": "shared_definitions.json#/string_array" }
+    "source_records":   { "$ref": "shared_definitions.json#/string_array" },
+    "publishers":   { "$ref": "shared_definitions.json#/string_array" },
+    "authors": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/import_author" }
+    },
+    "publish_date": {
+      "type": "string",
+      "examples": [
+        "1992",
+        "December 1992",
+        "12 January 2002"
+      ]
+    }
+  },
+  "definitions": {
+    "import_author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+	  "examples": [
+	    "Hubbard, Freeman H.",
+	    "Joan Miró"
+	  ]
+	},
+	"personal_name": {
+	  "type": "string",
+	  "description": "Can be identical to 'name'. TODO: provide information on the intended difference."
+	},
+	"birth_date": {
+	  "type": "string",
+	  "examples": []
+	},
+	"death_date": {
+	  "type": "string",
+	  "examples": []
+	},
+	"entity_type": {
+	  "type": "string",
+	  "enum": ["person", "org", "event"]
+	}
+      }
+    }
   }
-
 }

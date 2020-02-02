@@ -34,7 +34,10 @@
       ]
     },
     "date": { "type": "string" },
-    "entity_type": { "type": "string" },
+    "entity_type": {
+      "type": "string" },
+      "enum": ["person", "org", "event"]
+    },
     "fuller_name": { "type": "string" },
     "personal_name": { "type": "string" },
     "title": { "type": "string" },
