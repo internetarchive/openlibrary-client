@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Import Schema",
+  "type": "object",
+  "required": [
+    "title",
+    "source_records"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "title":    { "type": "string" },
+    "source_records":   { "$ref": "shared_definitions.json#/string_array" }
+  }
+
+}
