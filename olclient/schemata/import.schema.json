@@ -9,7 +9,7 @@
     "publishers",
     "publish_date"
   ],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
     "title":    { "type": "string" },
     "source_records":   { "$ref": "shared_definitions.json#/string_array" },
@@ -25,6 +25,35 @@
         "December 1992",
         "12 January 2002"
       ]
+    },
+    "publish_places": { "$ref": "shared_definitions.json#/string_array" },
+    "number_of_pages": { "type": "number" },
+    "pagination": { "type": "string" },
+    "by_statement": { "type": "string" },
+    "publish_country": { "$ref": "shared_definitions.json#/publish_country" },
+    "languages": {
+      "type": "array",
+      "items": { "$ref": "shared_definitions.json#/language_code" }
+    },
+    "isbn_10": {
+      "type": "array",
+      "items": { "$ref": "edition.schema.json#/definitions/isbn_10" }
+    },
+    "isbn_13": {
+      "type": "array",
+      "items": { "$ref": "edition.schema.json#/definitions/isbn_13" }
+    },
+    "oclc_numbers": { "$ref": "shared_definitions.json#/string_array" },
+    "lccn": { "$ref": "shared_definitions.json#/string_array" },
+    "lc_classifications": {
+      "type": "array",
+      "items": { "$ref": "shared_definitions.json#/lc_classification" }
+    },
+    "dewey_decimal_class": { "$ref": "shared_definitions.json#/string_array" },
+    "notes": { "type": "string" },
+    "edition_name": {
+      "type": "string",
+      "examples": ["1st ed.", "2000 edition"]
     }
   },
   "definitions": {
