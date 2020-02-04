@@ -12,6 +12,7 @@
   "additionalProperties": false,
   "properties": {
     "title":    { "type": "string" },
+    "subtitle": { "type": "string" },
     "source_records":   { "$ref": "shared_definitions.json#/string_array" },
     "publishers":   { "$ref": "shared_definitions.json#/string_array" },
     "authors": {
@@ -30,6 +31,7 @@
     "number_of_pages": { "type": "number" },
     "pagination": { "type": "string" },
     "by_statement": { "type": "string" },
+    "description": { "type": "string" },
     "publish_country": { "$ref": "shared_definitions.json#/publish_country" },
     "languages": {
       "type": "array",
@@ -54,6 +56,27 @@
     "edition_name": {
       "type": "string",
       "examples": ["1st ed.", "2000 edition"]
+    },
+    "table_of_contents": { "type": "array" },
+    "series": { "$ref": "shared_definitions.json#/string_array" },
+    "subjects": { "$ref": "shared_definitions.json#/string_array" },
+    "subject_times": { "$ref": "shared_definitions.json#/string_array" },
+    "subject_people": { "$ref": "shared_definitions.json#/string_array" },
+    "subject_places": { "$ref": "shared_definitions.json#/string_array" },
+    "contributions": { "$ref": "shared_definitions.json#/string_array" },
+    "work_titles": { "$ref": "shared_definitions.json#/string_array" },
+    "other_titles": { "$ref": "shared_definitions.json#/string_array" },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "shared_definitions.json#/link" }
+    },
+    "physical_format": {
+      "type": "string",
+      "examples": [
+        "Paperback",
+        "Hardcover",
+        "Spiral-bound"
+      ]
     }
   },
   "definitions": {
@@ -84,6 +107,10 @@
 	"entity_type": {
 	  "type": "string",
 	  "enum": ["person", "org", "event"]
+	},
+	"title": {
+	  "type": "string",
+	  "examples": ["duc d'Otrante"]
 	}
       }
     }

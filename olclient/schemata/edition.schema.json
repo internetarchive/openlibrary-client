@@ -170,7 +170,7 @@
       "type": "object",
       "required": [ "key" ],
       "additionalProperties": false,
-      "description": "An type based on the list of MARC21 language codes. See https://www.loc.gov/marc/languages/",
+      "description": "A type based on the list of MARC21 language codes. See https://www.loc.gov/marc/languages/",
       "properties": {
         "key": {
           "type": "string",

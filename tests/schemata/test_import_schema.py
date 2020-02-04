@@ -19,5 +19,5 @@ def test_import_examples(example):
         schema = json.load(schema_data)
         resolver = jsonschema.RefResolver('file://' + IMPORT_SCHEMA, schema)
         result = jsonschema.Draft4Validator(schema, resolver=resolver).validate(example)
-        print(result)
+        assert result is None
 
