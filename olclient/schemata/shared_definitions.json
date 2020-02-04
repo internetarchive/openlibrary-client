@@ -34,7 +34,7 @@
     "type": "string",
     "pattern": "^[a-z]{3}$",
     "description": "The MARC21 language code. See https://www.loc.gov/marc/languages/language_code.html",
-    "examples": ["eng", "ger", "tha"]
+    "examples": ["eng", "fre", "ger", "tha"]
   },
   "lc_classification": {
     "type": "string",
