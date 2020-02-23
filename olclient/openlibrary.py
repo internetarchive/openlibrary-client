@@ -122,7 +122,7 @@ class OpenLibrary(object):
         Uses the Open Library save_many API endpoint to
         write any number or combination of documents (Edition, Work, or Author)
         back to Open Library.
-        Uses HTTP Exension Framework custom headers (RFC 2774).
+        Uses HTTP Extension Framework custom headers (RFC 2774).
         """
         headers = {
             'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
@@ -986,7 +986,7 @@ class OpenLibrary(object):
     def _generate_url_from_olid(self, olid):
         """Returns the .json url for an olid (str)"""
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
-        kind = re.sub('\d+', '..', olid)
+        kind = re.sub(r'\d+', '..', olid)
         return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
 
     @staticmethod
@@ -1003,7 +1003,7 @@ class OpenLibrary(object):
     @staticmethod
     def get_type(olid):
         ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
-        kind = re.sub('\d+', '..', olid)
+        kind = re.sub(r'\d+', '..', olid)
         try:
             return ol_types[kind]
         except KeyError:

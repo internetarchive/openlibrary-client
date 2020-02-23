@@ -33,7 +33,7 @@ class TestMARC(unittest.TestCase):
         with open(example_path('line_marc.txt')) as line_marc:
             bin_marc = MARC.convert(line_marc.read())
             with open(example_path('bin_marc.mrc'), 'rb') as expected_bin_marc:
-                self.assertEquals(bin_marc, expected_bin_marc.read(),
+                self.assertEqual(bin_marc, expected_bin_marc.read(),
                                 "output of convert (line->bin) "
                                 "didn't match example file")
 
@@ -42,7 +42,7 @@ class TestMARC(unittest.TestCase):
         with open(example_path('line_marc.txt')) as line_marc:
             data = MARC.line_to_dict(line_marc.read())
             expected_title = "Wege aus einer kranken Gesellschaft"
-            self.assertEquals(data['title'], expected_title,
+            self.assertEqual(data['title'], expected_title,
                             "Expected title %s, got %s"
                             % (expected_title, data['title']))
 
@@ -50,7 +50,7 @@ class TestMARC(unittest.TestCase):
         with open(os.path.join(EXAMPLES_PATH, 'line_marc.txt')) as line_marc:
             book = MARC.line_to_book(line_marc.read())
             expected_title = "Wege aus einer kranken Gesellschaft"
-            self.assertEquals(book.title, expected_title,
+            self.assertEqual(book.title, expected_title,
                             "Expected title %s, got title %s"
                             % (expected_title, book.title))
 
@@ -59,7 +59,7 @@ class TestMARC(unittest.TestCase):
             bin_marc = MARC.convert(line_marc.read())
             book = MARC.to_book(bin_marc)
             expected_title = "Wege aus einer kranken Gesellschaft"
-            self.assertEquals(book.title, expected_title,
+            self.assertEqual(book.title, expected_title,
                             "Expected title %s, got title %s"
                             % (expected_title, book.title))
 
@@ -79,13 +79,13 @@ class TestMARC(unittest.TestCase):
         with open(line_marc_file) as line_marc:
             bin_marc = MARC.convert(line_marc.read())
             with open(bin_marc_file, 'rb') as expected_bin_marc:
-                self.assertEquals(bin_marc, expected_bin_marc.read(),
+                self.assertEqual(bin_marc, expected_bin_marc.read(),
                                 "Binary MARC didn't match expected " \
                                 "unicode content")
                 marcs = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                           force_utf8=True, utf8_handling='ignore')
                 marc = six.next(marcs)
-                self.assertEquals(marc.author(),
+                self.assertEqual(marc.author(),
                                 u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
                                 '1900-1980 Verfasser (DE-588)118536389 aut',
                                 "Line MARC title didn't match pymarc title")
@@ -96,9 +96,9 @@ class TestMARC(unittest.TestCase):
             book = MARC.line_to_book(line_marc.read())
             expected_author = u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ'
             expected_title = u'ΛΦϞЌЍЖ⁁⅀∰   ﬢﬡ－中英字典こんにちはß'
-            self.assertEquals(book.primary_author.name, expected_author,
+            self.assertEqual(book.primary_author.name, expected_author,
                             "Expected author %s, got author %s" % \
                             (expected_author, book.primary_author.name))
-            self.assertEquals(book.primary_author.name, expected_author,
+            self.assertEqual(book.primary_author.name, expected_author,
                             "Expected title %s, got title %s" % \
                             (expected_title, book.title))

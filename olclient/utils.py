@@ -37,7 +37,10 @@ def chunks(seq, chunk_size):
     """
     def take(seq, n):
         for i in range(n):
-            yield next(seq)
+            try:
+                yield next(seq)
+            except StopIteration:
+                return
 
     if not hasattr(seq, 'next'):
         seq = iter(seq)

@@ -82,7 +82,7 @@ class Author(Entity):
 
 class Book(Entity):
     """Organizational model for standardizing MARC, OpenLibrary, and other
-    sources into a uniform format so they can be programatically
+    sources into a uniform format so they can be programmatically
     ingested and compared for similarity.
     """
 
