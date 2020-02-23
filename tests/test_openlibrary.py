@@ -286,7 +286,7 @@ class TestFullEditionGet(unittest.TestCase):
             call().raise_for_status(),
             call().json()
         ])
-        self.assertEquals(actual, self.expected,
+        self.assertEqual(actual, self.expected,
                         "Data didn't match for ISBN lookup: \n%s\n\nversus:\n\n %s" % (actual, self.expected))
 
     def test_load_by_olid(self, mock_get):
@@ -301,7 +301,7 @@ class TestFullEditionGet(unittest.TestCase):
             call().raise_for_status(),
             call().json()
         ])
-        self.assertEquals(actual, self.expected,
+        self.assertEqual(actual, self.expected,
                         "Data didn't match for olid lookup: %s\n\nversus:\n\n %s" % (actual, self.expected))
 
 class TestTextType(unittest.TestCase):
@@ -318,24 +318,24 @@ class TestTextType(unittest.TestCase):
         edition = create_edition(self.ol, **self.strings)
         self.assertIsNone(edition.validate())
         self.assertIn('type', edition.json()['description'])
-        self.assertEquals(edition.json()['description']['value'], "A String Description")
+        self.assertEqual(edition.json()['description']['value'], "A String Description")
 
     def test_edition_text_type(self):
         edition = create_edition(self.ol, **self.texts)
         self.assertIsNone(edition.validate())
         self.assertIsInstance(edition.description, string_types)
         self.assertIn('type', edition.json()['description'])
-        self.assertEquals(edition.json()['description']['value'], "A Text Description")
+        self.assertEqual(edition.json()['description']['value'], "A Text Description")
 
     def test_work_text_type_from_string(self):
         work = create_work(self.ol, **self.strings)
         self.assertIsNone(work.validate())
         self.assertIn('type', work.json()['description'])
-        self.assertEquals(work.json()['description']['value'], "A String Description")
+        self.assertEqual(work.json()['description']['value'], "A String Description")
 
     def test_work_text_type(self):
         work = create_work(self.ol, **self.texts)
         self.assertIsNone(work.validate())
         self.assertIsInstance(work.description, string_types)
         self.assertIn('type', work.json()['description'])
-        self.assertEquals(work.json()['description']['value'], "A Text Description")
+        self.assertEqual(work.json()['description']['value'], "A Text Description")
