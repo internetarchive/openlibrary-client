@@ -122,7 +122,7 @@ class OpenLibrary(object):
         Uses the Open Library save_many API endpoint to
         write any number or combination of documents (Edition, Work, or Author)
         back to Open Library.
-        Uses HTTP Exension Framework custom headers (RFC 2774).
+        Uses HTTP Extension Framework custom headers (RFC 2774).
         """
         headers = {
             'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
