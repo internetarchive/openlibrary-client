@@ -986,7 +986,7 @@ class OpenLibrary(object):
     def _generate_url_from_olid(self, olid):
         """Returns the .json url for an olid (str)"""
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
-        kind = re.sub('\d+', '..', olid)
+        kind = re.sub(r'\d+', '..', olid)
         return "%s/%s/%s.json" % (self.base_url, ol_paths[kind], olid)
 
     @staticmethod
@@ -1003,7 +1003,7 @@ class OpenLibrary(object):
     @staticmethod
     def get_type(olid):
         ol_types = {'OL..A': 'author', 'OL..M': 'book', 'OL..W': 'work'}
-        kind = re.sub('\d+', '..', olid)
+        kind = re.sub(r'\d+', '..', olid)
         try:
             return ol_types[kind]
         except KeyError:
