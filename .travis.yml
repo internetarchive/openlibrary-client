@@ -1,5 +1,10 @@
 os: linux
 
+dist:
+  - trusty
+  - xenial
+  - bionic
+
 language: python
 
 python:
@@ -12,7 +17,7 @@ python:
 addons:
   apt:
     sources:
-    - sourceline: 'deb http://ftp.indexdata.dk/ubuntu xenial main'
+    - sourceline: 'deb http://ftp.indexdata.dk/ubuntu $TRAVIS_DIST main'
       key_url: http://ftp.indexdata.dk/debian/indexdata.asc
     packages:
     - yaz
