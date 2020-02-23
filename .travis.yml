@@ -1,12 +1,7 @@
 os: linux
-
-dist:
-  - trusty
-  - xenial
-  - bionic
+dist: bionic
 
 language: python
-
 python:
   - "2.7"
   - "3.5"
@@ -22,8 +17,7 @@ addons:
     packages:
     - yaz
 
-before_install:
-  - yaz-marcdump -V
+before_install: yaz-marcdump -V
 
 install: pip install -r requirements.txt
 
