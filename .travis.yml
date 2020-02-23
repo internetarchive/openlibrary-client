@@ -1,26 +1,18 @@
+os: linux
+
 language: python
-
-os:
-  - linux
-
-dist: trusty
 
 python:
   - "2.7"
   - "3.5"
   - "3.6"
-
-matrix:
-  include:
-    - python: "3.7"
-      dist: xenial # required for Python >= 3.7 (travis-ci/travis-ci#9069)
-  allow_failures:
-    - python: "3.7"
+  - "3.7"
+  - "3.8"
 
 addons:
   apt:
     sources:
-    - sourceline: 'deb http://ftp.indexdata.dk/ubuntu trusty main'
+    - sourceline: 'deb http://ftp.indexdata.dk/ubuntu xenial main'
       key_url: http://ftp.indexdata.dk/debian/indexdata.asc
     packages:
     - yaz
