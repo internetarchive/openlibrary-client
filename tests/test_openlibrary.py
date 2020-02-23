@@ -215,8 +215,9 @@ class TestOpenLibrary(unittest.TestCase):
         suffixes = {'edition': 'M', 'work': 'W', 'author': 'A'}
         for _type, suffix in suffixes.items():
             target = "OLnotfound%s" % suffix
-            with pytest.raises(requests.HTTPError, message="HTTPError not raised for %s: %s" % (_type, target)):
+            with pytest.raises(requests.HTTPError):
                 r = self.ol.get(target)
+                pytest.fail("HTTPError not raised for %s: %s" % (_type, target))
 
     @patch('requests.Session.post')
     def test_save_many(self, mock_post):
