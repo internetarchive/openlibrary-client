@@ -77,6 +77,22 @@
         "Hardcover",
         "Spiral-bound"
       ]
+    },
+    "physical_dimensions": {
+      "type": "string",
+      "examples": [
+        "5.4 x 4.7 x 0.2 inches",
+        "21 x 14.8 x 0.8 centimeters"
+      ]
+    },
+    "weight": {
+      "type": "string",
+      "examples": [
+        "300 grams",
+        "0.3 kilos",
+        "12 ounces",
+        "1 pounds"
+      ]
     }
   },
   "definitions": {

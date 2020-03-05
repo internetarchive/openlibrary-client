@@ -94,7 +94,7 @@
       "type": "string",
       "examples": [
         "5.4 x 4.7 x 0.2 inches",
-        "21 x 14,8 x 0,8 centimeters"
+        "21 x 14.8 x 0.8 centimeters"
       ]
     },
     "physical_format": {
