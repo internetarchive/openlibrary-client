@@ -17,16 +17,14 @@ import logging
 import sys
 
 from olclient.openlibrary import OpenLibrary
-from os import makedirs
+from os import makedirs, path
 
 
 class BaseBot(object):
     def __init__(self, ol=None, dry_run=True, limit=1) -> None:
         """Create logger and class variables"""
-        if ol is None:
-            self.ol = OpenLibrary()
-        else:
-            self.ol = ol
+        OpenLibrary()  # FIXME for debugging
+        self.ol = ol or OpenLibrary()
 
         self.parser = argparse.ArgumentParser(description=__doc__)
         self.parser.add_argument('-f', '--file', type=str, default=None, help='Path to file containing input data')
@@ -40,7 +38,7 @@ class BaseBot(object):
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
-        job_name = sys.argv[0].replace('.py', '')
+        job_name = path.splitext(sys.argv[0])[0]
         self.logger = logging.getLogger("jobs.%s" % job_name)
         self.logger.setLevel(logging.DEBUG)
         log_formatter = logging.Formatter('%(name)s;%(levelname)-8s;%(asctime)s %(message)s')
@@ -52,7 +50,7 @@ class BaseBot(object):
         makedirs(log_dir, exist_ok=True)
         log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(log_file, delay=True)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(log_formatter)
         self.logger.addHandler(file_handler)

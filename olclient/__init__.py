@@ -14,6 +14,7 @@ __version__ = '0.0.20'
 __author__ = 'Internet Archive'
 
 
+from .bots import BaseBot
 from .openlibrary import OpenLibrary
 from .marc import MARC
 from .common import Book, Author

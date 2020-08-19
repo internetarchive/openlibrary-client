@@ -1,7 +1,9 @@
 #-*- encoding: utf-8 -*-
 
+from __future__ import absolute_import, division, print_function
 
-import pytest
+import random
+import sys
 import unittest
 
 try:
@@ -19,15 +21,26 @@ class TestBots(unittest.TestCase):
     def setUp(self, mock_login):
         self.ol = OpenLibrary()
 
-    def test__init__with_no_ol_arg(self):
-        OpenLibrary = Mock()
+    @patch('olclient.openlibrary.OpenLibrary')
+    def test__init__(self, mock_ol):
         bot = BaseBot()
-        assert OpenLibrary.assert_called_once()
+        assert bot.dry_run
+        assert bot.limit == 1
+        assert bot.logger.handlers
+        assert mock_ol.assert_called_once()  # FIXME not passing for some reason
+
+    @patch('olclient.bots.logging.debug')
+    @patch('olclient.bots.sys.exit')
+    def test_run(self, mock_debug, mock_sys_exit):
+        bot = BaseBot()
+        assert mock_sys_exit.assert_called_once()  # FIXME not passing for some reason
+        assert mock_debug.assert_called_once()  # FIXME not passing for some reason
+
 
 # test__init__
 # X calls ol when arg not given
 # can parse --file, --limit, --dry-run from command line
-# sets --dry-run and --limit when not set in command line
+# X sets --dry-run and --limit when not set in command line
 # creates log file and directory
 
 # def_run
