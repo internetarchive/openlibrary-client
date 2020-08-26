@@ -23,7 +23,6 @@ from os import makedirs, path
 class BaseBot(object):
     def __init__(self, ol=None, dry_run=True, limit=1) -> None:
         """Create logger and class variables"""
-        OpenLibrary()  # FIXME for debugging
         self.ol = ol or OpenLibrary()
 
         self.parser = argparse.ArgumentParser(description=__doc__)
@@ -31,10 +30,10 @@ class BaseBot(object):
         self.parser.add_argument('-l, --limit', type=int, default=1,
                                  help='Limit number of edits performed on external data.'
                                       'Set to zero to allow unlimited edits.')
-        self.parser.add_argument('-d', '--dry_run', type=self.str2bool, default=True,
+        self.parser.add_argument('-d', '--dry-run', type=self._str2bool, default=True,
                                  help='Execute the script without performing edits on external data.')
         self.args = self.parser.parse_args()
-        self.dry_run = getattr(self.args, 'file', None) or dry_run
+        self.dry_run = getattr(self.args, 'dry-run', None) or dry_run
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
@@ -46,7 +45,8 @@ class BaseBot(object):
         self.console_handler.setLevel(logging.WARN)
         self.console_handler.setFormatter(log_formatter)
         self.logger.addHandler(self.console_handler)
-        log_dir = 'logs/jobs/%s' % job_name
+        here = path.dirname(path.abspath(__file__))
+        log_dir = ''.join([here, '/logs/jobs/', job_name])
         makedirs(log_dir, exist_ok=True)
         log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
@@ -55,6 +55,21 @@ class BaseBot(object):
         file_handler.setFormatter(log_formatter)
         self.logger.addHandler(file_handler)
         self.console_handler.setLevel(logging.INFO)
+
+    @staticmethod
+    def _str2bool(value: str) -> bool:
+        """
+        Convert sensible input strings into booleans. Unacceptable strings raise an error.
+        :param value: User input
+        """
+        if isinstance(value, bool):
+            return value
+        if value.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
 
     def run(self) -> None:
         """You should overwrite this method"""
@@ -74,18 +89,3 @@ class BaseBot(object):
         if self.limit and self.changed >= self.limit:
             self.logger.info('Modification limit reached. Exiting script.')
             sys.exit()
-
-    @staticmethod
-    def str2bool(value: str) -> bool:
-        """
-        Convert sensible input strings into booleans. Unacceptable strings raise an error.
-        :param value: User input
-        """
-        if isinstance(value, bool):
-            return value
-        if value.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif value.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')

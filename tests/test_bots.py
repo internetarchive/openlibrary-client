@@ -2,15 +2,17 @@
 
 from __future__ import absolute_import, division, print_function
 
+import copy
 import random
-import sys
+import string
 import unittest
 
 try:
-    from mock import Mock, call, patch, ANY
+    from mock import MagicMock, Mock, call, patch, ANY
 except ImportError:
-    from unittest.mock import Mock, call, patch, ANY
+    from unittest.mock import MagicMock, Mock, call, patch, ANY
 
+from argparse import ArgumentTypeError
 from olclient.openlibrary import OpenLibrary
 from olclient.bots import BaseBot
 
@@ -20,40 +22,49 @@ class TestBots(unittest.TestCase):
     @patch('olclient.openlibrary.OpenLibrary.login')
     def setUp(self, mock_login):
         self.ol = OpenLibrary()
+        self.truthy_values = ['yes', 'true',  't', 'y', '1']
+        self.falsey_values = ['no', 'false', 'f', 'n', '0']
 
-    @patch('olclient.openlibrary.OpenLibrary')
-    def test__init__(self, mock_ol):
+    def test__init__(self):
         bot = BaseBot()
-        assert bot.dry_run
+        assert bot.changed == 0
         assert bot.limit == 1
         assert bot.logger.handlers
-        assert mock_ol.assert_called_once()  # FIXME not passing for some reason
+        assert isinstance(bot.ol, OpenLibrary)
 
-    @patch('olclient.bots.logging.debug')
-    @patch('olclient.bots.sys.exit')
-    def test_run(self, mock_debug, mock_sys_exit):
-        bot = BaseBot()
-        assert mock_sys_exit.assert_called_once()  # FIXME not passing for some reason
-        assert mock_debug.assert_called_once()  # FIXME not passing for some reason
+    def test__str2bool_returns_true_for_truthy_input(self):
+        truthy_input = self.truthy_values[random.randint(0, len(self.truthy_values) - 1)]
+        bot = BaseBot(ol=self.ol)
+        assert bot._str2bool(truthy_input)
 
+    def test__str2bool_returns_false_for_falsey_input(self):
+        falsey_input = self.falsey_values[random.randint(0, len(self.falsey_values) - 1)]
+        bot = BaseBot(ol=self.ol)
+        assert bot._str2bool(falsey_input) is False
 
-# test__init__
-# X calls ol when arg not given
-# can parse --file, --limit, --dry-run from command line
-# X sets --dry-run and --limit when not set in command line
-# creates log file and directory
+    def test__str2bool_errors_for_non_boolean_input(self):
+        non_boolean_input = random.choice(string.ascii_letters)
+        while non_boolean_input in self.falsey_values or non_boolean_input in self.truthy_values:
+            non_boolean_input = random.choice(string.ascii_letters)
+        bot = BaseBot(ol=self.ol)
+        self.assertRaises(ArgumentTypeError, bot._str2bool, non_boolean_input)
 
-# def_run
-# calls debug, calls exit
+    @patch('olclient.bots.sys.exit')  # so that pytest doesn't exit
+    def test_save_when_dry_run_is_false(self, mock_sys_exit):
+        save_fn = Mock()
+        bot = BaseBot(ol=self.ol, dry_run=False)
+        old_changed = copy.deepcopy(bot.changed)
+        bot.save(save_fn)
+        assert save_fn.assert_called_once()
+        assert bot.changed == old_changed + 1
+        assert not bot.changed > bot.limit
 
-# test_save
-# calls save_fn when --dry-run=False, change increases by 1
-# does not call save_fun when --dry_run=True, changed increase by 1
-# adds to log file when limit reached
-
-# test_str2bool
-# randomly pick 'yes', 'true', 't', 'y', '1' and make sure it returns True
-# randomly pick 'no', 'false', 'f', 'n', '0' and make sure it returns False
-# assert ArgumentTypeError raised for bad choice
-
-
+    @patch('olclient.bots.sys.exit')  # so that pytest doesn't exit
+    def test_save_when_dry_run_is_true(self, mock_sys_exit):
+        save_fn = Mock()
+        bot = BaseBot(ol=self.ol, dry_run=True)
+        old_changed = copy.deepcopy(bot.changed)
+        bot.save(save_fn)
+        assert save_fn.assert_not_called()
+        assert bot.changed == old_changed + 1
+        assert not bot.changed > bot.limit
