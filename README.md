@@ -3,7 +3,7 @@ openlibrary-client
 
 ![Travis CI build status](https://travis-ci.org/internetarchive/openlibrary-client.svg?branch=master)
 
-A reference client library for the Open Library API. Tested with Python 3.7, 3.8.
+A reference client library for the Open Library API. Tested with Python 3.7, 3.8, and 3.9.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -24,7 +24,7 @@ For Fedora/RHEL, use the following command to install `yaz`
 $ sudo dnf install yaz
 ```
 
-You'll also need python dev tools:
+You'll also need Python dev tools:
 
 ```
 $ sudo apt install python3-dev
@@ -59,7 +59,7 @@ Successfully configured
 
 ### Python Library
 
-For more examples, you can take a look at our [examples directory](examples/scripts) on Python Scripts for specific use cases that are needed.
+For more examples, you can take a look at our [examples directory](examples/scripts) on Python scripts for specific use cases that are needed.
 
 #### Adding a new Book
 
