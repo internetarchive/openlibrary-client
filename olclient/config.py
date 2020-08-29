@@ -130,5 +130,5 @@ class Config(object):
         access = config['s3'].pop('access')
         secret = config['s3'].pop('secret')
         config['s3'] = Credentials(
-            access, secret) if all((access, secret)) else None
+            access, secret) if access and secret else None
         return config
