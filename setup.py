@@ -23,7 +23,8 @@ def read(*parts):
     intentionally *not* adding an encoding option to open, See:
        https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
     """
-    return codecs.open(os.path.join(here, *parts), 'r').read()
+    with codecs.open(os.path.join(here, *parts), 'r') as in_file:
+        return in_file.read()
 
 
 def find_version(*file_paths):
@@ -45,7 +46,7 @@ def requirements():
 setup(
     name='openlibrary-client',
     version=find_version("olclient", "__init__.py"),
-    description=u'A python client for Open Library',
+    description=u'A Python client for Open Library',
     long_description=read('README.md'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
