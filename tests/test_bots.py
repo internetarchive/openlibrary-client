@@ -29,6 +29,7 @@ class TestBots(unittest.TestCase):
         bot = BaseBot()
         assert bot.changed == 0
         assert bot.limit == 1
+        assert bot.dry_run is True
         assert bot.logger.handlers
         assert isinstance(bot.ol, OpenLibrary)
 
@@ -49,22 +50,44 @@ class TestBots(unittest.TestCase):
         bot = BaseBot(ol=self.ol)
         self.assertRaises(ArgumentTypeError, bot._str2bool, non_boolean_input)
 
-    @patch('olclient.bots.sys.exit')  # so that pytest doesn't exit
+    @patch('olclient.bots.sys.exit')
+    def test_save_exits_when_limit_reached(self, mock_sys_exit):
+        save_fn = Mock()
+        bot = BaseBot(ol=self.ol, dry_run=True, limit=random.randint(2, 20))
+        bot.logger.info = Mock()
+        old_changed = copy.deepcopy(bot.changed)
+        for i in range(bot.limit + 1):  # simulate calling save_fn many times in a run() method
+            if mock_sys_exit.call_count > 0: break
+            bot.save(save_fn)
+        assert mock_sys_exit.assert_called_once
+        assert save_fn.assert_not_called
+        assert bot.logger.info.call_count == bot.limit + 1
+        assert bot.changed == old_changed + bot.limit
+        assert not bot.changed > bot.limit
+
+    @patch('olclient.bots.sys.exit')
     def test_save_when_dry_run_is_false(self, mock_sys_exit):
         save_fn = Mock()
         bot = BaseBot(ol=self.ol, dry_run=False)
+        bot.logger.info = Mock()
         old_changed = copy.deepcopy(bot.changed)
         bot.save(save_fn)
-        assert save_fn.assert_called_once()
+        assert save_fn.assert_called_once
+        assert bot.logger.info.assert_called_once
+        assert mock_sys_exit.assert_called_once
         assert bot.changed == old_changed + 1
         assert not bot.changed > bot.limit
 
-    @patch('olclient.bots.sys.exit')  # so that pytest doesn't exit
+    @patch('olclient.bots.sys.exit')
     def test_save_when_dry_run_is_true(self, mock_sys_exit):
         save_fn = Mock()
         bot = BaseBot(ol=self.ol, dry_run=True)
+        bot.logger.info = Mock()
         old_changed = copy.deepcopy(bot.changed)
         bot.save(save_fn)
-        assert save_fn.assert_not_called()
+        assert save_fn.assert_not_called
+        assert bot.logger.info.call_count == 2
+        assert mock_sys_exit.assert_called_once
         assert bot.changed == old_changed + 1
         assert not bot.changed > bot.limit
+
