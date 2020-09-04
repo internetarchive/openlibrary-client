@@ -5,7 +5,7 @@
 """
 Classes and methods for bulk edits that match the following pattern:
 1. Search data dump for X condition
-2. Remove or modify record that fits condition X
+2. Remove or modify record that fit s condition X
 3. Create log of modification
 4. Repeat 1-3 for all records that meet condition X
 """
@@ -38,6 +38,8 @@ class BaseBot(object):
         self.changed = 0
 
         job_name = path.splitext(sys.argv[0])[0]
+        if '/' or '\\' in job_name:  # FIXME: this is disgusting and path.isfile() and path.isdir() don't work
+            job_name = path.splitext(job_name)[-1] or 'a_girl_has_no_name'
         self.logger = logging.getLogger("jobs.%s" % job_name)
         self.logger.setLevel(logging.DEBUG)
         log_formatter = logging.Formatter('%(name)s;%(levelname)-8s;%(asctime)s %(message)s')
@@ -45,12 +47,12 @@ class BaseBot(object):
         self.console_handler.setLevel(logging.WARN)
         self.console_handler.setFormatter(log_formatter)
         self.logger.addHandler(self.console_handler)
-        here = path.dirname(path.abspath(__file__))
-        log_dir = ''.join([here, '/logs/jobs/', job_name])
+        home = path.expanduser("~")
+        log_dir = ''.join([home, '/logs/jobs/', job_name])
         makedirs(log_dir, exist_ok=True)
         log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
-        file_handler = logging.FileHandler(log_file, delay=True)
+        file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(log_formatter)
         self.logger.addHandler(file_handler)
