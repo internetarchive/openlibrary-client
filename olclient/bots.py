@@ -5,7 +5,7 @@
 """
 Classes and methods for bulk edits that match the following pattern:
 1. Search data dump for X condition
-2. Remove or modify record that fit s condition X
+2. Remove or modify record that fits condition X
 3. Create log of modification
 4. Repeat 1-3 for all records that meet condition X
 """
@@ -13,6 +13,7 @@ Classes and methods for bulk edits that match the following pattern:
 
 import argparse
 import datetime
+import json
 import logging
 import sys
 
@@ -20,8 +21,8 @@ from olclient.openlibrary import OpenLibrary
 from os import makedirs, path
 
 
-class BaseBot(object):
-    def __init__(self, ol=None, dry_run=True, limit=1) -> None:
+class AbstractBotJob(object):
+    def __init__(self, ol=None, dry_run=True, limit=1, job_name=__name__) -> None:
         """Create logger and class variables"""
         self.ol = ol or OpenLibrary()
 
@@ -37,26 +38,7 @@ class BaseBot(object):
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
-        job_name = path.splitext(sys.argv[0])[0]
-        if '/' or '\\' in job_name:  # FIXME: this is disgusting and path.isfile() and path.isdir() don't work
-            job_name = path.splitext(job_name)[-1] or 'a_girl_has_no_name'
-        self.logger = logging.getLogger("jobs.%s" % job_name)
-        self.logger.setLevel(logging.DEBUG)
-        log_formatter = logging.Formatter('%(name)s;%(levelname)-8s;%(asctime)s %(message)s')
-        self.console_handler = logging.StreamHandler()
-        self.console_handler.setLevel(logging.WARN)
-        self.console_handler.setFormatter(log_formatter)
-        self.logger.addHandler(self.console_handler)
-        home = path.expanduser("~")
-        log_dir = ''.join([home, '/logs/jobs/', job_name])
-        makedirs(log_dir, exist_ok=True)
-        log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(log_formatter)
-        self.logger.addHandler(file_handler)
-        self.console_handler.setLevel(logging.INFO)
+        self.logger, self.console_handler = self.setup_logger(job_name)
 
     @staticmethod
     def _str2bool(value: str) -> bool:
@@ -72,6 +54,32 @@ class BaseBot(object):
             return False
         else:
             raise argparse.ArgumentTypeError('Boolean value expected.')
+
+    def dry_run_declaration(self) -> None:
+        """Log whether or not dry_run is True or False"""
+        if self.dry_run:
+            self.logger.info('dry-run is TRUE. No external modifications will be made.')
+        else:
+            self.logger.info('dry-run is FALSE. Permanent modifications can be made.')
+
+    @staticmethod
+    def process_row(row, delimiter='\t') -> (list, dict):
+        """
+        Return one row and accompanying JSON of an Open Library dump into useful data formats
+        I.E:
+        with open(self.args.file) as file:
+            for row in file:
+                row, json_data = self.process_row(row)
+
+        :param row: One row of a compressed or plain text file
+        :param delimiter: The delimiter of the text file. Default is \t
+        :returns: A tuple. first element is the row and the second element is the JSON data
+        """
+        try:
+            row = row.decode().split(delimiter)
+        except AttributeError:
+            row = row.split(delimiter)
+        return row, json.loads(row[4])
 
     def run(self) -> None:
         """You should overwrite this method"""
@@ -91,3 +99,28 @@ class BaseBot(object):
         if self.limit and self.changed >= self.limit:
             self.logger.info('Modification limit reached. Exiting script.')
             sys.exit()
+
+    @staticmethod
+    def setup_logger(job_name: str) -> tuple:
+        """
+        :param job_name: The name that will appear on the log files
+        :returns: a tuple of the logger instance and the console handler instance
+        """
+        logger = logging.getLogger("jobs.%s" % job_name)
+        logger.setLevel(logging.DEBUG)
+        log_formatter = logging.Formatter('%(name)s;%(levelname)-8s;%(asctime)s %(message)s')
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.WARN)
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+        here = path.dirname(path.abspath(__name__))
+        log_dir = ''.join([here, '/logs/jobs/', job_name])
+        makedirs(log_dir, exist_ok=True)
+        log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(log_formatter)
+        logger.addHandler(file_handler)
+        console_handler.setLevel(logging.INFO)
+        return logger, console_handler

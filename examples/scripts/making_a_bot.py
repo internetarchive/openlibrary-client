@@ -10,33 +10,25 @@ You can obtain dumps from https://openlibrary.org/developers/dumps
 
 import copy
 import gzip
-import json
 
-from olclient.bots import BaseBot
+from olclient.bots import AbstractBotJob
 
 
-class TrimBot(BaseBot):
+class TrimTitleJob(AbstractBotJob):
     @staticmethod
     def needs_trim(edition_title: str) -> bool:  # it's good practice to make a check method for the pattern you're looking for
         """Returns True if Edition title needs to have whitespace removed. Return false otherwise"""
         return edition_title.strip() != edition_title
 
-    def run(self) -> None:  # overwrite the BaseBot run method
+    def run(self) -> None:  # overwrite the AbstractBotJob run method
         """Strip leading and trailing whitespace from edition titles"""
-        if self.dry_run:
-            self.logger.info('dry-run set to TRUE. Script will run, but no external modifications will be made.')
+        self.dry_run_declaration()
 
-        header = {'type': 0,
-                  'key': 1,
-                  'revision': 2,
-                  'last_modified': 3,
-                  'JSON': 4}
         comment = 'trim whitespace'
-        with gzip.open(self.args['file'], 'rb') as fin:
+        with gzip.open(self.args.file, 'rb') as fin:
             for row in fin:
-                # parse the dump file and check it
-                row = row.decode().split('\t')
-                json_data = json.loads(row[header['JSON']])
+                # extract info from the dump file and check it
+                row, json_data = self.process_row(row)
                 if json_data['type']['key'] != '/type/edition': continue  # this can be done faster with a grep filter, but for this example we'll do it here
                 if not self.needs_trim(json_data['title']): continue
 
@@ -54,10 +46,10 @@ class TrimBot(BaseBot):
 
 
 if '__name__' == __name__:
-    bot = TrimBot()
+    job = TrimTitleJob()
 
     try:
-        bot.run()
+        job.run()
     except Exception as e:
-        bot.logger.exception("")
+        job.logger.exception("")
         raise e
