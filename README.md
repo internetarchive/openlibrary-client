@@ -3,7 +3,7 @@ openlibrary-client
 
 ![Travis CI build status](https://travis-ci.org/internetarchive/openlibrary-client.svg?branch=master)
 
-A reference client library for the Open Library API. Tested with Python 2.7, 3.5, 3.6.
+A reference client library for the Open Library API. Tested with Python 3.7, 3.8.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -27,14 +27,12 @@ $ sudo dnf install yaz
 You'll also need python dev tools:
 
 ```
-$ sudo apt install python-dev   # for python 2
-$ sudo apt install python3-dev  # for python 3
+$ sudo apt install python3-dev
 ```
 
 For Fedora/RHEL, use:
 ```
-$ sudo dnf install python2-devel  # for python2.x installs
-$ sudo dnf install python3-devel  # for python3.x installs
+$ sudo dnf install python3-devel
 ```
 
 

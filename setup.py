@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -54,10 +54,9 @@ setup(
         "Topic :: Software Development :: Build Tools",
         "Topic :: Software Development :: Libraries",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4"
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8"
     ],
     author='Internet Archive',
     author_email='mek@archive.org',
@@ -68,9 +67,6 @@ setup(
         ],
     entry_points={
         'console_scripts': ['ol=olclient.cli:main'],
-    },
-    extras_require={
-        ':python_version=="2.7"': ['argparse']
     },
     platforms='any',
     license='LICENSE',
