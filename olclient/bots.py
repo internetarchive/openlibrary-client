@@ -56,7 +56,7 @@ class AbstractBotJob(object):
             raise argparse.ArgumentTypeError('Boolean value expected.')
 
     def dry_run_declaration(self) -> None:
-        """Log whether or not dry_run is True or False"""
+        """Log whether dry_run is True or False"""
         if self.dry_run:
             self.logger.info('dry-run is TRUE. No external modifications will be made.')
         else:
@@ -114,10 +114,10 @@ class AbstractBotJob(object):
         console_handler.setFormatter(log_formatter)
         logger.addHandler(console_handler)
         here = path.dirname(path.abspath(__name__))
-        log_dir = ''.join([here, '/logs/jobs/', job_name])
+        log_dir = path.join(here, 'logs', 'jobs', job_name)
         makedirs(log_dir, exist_ok=True)
         log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = log_dir + '/%s_%s.log' % (job_name, log_file_datetime)
+        log_file = path.join(log_dir, '%s_%s.log' % (job_name, log_file_datetime))
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(log_formatter)

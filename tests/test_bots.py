@@ -37,18 +37,18 @@ class TestBots(unittest.TestCase):
         assert isinstance(bot.ol, OpenLibrary)
 
     def test__str2bool_returns_true_for_truthy_input(self):
-        truthy_input = self.truthy_values[random.randint(0, len(self.truthy_values) - 1)]
+        truthy_input = random.choice(self.truthy_values)
         bot = AbstractBotJob(ol=self.ol)
         assert bot._str2bool(truthy_input)
 
     def test__str2bool_returns_false_for_falsey_input(self):
-        falsey_input = self.falsey_values[random.randint(0, len(self.falsey_values) - 1)]
+        falsey_input = random.choice(self.falsey_values)
         bot = AbstractBotJob(ol=self.ol)
         assert bot._str2bool(falsey_input) is False
 
     def test__str2bool_errors_for_non_boolean_input(self):
         non_boolean_input = random.choice(string.ascii_letters)
-        while non_boolean_input in self.falsey_values or non_boolean_input in self.truthy_values:
+        while non_boolean_input in (self.falsey_values + self.truthy_values):
             non_boolean_input = random.choice(string.ascii_letters)
         bot = AbstractBotJob(ol=self.ol)
         self.assertRaises(ArgumentTypeError, bot._str2bool, non_boolean_input)
