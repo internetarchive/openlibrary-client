@@ -4,6 +4,6 @@ jsonpickle==0.9.3
 jsonschema==3.2.0
 pymarc==3.2.0; python_version < '3.0'
 pymarc==4.0.0; python_version >= '3.0'
-requests[security]==2.23.0
+requests[security]==2.24.0
 simplejson==3.16
 six==1.14.0
