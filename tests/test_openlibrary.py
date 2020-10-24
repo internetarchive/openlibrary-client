@@ -1,5 +1,3 @@
-#-*- encoding: utf-8 -*-
-
 """Test cases for the OpenLibrary module"""
 
 from __future__ import absolute_import, division, print_function
@@ -11,10 +9,7 @@ import pytest
 import requests
 import unittest
 
-try:
-    from mock import Mock, call, patch, ANY
-except ImportError:
-    from unittest.mock import Mock, call, patch, ANY
+from unittest.mock import Mock, call, patch, ANY
 
 from olclient.config import Config
 from olclient.common import Author, Book
@@ -140,7 +135,7 @@ class TestOpenLibrary(unittest.TestCase):
             'title': u'Alles ber Mikrofone'
         }
         self.assertTrue(got_result == expected_result,
-                        "Expected create_book to return %s, got %s" \
+                        "Expected create_book to return %s, got %s"
                         % (expected_result, got_result))
 
     def test_get_work(self):
@@ -327,7 +322,7 @@ class TestTextType(unittest.TestCase):
     def test_edition_text_type(self):
         edition = create_edition(self.ol, **self.texts)
         self.assertIsNone(edition.validate())
-        self.assertIsInstance(edition.description, string_types)
+        self.assertIsInstance(edition.description, str)
         self.assertIn('type', edition.json()['description'])
         self.assertEqual(edition.json()['description']['value'], "A Text Description")
 
