@@ -1,8 +1,5 @@
-#-*- encoding: utf-8 -*-
-
 from __future__ import absolute_import, division, print_function
 from io import open
-import six
 
 import os
 import unittest
@@ -68,10 +65,9 @@ class TestMARC(unittest.TestCase):
             bin_marc = MARC.convert(line_marc.read())
             reader = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                        force_utf8=True, utf8_handling='ignore')
-            keyed_record = MARCRecord(six.next(reader))
+            keyed_record = MARCRecord(next(reader))
             self.assertTrue(keyed_record.author.name,
                             "Failed to retrieve author name")
-
 
     def test_line_to_bin_unicode(self):
         line_marc_file = example_path('line_marc_unicode.txt')
@@ -84,7 +80,7 @@ class TestMARC(unittest.TestCase):
                                 "unicode content")
                 marcs = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                           force_utf8=True, utf8_handling='ignore')
-                marc = six.next(marcs)
+                marc = next(marcs)
                 self.assertEqual(marc.author(),
                                 u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
                                 '1900-1980 Verfasser (DE-588)118536389 aut',
@@ -97,8 +93,8 @@ class TestMARC(unittest.TestCase):
             expected_author = u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ'
             expected_title = u'ΛΦϞЌЍЖ⁁⅀∰   ﬢﬡ－中英字典こんにちはß'
             self.assertEqual(book.primary_author.name, expected_author,
-                            "Expected author %s, got author %s" % \
+                            "Expected author %s, got author %s" %
                             (expected_author, book.primary_author.name))
             self.assertEqual(book.primary_author.name, expected_author,
-                            "Expected title %s, got title %s" % \
+                            "Expected title %s, got title %s" %
                             (expected_title, book.title))
