@@ -1,16 +1,13 @@
-#-*- encoding: utf-8 -*-
-
 """Basic wrapper (client) over OpenLibrary REST API"""
 
 from __future__ import absolute_import, division, print_function
 
-from collections import namedtuple
 import json
 import jsonschema
 import logging
 import os
 import re
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 import backoff
 import requests
@@ -20,6 +17,7 @@ from .config import Config
 from .utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
+
 
 class OpenLibrary(object):
 
@@ -74,12 +72,13 @@ class OpenLibrary(object):
         if 'username' in credentials._asdict():
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             data = urlencode(credentials._asdict())
-        else: # s3 login
-             headers = {'Content-Type': 'application/json'}
-             data = json.dumps(credentials._asdict())
+        else:  # s3 login
+            headers = {'Content-Type': 'application/json'}
+            data = json.dumps(credentials._asdict())
         url = self.base_url + '/account/login'
 
         err = lambda e: logger.exception("Error at login: %s", e)
+
         @backoff.on_exception(on_giveup=err, **self.BACKOFF_KWARGS)
         def _login(url, headers, data):
             """Makes best effort to perform request w/ exponential backoff"""
@@ -225,7 +224,7 @@ class OpenLibrary(object):
                     >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
                     >>> book.add_id(u'isbn_10', u'0525521194')
                     >>> book.add_id(u'isbn_13', u'978-0525521198'))
-                    >>> ol.Work.create(book)  
+                    >>> ol.Work.create(book)
                 """
                 try:
                     book.publish_date = re.findall(
@@ -710,8 +709,8 @@ class OpenLibrary(object):
             def get(cls, olid):
                 """Retrieves an OpenLibrary Author by author_olid
                 Args:
-                    olid (unicode) - OpenLibrary ID for author to search within 
-                                    Open Library's database of authors 
+                    olid (unicode) - OpenLibrary ID for author to search within
+                                    Open Library's database of authors
 
                 Returns:
                     A (list) of author object from the OpenLibrary

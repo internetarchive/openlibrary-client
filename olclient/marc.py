@@ -1,9 +1,6 @@
-#-*- encoding: utf-8 -*-
-
 """Utility for parsing and inter-converting various types of MARC records"""
 
 from __future__ import absolute_import, division, print_function
-import six
 
 import subprocess
 import tempfile
@@ -11,7 +8,7 @@ import tempfile
 import pymarc
 
 from .openlibrary import common
-from .utils import chunks, has_unicode
+from .utils import chunks
 
 
 class MARCRecord(dict):
@@ -160,7 +157,7 @@ class MARC(object):
         """
         reader = pymarc.MARCReader(bin_marc, hide_utf8_warnings=True,
                                    force_utf8=True, utf8_handling='ignore')
-        record = six.next(reader)
+        record = next(reader)
         keyed_record = MARCRecord(record)
         data = {
             'identifiers': {},
