@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
     setup.py
@@ -42,10 +41,11 @@ def requirements():
     with open(reqtxt) as f:
         return f.read().split()
 
+
 setup(
     name='openlibrary-client',
     version=find_version("olclient", "__init__.py"),
-    description=u'A python client for Open Library',
+    description=u'A Python client for Open Library',
     long_description=read('README.md'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -56,7 +56,8 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8"
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     author='Internet Archive',
     author_email='mek@archive.org',
