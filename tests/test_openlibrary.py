@@ -1,8 +1,5 @@
-#-*- encoding: utf-8 -*-
-
 """Test cases for the OpenLibrary module"""
 
-from __future__ import absolute_import, division, print_function
 from six import string_types
 
 import json
@@ -13,7 +10,7 @@ import requests
 import unittest
 
 try:
-    from mock import Mock, call, patch, ANY
+    from unittest.mock import Mock, call, patch, ANY
 except ImportError:
     from unittest.mock import Mock, call, patch, ANY
 
@@ -64,11 +61,11 @@ class TestOpenLibrary(unittest.TestCase):
         isbn_key = 'ISBN:0374202915'
         isbn_bibkeys = { isbn_key: { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
         mock_get.return_value.json.return_value = isbn_bibkeys
-        olid = self.ol.Edition.get_olid_by_isbn(u'0374202915')
-        mock_get.assert_called_with("%s/api/books.json?bibkeys=%s" % (self.ol.base_url, isbn_key))
-        expected_olid = u'OL23575801M'
+        olid = self.ol.Edition.get_olid_by_isbn('0374202915')
+        mock_get.assert_called_with(f"{self.ol.base_url}/api/books.json?bibkeys={isbn_key}")
+        expected_olid = 'OL23575801M'
         self.assertTrue(olid == expected_olid,
-                        "Expected olid %s, got %s" % (expected_olid, olid))
+                        f"Expected olid {expected_olid}, got {olid}")
 
     @patch('requests.Session.get')
     def test_get_olid_notfound_by_bibkey(self, mock_get):
@@ -79,14 +76,14 @@ class TestOpenLibrary(unittest.TestCase):
     @patch('requests.Session.get')
     def test_get_work_by_metadata(self, mock_get):
         doc = {
-            "key":    u"/works/OL2514747W",
-            "title":  u"The Autobiography of Benjamin Franklin",
+            "key":    "/works/OL2514747W",
+            "title":  "The Autobiography of Benjamin Franklin",
         }
         search_results = { 'start': 0, 'num_found': 1, 'docs': [doc] }
-        title = u"The Autobiography of Benjamin Franklin"
+        title = "The Autobiography of Benjamin Franklin"
         mock_get.return_value.json.return_value = search_results
         book = self.ol.Work.search(title=title)
-        mock_get.assert_called_with("%s/search.json?title=%s" % (self.ol.base_url, title))
+        mock_get.assert_called_with(f"{self.ol.base_url}/search.json?title={title}")
         canonical_title = book.canonical_title
         self.assertTrue('franklin' in canonical_title,
                         "Expected 'franklin' to appear in result title: %s" % \
@@ -94,59 +91,59 @@ class TestOpenLibrary(unittest.TestCase):
 
     @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
-        isbn_lookup_response = { u'ISBN:0374202915': { 'info_url': u'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
-        edition_response = { 'key': u"/books/OL23575801M", 'title': 'test' }
+        isbn_lookup_response = { 'ISBN:0374202915': { 'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau' } }
+        edition_response = { 'key': "/books/OL23575801M", 'title': 'test' }
         mock_get.return_value.json.side_effect = [isbn_lookup_response, edition_response]
-        book = self.ol.Edition.get(isbn=u'0374202915')
+        book = self.ol.Edition.get(isbn='0374202915')
         mock_get.assert_has_calls([
             call("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url),
             call().raise_for_status(),
             call().json(),
-            call("%s%s.json" % (self.ol.base_url, "/books/OL23575801M")),
+            call("{}{}.json".format(self.ol.base_url, "/books/OL23575801M")),
             call().raise_for_status(),
             call().json()
         ])
-        expected_olid = u'OL23575801M'
+        expected_olid = 'OL23575801M'
         self.assertTrue(book.olid == expected_olid,
-                        "Expected olid %s, got %s" % (expected_olid, book.olid))
+                        f"Expected olid {expected_olid}, got {book.olid}")
 
     @patch('requests.Session.get')
     def test_matching_authors_olid(self, mock_get):
-        author_autocomplete = [ {'name': u"Benjamin Franklin", 'key': u"/authors/OL26170A"} ]
+        author_autocomplete = [ {'name': "Benjamin Franklin", 'key': "/authors/OL26170A"} ]
         mock_get.return_value.json.return_value = author_autocomplete
-        name = u'Benjamin Franklin'
+        name = 'Benjamin Franklin'
         got_olid = self.ol.Author.get_olid_by_name(name)
-        expected_olid = u'OL26170A'
+        expected_olid = 'OL26170A'
         self.assertTrue(got_olid == expected_olid,
-                        "Expected olid %s, got %s" % (expected_olid, got_olid))
+                        f"Expected olid {expected_olid}, got {got_olid}")
 
     @patch('requests.Session.get')
     def test_create_book(self, mock_get):
-        book = Book(publisher=u'Karamanolis', title=u'Alles ber Mikrofone',
-                    identifiers={'isbn_10': [u'3922238246']}, publish_date=1982,
-                    authors=[Author(name=u'Karl Schwarzer')],
-                    publish_location=u'Neubiberg bei Mnchen')
-        author_autocomplete = [ {'name': u"Karl Schwarzer", 'key': u"/authors/OL7292805A"} ]
+        book = Book(publisher='Karamanolis', title='Alles ber Mikrofone',
+                    identifiers={'isbn_10': ['3922238246']}, publish_date=1982,
+                    authors=[Author(name='Karl Schwarzer')],
+                    publish_location='Neubiberg bei Mnchen')
+        author_autocomplete = [ {'name': "Karl Schwarzer", 'key': "/authors/OL7292805A"} ]
         mock_get.return_value.json.return_value = author_autocomplete
         got_result = self.ol.create_book(book, debug=True)
-        mock_get.assert_called_with("%s/authors/_autocomplete?q=%s&limit=1" % (self.ol.base_url, "Karl Schwarzer"))
+        mock_get.assert_called_with("{}/authors/_autocomplete?q={}&limit=1".format(self.ol.base_url, "Karl Schwarzer"))
         expected_result = {
             '_save': '',
-            'author_key': u'/authors/OL7292805A',
-            'author_name': u'Karl Schwarzer',
+            'author_key': '/authors/OL7292805A',
+            'author_name': 'Karl Schwarzer',
             'id_name': 'isbn_10',
-            'id_value': u'3922238246',
+            'id_value': '3922238246',
             'publish_date': 1982,
-            'publisher': u'Karamanolis',
-            'title': u'Alles ber Mikrofone'
+            'publisher': 'Karamanolis',
+            'title': 'Alles ber Mikrofone'
         }
         self.assertTrue(got_result == expected_result,
                         "Expected create_book to return %s, got %s" \
                         % (expected_result, got_result))
 
     def test_get_work(self):
-        work_json = {u'title': u'All Quiet on the Western Front'}
-        work = self.ol.Work(u'OL12938932W', **work_json)
+        work_json = {'title': 'All Quiet on the Western Front'}
+        work = self.ol.Work('OL12938932W', **work_json)
         self.assertTrue(work.title.lower() == 'all quiet on the western front',
                         "Failed to retrieve work")
 
@@ -217,7 +214,7 @@ class TestOpenLibrary(unittest.TestCase):
             target = "OLnotfound%s" % suffix
             with pytest.raises(requests.HTTPError):
                 r = self.ol.get(target)
-                pytest.fail("HTTPError not raised for %s: %s" % (_type, target))
+                pytest.fail(f"HTTPError not raised for {_type}: {target}")
 
     @patch('requests.Session.post')
     def test_save_many(self, mock_post):
@@ -261,7 +258,7 @@ class TestAuthors(unittest.TestCase):
 @patch('requests.Session.get')
 class TestFullEditionGet(unittest.TestCase):
     # TODO: Expected result includes an empty 'publisher': null, investigate
-    target_olid = u'OL3702561M'
+    target_olid = 'OL3702561M'
     raw_edition = json.loads("""{"number_of_pages": 1080, "subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "edition_name": "2nd ed.", "title": "Artificial intelligence", "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "publishers": ["Prentice Hall/Pearson Education"], "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "key": "/books/OL3702561M", "authors": [{"key": "/authors/OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pagination": "xxviii, 1080 p. :", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": {"type": "/type/text", "value": "Includes bibliographical references (p. 987-1043) and index."}, "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "publish_date": "2003", "works": [{"key": "/works/OL2896994W"}]}""")
     raw_author = json.loads("""{"name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "key": "/authors/OL440500A"}""")
     expected = json.loads("""{"subtitle": "a modern approach", "series": ["Prentice Hall series in artificial intelligence"], "covers": [92018], "lc_classifications": ["Q335 .R86 2003"], "latest_revision": 6, "contributions": ["Norvig, Peter."], "py/object": "olclient.openlibrary.Edition", "edition_name": "2nd ed.", "title": "Artificial intelligence", "_work": null, "languages": [{"key": "/languages/eng"}], "subjects": ["Artificial intelligence."], "publish_country": "nju", "by_statement": "Stuart J. Russell and Peter Norvig ; contributing writers, John F. Canny ... [et al.].", "type": {"key": "/type/edition"}, "revision": 6, "description": null, "last_modified": {"type": "/type/datetime", "value": "2010-08-03T18:56:51.333942"}, "authors": [{"py/object": "olclient.openlibrary.Author", "bio": null, "name": "Stuart J. Russell", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "identifiers": {}, "olid": "OL440500A"}], "publish_places": ["Upper Saddle River, N.J"], "pages": 1080, "publisher": null, "publishers": ["Prentice Hall/Pearson Education"], "pagination": "xxviii, 1080 p. :", "work_olid": "OL2896994W", "created": {"type": "/type/datetime", "value": "2008-04-01T03:28:50.625462"}, "dewey_decimal_class": ["006.3"], "notes": "Includes bibliographical references (p. 987-1043) and index.", "identifiers": {"librarything": ["43569"], "goodreads": ["27543"]}, "lccn": ["2003269366"], "isbn_10": ["0137903952"], "cover": null, "publish_date": "2003", "olid": "OL3702561M"}""")
@@ -275,12 +272,12 @@ class TestFullEditionGet(unittest.TestCase):
         isbn_bibkeys = { isbn_key: { 'info_url': "https://openlibrary.org/books/%s/Artificial_intelligence" % self.target_olid } }
         mock_get.return_value.json.side_effect = [isbn_bibkeys, self.raw_edition.copy(), self.raw_author.copy()]
 
-        actual = json.loads(jsonpickle.encode(self.ol.Edition.get(isbn=u'0137903952')))
+        actual = json.loads(jsonpickle.encode(self.ol.Edition.get(isbn='0137903952')))
         mock_get.assert_has_calls([
-            call("%s/api/books.json?bibkeys=%s" % (self.ol.base_url, isbn_key)),
+            call(f"{self.ol.base_url}/api/books.json?bibkeys={isbn_key}"),
             call().raise_for_status(),
             call().json(),
-            call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call(f"{self.ol.base_url}/books/{self.target_olid}.json"),
             call().raise_for_status(),
             call().json(),
             call("%s/authors/OL440500A.json" % self.ol.base_url),
@@ -288,14 +285,14 @@ class TestFullEditionGet(unittest.TestCase):
             call().json()
         ])
         self.assertEqual(actual, self.expected,
-                        "Data didn't match for ISBN lookup: \n%s\n\nversus:\n\n %s" % (actual, self.expected))
+                        f"Data didn't match for ISBN lookup: \n{actual}\n\nversus:\n\n {self.expected}")
 
     def test_load_by_olid(self, mock_get):
         mock_get.return_value.json.side_effect = [self.raw_edition.copy(), self.raw_author.copy()]
 
         actual = json.loads(jsonpickle.encode(self.ol.Edition.get(olid=self.target_olid)))
         mock_get.assert_has_calls([
-            call("%s/books/%s.json" % (self.ol.base_url, self.target_olid)),
+            call(f"{self.ol.base_url}/books/{self.target_olid}.json"),
             call().raise_for_status(),
             call().json(),
             call("%s/authors/OL440500A.json" % self.ol.base_url),
@@ -303,17 +300,17 @@ class TestFullEditionGet(unittest.TestCase):
             call().json()
         ])
         self.assertEqual(actual, self.expected,
-                        "Data didn't match for olid lookup: %s\n\nversus:\n\n %s" % (actual, self.expected))
+                        f"Data didn't match for olid lookup: {actual}\n\nversus:\n\n {self.expected}")
 
 class TestTextType(unittest.TestCase):
 
     @patch('olclient.openlibrary.OpenLibrary.login')
     def setUp(self, mock_login):
         self.ol = OpenLibrary()
-        self.strings = {u'description':  u'A String Description',
-                        u'notes': u'A String Note'}
-        self.texts   = {u'description': {u'type': u'/type/text', u'value': u'A Text Description'},
-                        u'notes': {u'type': u'/type/text', u'value': u'A Text Note'}}
+        self.strings = {'description':  'A String Description',
+                        'notes': 'A String Note'}
+        self.texts   = {'description': {'type': '/type/text', 'value': 'A Text Description'},
+                        'notes': {'type': '/type/text', 'value': 'A Text Note'}}
 
     def test_edition_text_type_from_string(self):
         edition = create_edition(self.ol, **self.strings)
@@ -324,7 +321,7 @@ class TestTextType(unittest.TestCase):
     def test_edition_text_type(self):
         edition = create_edition(self.ol, **self.texts)
         self.assertIsNone(edition.validate())
-        self.assertIsInstance(edition.description, string_types)
+        self.assertIsInstance(edition.description, (str,))
         self.assertIn('type', edition.json()['description'])
         self.assertEqual(edition.json()['description']['value'], "A Text Description")
 
@@ -337,6 +334,6 @@ class TestTextType(unittest.TestCase):
     def test_work_text_type(self):
         work = create_work(self.ol, **self.texts)
         self.assertIsNone(work.validate())
-        self.assertIsInstance(work.description, string_types)
+        self.assertIsInstance(work.description, (str,))
         self.assertIn('type', work.json()['description'])
         self.assertEqual(work.json()['description']['value'], "A Text Description")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
     setup.py
@@ -38,14 +37,14 @@ def find_version(*file_paths):
 def requirements():
     """Returns requirements.txt as a list usable by setuptools"""
     import os
-    reqtxt = os.path.join(here, u'requirements.txt')
+    reqtxt = os.path.join(here, 'requirements.txt')
     with open(reqtxt) as f:
         return f.read().split()
 
 setup(
     name='openlibrary-client',
     version=find_version("olclient", "__init__.py"),
-    description=u'A python client for Open Library',
+    description='A python client for Open Library',
     long_description=read('README.md'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',

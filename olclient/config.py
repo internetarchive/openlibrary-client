@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
     config.py
@@ -11,7 +10,6 @@
     :license: see LICENSE for more details.
 """
 
-from __future__ import absolute_import, division, print_function
 
 from collections import namedtuple
 import os
@@ -40,14 +38,14 @@ Credentials = namedtuple(
     'Credentials', ['access', 'secret'])
 
 
-class Config(object):
+class Config:
 
     """Manages configurations for the Python OpenLibrary API Client"""
 
     DEFAULTS = {
-        u's3': {
-            u'access': u'',
-            u'secret': u''
+        's3': {
+            'access': '',
+            'secret': ''
         }
     }
 
@@ -76,7 +74,7 @@ class Config(object):
         config_dir = os.path.expanduser('~/.config')
         if not os.path.isdir(config_dir):
             return os.path.expanduser('~/.ol')
-        return '{0}/ol.ini'.format(config_dir)
+        return f'{config_dir}/ol.ini'
 
     def update(self, config):        
         """Updates the config defaults by updating it with config dict values
