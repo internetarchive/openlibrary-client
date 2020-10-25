@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 """
@@ -21,7 +20,7 @@ from olclient.openlibrary import OpenLibrary
 from os import makedirs, path
 
 
-class AbstractBotJob(object):
+class AbstractBotJob:
     def __init__(self, ol=None, dry_run=True, limit=1, job_name=__name__) -> None:
         """Create logger and class variables"""
         self.ol = ol or OpenLibrary()
@@ -117,7 +116,7 @@ class AbstractBotJob(object):
         log_dir = path.join(here, 'logs', 'jobs', job_name)
         makedirs(log_dir, exist_ok=True)
         log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = path.join(log_dir, '%s_%s.log' % (job_name, log_file_datetime))
+        log_file = path.join(log_dir, f'{job_name}_{log_file_datetime}.log')
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(log_formatter)

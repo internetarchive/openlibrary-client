@@ -1,6 +1,5 @@
 """Utility for parsing and inter-converting various types of MARC records"""
 
-from __future__ import absolute_import, division, print_function
 
 import subprocess
 import tempfile
@@ -47,9 +46,9 @@ class MARCRecord(dict):
         Args:
             pymarc_record (pymarc.Record)
         """
-        fields = dict((field.tag, field.subfields)
+        fields = {field.tag: field.subfields
                       for field in pymarc_record.fields
-                      if hasattr(field, 'subfields'))
+                      if hasattr(field, 'subfields')}
         for k in fields:
             setattr(self, k, fields[k])
 
@@ -64,7 +63,7 @@ class MARCRecord(dict):
             of the AUTHOR_MAPPING. e.g. {'author_name': u'Benjamin Franklin'}
         """
         author = self.parse_fields('100', self.AUTHOR_MAPPING)
-        author_name = author.get(u'author_name', u'')
+        author_name = author.get('author_name', '')
         if author_name:
             author_name = ' '.join(author_name.split(', ')[::-1])
         return common.Author(name=author_name)
@@ -130,7 +129,7 @@ class MARCRecord(dict):
         return data
 
 
-class MARC(object):
+class MARC:
 
     """Convert between MARC formats"""
 
@@ -181,13 +180,13 @@ class MARC(object):
             informat (unicode) - convert from this type (a yaz flag)
             outformat (unicode) - convert to this format (a yaz flag)
         """
-        with tempfile.NamedTemporaryFile(delete=True, suffix=u'.txt') as tmp:
+        with tempfile.NamedTemporaryFile(delete=True, suffix='.txt') as tmp:
             unicode_marc = marc if isinstance(marc, bytes) \
                                 else marc.encode("utf-8")
             tmp.write(unicode_marc)
             tmp.seek(0)
             new_marc = subprocess.check_output([
-                u'yaz-marcdump', '-i', informat, '-o', outformat, tmp.name
+                'yaz-marcdump', '-i', informat, '-o', outformat, tmp.name
             ])
             return new_marc
 

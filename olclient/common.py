@@ -1,10 +1,7 @@
-#-*- encoding: utf-8 -*-
-
 """General project independent data structure for enabling
 interoperability between OpenLibrary and partner services + data
 sources"""
 
-from __future__ import absolute_import, division, print_function
 
 from .utils import rm_punctuation
 
@@ -13,7 +10,7 @@ VALID_IDENTIFIERS = (
     'lccn', 'goodreads', 'librarything')
 
 
-class Entity(object):
+class Entity:
     def __init__(self, identifiers):
         if identifiers is not None:
             self._validate_identifiers(identifiers)
@@ -23,7 +20,7 @@ class Entity(object):
     def _validate_identifiers(identifiers):
         for id_type, values in identifiers.items():
             if id_type not in VALID_IDENTIFIERS:
-                raise AttributeError("ID type '{}' is not one of {}".format(id_type, VALID_IDENTIFIERS))
+                raise AttributeError(f"ID type '{id_type}' is not one of {VALID_IDENTIFIERS}")
             if type(values) not in (list, tuple):
                 raise TypeError("Identifier values must be lists")
 
@@ -42,7 +39,7 @@ class Entity(object):
              >>> book.add_id(u'olid', u'OL20536769M')
              {'olid': [u'OL2514725W', u'OL20536769M'], 'oclc': [u'4963507']}
         """
-        _ids = set([identifier])
+        _ids = {identifier}
         if id_type in self.identifiers:
             _ids = _ids.union(self.identifiers.get(id_type, []))
 
@@ -50,7 +47,7 @@ class Entity(object):
         return self.identifiers
 
     def __repr__(self):
-        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
 
 
 class Author(Entity):
@@ -64,7 +61,7 @@ class Author(Entity):
     """
 
     def __init__(self, name, identifiers=None, **kwargs):
-        super(Author, self).__init__(identifiers=identifiers)
+        super().__init__(identifiers=identifiers)
         self._validate_name(name)
         self.name = name
 
@@ -72,12 +69,12 @@ class Author(Entity):
             setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
-        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
 
     @staticmethod
     def _validate_name(name):
         if ',' in name:
-            raise ValueError("{} is not a valid Author name - No commas allowed (first last)".format(name))
+            raise ValueError(f"{name} is not a valid Author name - No commas allowed (first last)")
 
 
 class Book(Entity):
@@ -86,9 +83,9 @@ class Book(Entity):
     ingested and compared for similarity.
     """
 
-    def __init__(self, title, subtitle=u"", identifiers=None,
+    def __init__(self, title, subtitle="", identifiers=None,
                  number_of_pages=None, authors=None, publisher=None,
-                 publish_date=u"", cover=u"", **kwargs):
+                 publish_date="", cover="", **kwargs):
         """
         Args:
             title (unicode) [required]
@@ -103,7 +100,7 @@ class Book(Entity):
             publish_date (int) - year
             cover (unicode) - uri of bookcover
         """
-        super(Book, self).__init__(identifiers=identifiers)
+        super().__init__(identifiers=identifiers)
         self.title = title
         self.subtitle = subtitle
         self.pages = number_of_pages
@@ -116,7 +113,7 @@ class Book(Entity):
             setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
-        return '<%s %s>' % (str(self.__class__)[1:-1], self.__dict__)
+        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
 
     @property
     def canonical_title(self, rm_punc=True):
@@ -157,17 +154,17 @@ class Book(Entity):
         for ed in editions:
             isbns = ed.get('isbn', [])
             book = cls(
-                title=ed.get('title', u''),
-                authors=[Author(name=ed.get('author', u''))],
-                publisher=ed.get('publisher', u''),
+                title=ed.get('title', ''),
+                authors=[Author(name=ed.get('author', ''))],
+                publisher=ed.get('publisher', ''),
                 identifiers={
                     'oclc': ed.get('oclcnum', []),
                     'lccn': ed.get('lccn', []),
                 },
-                language=ed.get('lang', u''),
+                language=ed.get('lang', ''),
                 publish_date=ed.get('year', None)
             )
             for isbn in isbns:
-                book.add_id(u'isbn_%s' % len(isbn), isbn)
+                book.add_id('isbn_%s' % len(isbn), isbn)
             books.append(book)
         return books

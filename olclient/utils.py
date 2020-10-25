@@ -1,8 +1,5 @@
-#-*- encoding: utf-8 -*-
-
 """General independent utilities"""
 
-from __future__ import absolute_import, division, print_function
 
 import datetime
 import re

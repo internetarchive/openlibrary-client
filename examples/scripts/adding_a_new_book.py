@@ -10,11 +10,11 @@ import olclient.common as common
 ol = OpenLibrary()
 
 # Define a Book Object
-book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
+book = common.Book(title="Warlight: A novel", authors=[common.Author(name="Michael Ondaatje")], publisher="Deckle Edge", publish_date="2018")
 
 # Add metadata like ISBN 10 and ISBN 13
-book.add_id(u'isbn_10', u'0525521194')
-book.add_id(u'isbn_13', u'978-0525521198')
+book.add_id('isbn_10', '0525521194')
+book.add_id('isbn_13', '978-0525521198')
 
 
 # Create a new book
