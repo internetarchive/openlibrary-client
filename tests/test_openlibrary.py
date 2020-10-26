@@ -95,7 +95,7 @@ class TestOpenLibrary(unittest.TestCase):
             call("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url),
             call().raise_for_status(),
             call().json(),
-            call("{}{}.json".format(self.ol.base_url, "/books/OL23575801M")),
+            call("{}/books/OL23575801M.json".format(self.ol.base_url)),
             call().raise_for_status(),
             call().json()
         ])
