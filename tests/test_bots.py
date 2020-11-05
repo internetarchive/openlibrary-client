@@ -1,7 +1,3 @@
-#-*- encoding: utf-8 -*-
-
-from __future__ import absolute_import, division, print_function
-
 import copy
 import logging
 import random
@@ -9,7 +5,7 @@ import string
 import unittest
 
 try:
-    from mock import MagicMock, Mock, call, patch, ANY
+    from unittest.mock import MagicMock, Mock, call, patch, ANY
 except ImportError:
     from unittest.mock import MagicMock, Mock, call, patch, ANY
 

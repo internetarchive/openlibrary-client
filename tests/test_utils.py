@@ -1,8 +1,5 @@
-#-*- encoding: utf-8 -*-
-
 """Test Cases for utilities.""" 
 
-from __future__ import absolute_import, division, print_function
 
 import unittest
 

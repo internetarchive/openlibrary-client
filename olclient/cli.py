@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
     cli.py
@@ -11,7 +10,6 @@
     :license: see LICENSE for more details.
 """
 
-from __future__ import absolute_import, division, print_function
 try:
     raw_input
 except NameError:
@@ -34,7 +32,7 @@ def argparser():
     parser = argparse.ArgumentParser(description=__title__)
     parser.add_argument('-v', help="Displays the currently installed " \
                         "version of ol", action="version",
-                        version="%s v%s" % (__title__, __version__))
+                        version=f"{__title__} v{__version__}")
     parser.add_argument('--configure', action='store_true',
                         help='Configure ol client with credentials')
     parser.add_argument('--get-work', action='store_true',

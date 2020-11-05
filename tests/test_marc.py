@@ -1,6 +1,3 @@
-from __future__ import absolute_import, division, print_function
-from io import open
-
 import os
 import unittest
 
@@ -17,8 +14,8 @@ EXAMPLES_PATH = os.path.abspath(
                     os.path.abspath(__file__),
                     os.pardir),
                 os.pardir),
-            u'examples'),
-        u'marc'))
+            'examples'),
+        'marc'))
 
 
 example_path = lambda filename: os.path.join(EXAMPLES_PATH, filename)
@@ -82,7 +79,7 @@ class TestMARC(unittest.TestCase):
                                           force_utf8=True, utf8_handling='ignore')
                 marc = next(marcs)
                 self.assertEqual(marc.author(),
-                                u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
+                                'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ '\
                                 '1900-1980 Verfasser (DE-588)118536389 aut',
                                 "Line MARC title didn't match pymarc title")
 
@@ -90,8 +87,8 @@ class TestMARC(unittest.TestCase):
         line_marc_file = example_path('line_marc_unicode.txt')
         with open(line_marc_file) as line_marc:
             book = MARC.line_to_book(line_marc.read())
-            expected_author = u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ'
-            expected_title = u'ΛΦϞЌЍЖ⁁⅀∰   ﬢﬡ－中英字典こんにちはß'
+            expected_author = 'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƘƙƚƛƜƝƞƟƠơ'
+            expected_title = 'ΛΦϞЌЍЖ⁁⅀∰   ﬢﬡ－中英字典こんにちはß'
             self.assertEqual(book.primary_author.name, expected_author,
                             "Expected author %s, got author %s" %
                             (expected_author, book.primary_author.name))

@@ -1,7 +1,3 @@
-#-*- encoding: utf-8 -*-
-
-from __future__ import absolute_import, division, print_function
-
 import json
 import os
 import unittest
@@ -16,33 +12,33 @@ EXAMPLES_PATH = os.path.abspath(
                     os.path.abspath(__file__),
                     os.pardir),
                 os.pardir),
-            u'examples'),
-        u'xisbn'))
+            'examples'),
+        'xisbn'))
 
 
 example_path = lambda filename: os.path.join(EXAMPLES_PATH, filename)
 
 
 XISBN_BOOKS = [
-    Book(authors= [Author(name=u'Carl Bridenbaugh.')], cover= '',
+    Book(authors= [Author(name='Carl Bridenbaugh.')], cover= '',
          identifiers={
-             'isbn_10': [u'0689705344'],
-             'lccn': [u'78152044'],
-             'oclc': [u'4128493', u'466349680',
-                      u'6066278', u'730964000', u'803233939']
-         }, language=u'eng', pages=None, publish_date= u'1976',
-         publisher=u'Atheneum', subtitle=u'',
-         title= u'Fat mutton and liberty of conscience : society in Rhode Island, 1636-1690'),
-    Book(authors=[Author(name=u'Carl Bridenbaugh.')],         
+             'isbn_10': ['0689705344'],
+             'lccn': ['78152044'],
+             'oclc': ['4128493', '466349680',
+                      '6066278', '730964000', '803233939']
+         }, language='eng', pages=None, publish_date= '1976',
+         publisher='Atheneum', subtitle='',
+         title= 'Fat mutton and liberty of conscience : society in Rhode Island, 1636-1690'),
+    Book(authors=[Author(name='Carl Bridenbaugh.')],         
          identifiers={
-             'isbn_10': [u'0571097987'],
+             'isbn_10': ['0571097987'],
              'lccn': [],
-             'oclc': [u'245795534', u'462738208', u'5953546', u'751297386',
-                      u'803090541', u'860291849']
+             'oclc': ['245795534', '462738208', '5953546', '751297386',
+                      '803090541', '860291849']
          },
-         language=u'eng', pages= None, publish_date= u'1972',
-         cover=u'', publisher=u'Faber and Faber', subtitle=u'',
-         title= u'Extraterritorial : papers on literature and the language revolution')
+         language='eng', pages= None, publish_date= '1972',
+         cover='', publisher='Faber and Faber', subtitle='',
+         title= 'Extraterritorial : papers on literature and the language revolution')
 ]
 
 
@@ -65,8 +61,8 @@ class TestBook(unittest.TestCase):
 
     def test_canonical_title(self):
         """This also effectively tests `book.rm_punctuation`"""
-        book = Book(title=u"The Autobiography of: Benjamin Franklin")
-        expected = u"the autobiography of benjamin franklin"
+        book = Book(title="The Autobiography of: Benjamin Franklin")
+        expected = "the autobiography of benjamin franklin"
         got = book.canonical_title
         self.assertTrue(got == expected,
                         "Title canonicalization expected %s, got %s" \
