@@ -1,5 +1,5 @@
 backoff==1.10.0
-internetarchive==1.9.5
+internetarchive==1.9.6
 jsonpickle==1.4.1
 jsonschema==3.2.0
 pymarc==4.0.0
