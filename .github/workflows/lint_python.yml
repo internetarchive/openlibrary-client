@@ -6,14 +6,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+      - run: pip install --upgrade pip setuptools wheel
       - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade
       - run: bandit -r . || true
       - run: black --check . || true
-      - run: codespell --quiet-level=2 || true  # --ignore-words-list="" --skip=""
+      - run: codespell --ignore-words-list="wege" --quiet-level=2 --skip="*.json"
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: isort --check-only --profile black . || true
-      - run: mypy . || true
       - run: pip install -r requirements.txt
+      - run: mypy . || true
+      - run: pip install -e .
       - run: pytest . || true
       - run: pytest --doctest-modules . || true
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
