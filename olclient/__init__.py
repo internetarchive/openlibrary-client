@@ -15,5 +15,4 @@ __author__ = 'Internet Archive'
 
 from .bots import AbstractBotJob
 from .openlibrary import OpenLibrary
-from .marc import MARC
 from .common import Book, Author
