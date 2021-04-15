@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 """
 Classes and methods for bulk edits that match the following pattern:
 1. Search data dump for X condition
