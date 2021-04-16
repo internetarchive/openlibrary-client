@@ -39,11 +39,8 @@ class TestBots(unittest.TestCase):
         assert bot._str2bool(falsey_input) is False
 
     def test__str2bool_errors_for_non_boolean_input(self):
-        non_boolean_input = random.choice(string.ascii_letters)
-        while non_boolean_input in (self.falsey_values + self.truthy_values):
-            non_boolean_input = random.choice(string.ascii_letters)
         bot = AbstractBotJob(ol=self.ol)
-        self.assertRaises(ArgumentTypeError, bot._str2bool, non_boolean_input)
+        self.assertRaises(ArgumentTypeError, bot._str2bool, 'this is a non-boolean string')
 
     def test_dry_run_declaration_when_dry_run_is_true(self):
         bot = AbstractBotJob(dry_run=True)
