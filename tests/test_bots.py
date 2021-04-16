@@ -4,15 +4,11 @@ import random
 import string
 import unittest
 
-try:
-    from unittest.mock import MagicMock, Mock, call, patch, ANY
-except ImportError:
-    from unittest.mock import MagicMock, Mock, call, patch, ANY
-
 from argparse import ArgumentTypeError
 from olclient.openlibrary import OpenLibrary
 from olclient.bots import AbstractBotJob
 from os import path
+from unittest.mock import MagicMock, Mock, call, patch, ANY
 
 
 class TestBots(unittest.TestCase):
