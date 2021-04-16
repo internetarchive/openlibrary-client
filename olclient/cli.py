@@ -10,11 +10,6 @@
     :license: see LICENSE for more details.
 """
 
-try:
-    raw_input
-except NameError:
-    raw_input = input
-
 import argparse
 import getpass
 import json
@@ -70,7 +65,7 @@ def main():
     args = parser.parse_args()
 
     if args.configure:
-        email = args.email or raw_input("Archive.org Email: ")
+        email = args.email or input("Archive.org Email: ")
         if not email:
             raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")
