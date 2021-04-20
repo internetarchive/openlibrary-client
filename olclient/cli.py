@@ -103,29 +103,37 @@ def main():
             raise
 
     if args.get_olid:
-        return ol.Edition.get_olid_by_isbn(args.isbn)
+        sys.stdout.write(ol.Edition.get_olid_by_isbn(args.isbn))
+        return
     elif args.get_book:
         if args.olid:
-            return jsonpickle.encode(ol.Edition.get(olid=args.olid))
+            sys.stdout.write(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
+            return
         elif args.isbn:
-            return jsonpickle.encode(ol.Edition.get(isbn=args.isbn))
+            sys.stdout.write(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
+            return
     elif args.get_work:
         if args.olid:
-            return jsonpickle.encode(ol.Work.get(args.olid))
+            sys.stdout.write(jsonpickle.encode(ol.Work.get(args.olid)))
+            return
         elif args.title:
-            return jsonpickle.encode(ol.Work.search(args.title))
+            sys.stdout.write(jsonpickle.encode(ol.Work.search(args.title)))
+            return
     elif args.get_author_works:
         if args.olid:
-            return jsonpickle.encode(ol.Author.get(args.olid).works())
+            sys.stdout.write(jsonpickle.encode(ol.Author.get(args.olid).works()))
+            return
         elif args.author_name:
-            return jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works())
+            sys.stdout.write(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
+            return
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
         author = common.Author(data.pop('author'))
         book = common.Book(title, authors=[author], **data)
         edition = ol.Work.create(book)
-        return edition.olid
+        sys.stdout.write(edition.olid)
+        return
     else:
         return parser.print_help()
 
