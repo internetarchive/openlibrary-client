@@ -2,6 +2,8 @@
 
 
 import json
+from typing import List, Dict, Optional
+
 import jsonschema
 import logging
 import os
@@ -196,8 +198,15 @@ class OpenLibrary:
                 """
                 url = f'{self.OL.base_url}/works/{self.olid}/editions.json'
                 try:
-                    r = self.OL.session.get(url)
-                    editions = r.json().get('entries', [])
+                    r_json: Dict = self.OL.session.get(url).json()
+                    editions: List = r_json.get('entries', [])
+                    while True:
+                        next_page_link: Optional[str] = r_json.get('links', {}).get('next')
+                        if next_page_link is not None:
+                            r_json: Dict = self.OL.session.get(f'{self.OL.base_url}{next_page_link}').json()
+                            editions.extend(r_json.get('entries', []))
+                        else:
+                            break
                 except Exception as e:
                     return []
 
