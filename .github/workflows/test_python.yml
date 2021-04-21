@@ -14,3 +14,5 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run python unit tests
         run: pytest
+      - name: Mypy type checking
+        run: mypy
