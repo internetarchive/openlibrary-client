@@ -66,7 +66,7 @@ def argparser():
     return parser
 
 
-def main():
+def main() -> None:
     parser = argparser()
     args = parser.parse_args()
 
@@ -85,10 +85,12 @@ def main():
             ol = OpenLibrary(credentials=Credentials(**config['s3']),
                              base_url=args.baseurl)
         except:
-            return "Incorrect credentials, not updating config."
+            sys.stderr.write("Incorrect credentials, not updating config.")
+            return None
 
         config_tool.update(config)
-        return "Successfully configured "
+        sys.stdout.write("Successfully configured")
+        return None
 
     # prompt first time users to configure their OpenLibrary credentials
     try:
@@ -104,28 +106,28 @@ def main():
 
     if args.get_olid:
         sys.stdout.write(ol.Edition.get_olid_by_isbn(args.isbn))
-        return
+        return None
     elif args.get_book:
         if args.olid:
             sys.stdout.write(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
-            return
+            return None
         elif args.isbn:
             sys.stdout.write(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
-            return
+            return None
     elif args.get_work:
         if args.olid:
             sys.stdout.write(jsonpickle.encode(ol.Work.get(args.olid)))
-            return
+            return None
         elif args.title:
             sys.stdout.write(jsonpickle.encode(ol.Work.search(args.title)))
-            return
+            return None
     elif args.get_author_works:
         if args.olid:
             sys.stdout.write(jsonpickle.encode(ol.Author.get(args.olid).works()))
-            return
+            return None
         elif args.author_name:
             sys.stdout.write(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
-            return
+            return None
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
@@ -133,7 +135,7 @@ def main():
         book = common.Book(title, authors=[author], **data)
         edition = ol.Work.create(book)
         sys.stdout.write(edition.olid)
-        return
+        return None
     else:
         return parser.print_help()
 
