@@ -91,7 +91,7 @@ def main() -> None:
             return None
 
         config_tool.update(config)
-        sys.stdout.write("Successfully configured")
+        print("Successfully configured")
         return None
 
     # prompt first time users to configure their OpenLibrary credentials
@@ -107,37 +107,29 @@ def main() -> None:
             raise
 
     if args.get_olid:
-        sys.stdout.write(ol.Edition.get_olid_by_isbn(args.isbn))
-        return None
+        print(ol.Edition.get_olid_by_isbn(args.isbn))
     elif args.get_book:
         if args.olid:
-            sys.stdout.write(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
-            return None
+            print(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
         elif args.isbn:
-            sys.stdout.write(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
-            return None
+            print(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
     elif args.get_work:
         if args.olid:
-            sys.stdout.write(jsonpickle.encode(ol.Work.get(args.olid)))
-            return None
+            print(jsonpickle.encode(ol.Work.get(args.olid)))
         elif args.title:
-            sys.stdout.write(jsonpickle.encode(ol.Work.search(args.title)))
-            return None
+            print(jsonpickle.encode(ol.Work.search(args.title)))
     elif args.get_author_works:
         if args.olid:
-            sys.stdout.write(jsonpickle.encode(ol.Author.get(args.olid).works()))
-            return None
+            print(jsonpickle.encode(ol.Author.get(args.olid).works()))
         elif args.author_name:
-            sys.stdout.write(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
-            return None
+            print(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
         author = common.Author(data.pop('author'))
         book = common.Book(title, authors=[author], **data)
         edition = ol.Work.create(book)
-        sys.stdout.write(edition.olid)
-        return None
+        print(edition.olid)
     else:
         return parser.print_help()
 
