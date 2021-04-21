@@ -82,8 +82,10 @@ def main() -> None:
         config['s3'] = ia.config.get_config()['s3']
 
         try:
-            ol = OpenLibrary(credentials=Credentials(**config['s3']),
-                             base_url=args.baseurl)
+            ol = OpenLibrary(
+                credentials=Credentials(**config['s3']),
+                base_url=args.baseurl
+            )
         except:
             sys.stderr.write("Incorrect credentials, not updating config.")
             return None
