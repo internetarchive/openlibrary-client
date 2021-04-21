@@ -4,8 +4,13 @@ jobs:
   test_python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: pip install -r requirements-dev.txt
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - run: pip install -r requirements.txt
-      - run: pytest
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Flake8 linting.
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Install openlibrary-client dependencies
+        run: pip install -r requirements.txt
+      - name: Run python unit tests
+        run: pytest
