@@ -13,6 +13,7 @@ import json
 import logging
 import sys
 
+from typing import Tuple
 from olclient.openlibrary import OpenLibrary
 from os import makedirs, path
 
@@ -59,7 +60,7 @@ class AbstractBotJob:
             self.logger.info('dry-run is FALSE. Permanent modifications can be made.')
 
     @staticmethod
-    def process_row(row, delimiter='\t') -> (list, dict):
+    def process_row(row, delimiter='\t') -> Tuple[list, dict]:
         """
         Return one row and accompanying JSON of an Open Library dump into useful data formats
         I.E:
