@@ -15,4 +15,4 @@ jobs:
       - name: Run python unit tests
         run: pytest
       - name: Mypy type checking
-        run: mypy -m olclient
+        run: mypy --ignore-missing-imports -m olclient
