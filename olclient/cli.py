@@ -88,11 +88,11 @@ def main() -> None:
             )
         except:
             sys.stderr.write("Incorrect credentials, not updating config.")
-            return None
+            return
 
         config_tool.update(config)
         print("Successfully configured")
-        return None
+        return
 
     # prompt first time users to configure their OpenLibrary credentials
     try:
@@ -131,7 +131,7 @@ def main() -> None:
         edition = ol.Work.create(book)
         print(edition.olid)
     else:
-        return parser.print_help()
+        parser.print_help()
 
 
 if __name__ == "__main__":
