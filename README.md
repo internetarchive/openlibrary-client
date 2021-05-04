@@ -13,29 +13,6 @@ A reference client library for the Open Library API. Tested with Python 3.7, 3.8
 
 ## Installation
 
-If you plan on doing MARC parsing, you'll need `yaz` (see: https://github.com/indexdata/yaz). Assuming Ubuntu/debian, you can install `yaz` via apt:
-
-```
-$ sudo apt install yaz
-```
-
-For Fedora/RHEL, use the following command to install `yaz`
-```
-$ sudo dnf install yaz
-```
-
-You'll also need Python dev tools:
-
-```
-$ sudo apt install python3-dev
-```
-
-For Fedora/RHEL, use:
-```
-$ sudo dnf install python3-devel
-```
-
-
 To install the openlibrary-client package:
 ```
 $ git clone https://github.com/internetarchive/openlibrary-client.git

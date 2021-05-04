@@ -10,11 +10,6 @@
     :license: see LICENSE for more details.
 """
 
-try:
-    raw_input
-except NameError:
-    raw_input = input
-
 import argparse
 import getpass
 import json
@@ -23,7 +18,7 @@ import sys
 
 import internetarchive as ia
 
-from . import __title__, __version__, OpenLibrary, MARC, common
+from . import __title__, __version__, OpenLibrary, common
 from .config import Config, Credentials
 
 
@@ -60,7 +55,6 @@ def argparser():
                         "require authentication. You will be prompted " \
                         "discretely for a password")
 
-    # --marc : to convert marcs (e.g. --file <path> --from <line> --to <bin)>
     # --create : to create a book (e.g. --title, --author, --isbn, ...)
     # --edit : to edit an OL book (e.g. --olid OLXXXXX, ...)
     return parser
@@ -71,7 +65,7 @@ def main():
     args = parser.parse_args()
 
     if args.configure:
-        email = args.email or raw_input("Archive.org Email: ")
+        email = args.email or input("Archive.org Email: ")
         if not email:
             raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")

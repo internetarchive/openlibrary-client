@@ -116,7 +116,7 @@ class Book(Entity):
         return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
 
     @property
-    def canonical_title(self, rm_punc=True):
+    def canonical_title(self):
         """Make book titles homogeneous so they can be compared canonically
 
         Usage:
@@ -125,8 +125,7 @@ class Book(Entity):
 
         """
         title = self.title.lower()
-        if rm_punc:
-            title = rm_punctuation(title)
+        title = rm_punctuation(title)
         return title
 
     @property
