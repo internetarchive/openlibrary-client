@@ -60,7 +60,7 @@ def argparser():
     return parser
 
 
-def main():
+def main() -> None:
     parser = argparser()
     args = parser.parse_args()
 
@@ -76,13 +76,17 @@ def main():
         config['s3'] = ia.config.get_config()['s3']
 
         try:
-            ol = OpenLibrary(credentials=Credentials(**config['s3']),
-                             base_url=args.baseurl)
+            ol = OpenLibrary(
+                credentials=Credentials(**config['s3']),
+                base_url=args.baseurl
+            )
         except:
-            return "Incorrect credentials, not updating config."
+            sys.stderr.write("Incorrect credentials, not updating config.")
+            return
 
         config_tool.update(config)
-        return "Successfully configured "
+        print("Successfully configured")
+        return
 
     # prompt first time users to configure their OpenLibrary credentials
     try:
@@ -97,31 +101,31 @@ def main():
             raise
 
     if args.get_olid:
-        return ol.Edition.get_olid_by_isbn(args.isbn)
+        print(ol.Edition.get_olid_by_isbn(args.isbn))
     elif args.get_book:
         if args.olid:
-            return jsonpickle.encode(ol.Edition.get(olid=args.olid))
+            print(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
         elif args.isbn:
-            return jsonpickle.encode(ol.Edition.get(isbn=args.isbn))
+            print(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
     elif args.get_work:
         if args.olid:
-            return jsonpickle.encode(ol.Work.get(args.olid))
+            print(jsonpickle.encode(ol.Work.get(args.olid)))
         elif args.title:
-            return jsonpickle.encode(ol.Work.search(args.title))
+            print(jsonpickle.encode(ol.Work.search(args.title)))
     elif args.get_author_works:
         if args.olid:
-            return jsonpickle.encode(ol.Author.get(args.olid).works())
+            print(jsonpickle.encode(ol.Author.get(args.olid).works()))
         elif args.author_name:
-            return jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works())
+            print(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
         author = common.Author(data.pop('author'))
         book = common.Book(title, authors=[author], **data)
         edition = ol.Work.create(book)
-        return edition.olid
+        print(edition.olid)
     else:
-        return parser.print_help()
+        parser.print_help()
 
 
 if __name__ == "__main__":
