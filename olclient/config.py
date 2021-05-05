@@ -30,20 +30,14 @@ def getdef(self, section, option, default_value):
         return default_value
 
 
-Credentials = namedtuple(
-    'Credentials', ['access', 'secret'])
+Credentials = namedtuple('Credentials', ['access', 'secret'])
 
 
 class Config:
 
     """Manages configurations for the Python OpenLibrary API Client"""
 
-    DEFAULTS = {
-        's3': {
-            'access': '',
-            'secret': ''
-        }
-    }
+    DEFAULTS = {'s3': {'access': '', 'secret': ''}}
 
     @classmethod
     def get_config_parser(cls):
@@ -122,6 +116,5 @@ class Config:
         config = self._get_config()
         access = config['s3'].pop('access')
         secret = config['s3'].pop('secret')
-        config['s3'] = Credentials(
-            access, secret) if access and secret else None
+        config['s3'] = Credentials(access, secret) if access and secret else None
         return config

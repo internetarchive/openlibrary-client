@@ -24,12 +24,27 @@ class AbstractBotJob:
         self.ol = ol or OpenLibrary()
 
         self.parser = argparse.ArgumentParser(description=__doc__)
-        self.parser.add_argument('-f', '--file', type=str, default=None, help='Path to file containing input data')
-        self.parser.add_argument('-l, --limit', type=int, default=1,
-                                 help='Limit number of edits performed on external data.'
-                                      'Set to zero to allow unlimited edits.')
-        self.parser.add_argument('-d', '--dry-run', type=self._str2bool, default=True,
-                                 help='Execute the script without performing edits on external data.')
+        self.parser.add_argument(
+            '-f',
+            '--file',
+            type=str,
+            default=None,
+            help='Path to file containing input data',
+        )
+        self.parser.add_argument(
+            '-l, --limit',
+            type=int,
+            default=1,
+            help='Limit number of edits performed on external data.'
+            'Set to zero to allow unlimited edits.',
+        )
+        self.parser.add_argument(
+            '-d',
+            '--dry-run',
+            type=self._str2bool,
+            default=True,
+            help='Execute the script without performing edits on external data.',
+        )
         self.args = self.parser.parse_args()
         self.dry_run = getattr(self.args, 'dry-run', None) or dry_run
         self.limit = getattr(self.args, 'limit', None) or limit
@@ -105,7 +120,9 @@ class AbstractBotJob:
         """
         logger = logging.getLogger("jobs.%s" % job_name)
         logger.setLevel(logging.DEBUG)
-        log_formatter = logging.Formatter('%(name)s;%(levelname)-8s;%(asctime)s %(message)s')
+        log_formatter = logging.Formatter(
+            '%(name)s;%(levelname)-8s;%(asctime)s %(message)s'
+        )
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.WARN)
         console_handler.setFormatter(log_formatter)

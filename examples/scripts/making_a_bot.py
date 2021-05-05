@@ -16,7 +16,9 @@ from olclient.bots import AbstractBotJob
 
 class TrimTitleJob(AbstractBotJob):
     @staticmethod
-    def needs_trim(edition_title: str) -> bool:  # it's good practice to make a check method for the pattern you're looking for
+    def needs_trim(
+        edition_title: str,
+    ) -> bool:  # it's good practice to make a check method for the pattern you're looking for
         """Returns True if Edition title needs to have whitespace removed. Return false otherwise"""
         return edition_title.strip() != edition_title
 
@@ -29,19 +31,25 @@ class TrimTitleJob(AbstractBotJob):
             for row in fin:
                 # extract info from the dump file and check it
                 row, json_data = self.process_row(row)
-                if json_data['type']['key'] != '/type/edition': continue  # this can be done faster with a grep filter, but for this example we'll do it here
-                if not self.needs_trim(json_data['title']): continue
+                if json_data['type']['key'] != '/type/edition':
+                    continue  # this can be done faster with a grep filter, but for this example we'll do it here
+                if not self.needs_trim(json_data['title']):
+                    continue
 
                 # the database may have changed since the dump was created, so call the OpenLibrary API and check again
                 olid = json_data['key'].split('/')[-1]
                 edition = self.ol.Edition.get(olid)
-                if edition.type['key'] != '/type/edition': continue  # skip deleted editions
-                if not self.needs_trim(edition.title): continue
+                if edition.type['key'] != '/type/edition':
+                    continue  # skip deleted editions
+                if not self.needs_trim(edition.title):
+                    continue
 
                 # this edition needs editing, so fix it
                 old_title = copy.deepcopy(edition.title)
                 edition.title = edition.title.strip()
-                self.logger.info('\t'.join([olid, old_title, edition.title]))  # don't forget to log modifications!
+                self.logger.info(
+                    '\t'.join([olid, old_title, edition.title])
+                )  # don't forget to log modifications!
                 self.save(lambda: edition.save(comment=comment))
 
 

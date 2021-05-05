@@ -22,6 +22,7 @@ def has_unicode(text):
     """
     return not all(ord(char) < 128 for char in text)
 
+
 def chunks(seq, chunk_size):
     """Returns a generator which yields contiguous chunks of the sequence
     of size (up to) `chunk_size`.
@@ -32,6 +33,7 @@ def chunks(seq, chunk_size):
         >>> list(chunk([1,2,3,4,5], 2))
         [[1, 2], [3, 4], [5]]
     """
+
     def take(seq, n):
         for i in range(n):
             try:
@@ -48,20 +50,23 @@ def chunks(seq, chunk_size):
         else:
             break
 
+
 def rm_punctuation(text):
     """Strips anything that is not an alphanumeric or space"""
     return ALPHANUMERICS_RE.sub('', text)
 
+
 def parse_datetime(value):
     """Parses ISO datetime formatted string.::
-        >>> parse_datetime("2009-01-02T03:04:05.006789")
-        datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
+    >>> parse_datetime("2009-01-02T03:04:05.006789")
+    datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
     """
     if isinstance(value, datetime.datetime):
         return value
     else:
         tokens = re.split(r'-|T|:|\.| ', value)
         return datetime.datetime(*map(int, tokens))
+
 
 def merge_unique_lists(lists, hash_fn=None):
     """ Combine unique lists into a new unique list. Preserves ordering."""

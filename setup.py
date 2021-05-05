@@ -27,8 +27,7 @@ def read(*parts):
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
@@ -37,6 +36,7 @@ def find_version(*file_paths):
 def requirements():
     """Returns requirements.txt as a list usable by setuptools"""
     import os
+
     reqtxt = os.path.join(here, 'requirements.txt')
     with open(reqtxt) as f:
         return f.read().split()
@@ -65,11 +65,11 @@ setup(
     include_package_data=True,
     packages=[
         'olclient',
-        ],
+    ],
     entry_points={
         'console_scripts': ['ol=olclient.cli:main'],
     },
     platforms='any',
     license='LICENSE',
-    install_requires=requirements()
+    install_requires=requirements(),
 )

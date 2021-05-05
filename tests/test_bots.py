@@ -11,10 +11,11 @@ from olclient.bots import AbstractBotJob
 from os import path
 from unittest.mock import MagicMock, Mock, call, patch, ANY
 
+
 @patch('olclient.openlibrary.OpenLibrary.login')
 class TestBots(unittest.TestCase):
     def setUp(self):
-        self.truthy_values = ['yes', 'true',  't', 'y', '1']
+        self.truthy_values = ['yes', 'true', 't', 'y', '1']
         self.falsey_values = ['no', 'false', 'f', 'n', '0']
         # clear pytest args from being passed to AbstractBotJob()
         sys.argv = [sys.argv[0]]
@@ -40,25 +41,41 @@ class TestBots(unittest.TestCase):
 
     def test__str2bool_errors_for_non_boolean_input(self, mock_login):
         bot = AbstractBotJob()
-        self.assertRaises(ArgumentTypeError, bot._str2bool, 'this is a non-boolean string')
+        self.assertRaises(
+            ArgumentTypeError, bot._str2bool, 'this is a non-boolean string'
+        )
 
     def test_dry_run_declaration_when_dry_run_is_true(self, mock_login):
         bot = AbstractBotJob(dry_run=True)
         bot.logger.info = Mock()
         bot.dry_run_declaration()
-        bot.logger.info.assert_called_with('dry-run is TRUE. No external modifications will be made.')  # TODO
+        bot.logger.info.assert_called_with(
+            'dry-run is TRUE. No external modifications will be made.'
+        )  # TODO
 
     def test_dry_run_declaration_when_dry_run_is_false(self, mock_login):
         bot = AbstractBotJob(dry_run=False)
         bot.logger.info = Mock()
         bot.dry_run_declaration()
-        bot.logger.info.assert_called_with('dry-run is FALSE. Permanent modifications can be made.')  # TODO
+        bot.logger.info.assert_called_with(
+            'dry-run is FALSE. Permanent modifications can be made.'
+        )  # TODO
 
     def test_process_row_with_bytecode(self, mock_login):
         random_data = list()
         for i in range(4):
-            random_data.append(string.ascii_letters[random.randint(0, len(string.ascii_letters)-1)])
-        random_data = '\t'.join([random_data[0], random_data[1], random_data[2], random_data[3], '{"foo": "bar" }'])
+            random_data.append(
+                string.ascii_letters[random.randint(0, len(string.ascii_letters) - 1)]
+            )
+        random_data = '\t'.join(
+            [
+                random_data[0],
+                random_data[1],
+                random_data[2],
+                random_data[3],
+                '{"foo": "bar" }',
+            ]
+        )
         random_byte_data = random_data.encode()
         job = AbstractBotJob()
         returned_row, returned_json_data = job.process_row(random_byte_data)
@@ -68,8 +85,18 @@ class TestBots(unittest.TestCase):
     def test_process_row_with_string(self, mock_login):
         random_data = list()
         for i in range(4):
-            random_data.append(string.ascii_letters[random.randint(0, len(string.ascii_letters) - 1)])
-        random_data = '\t'.join([random_data[0], random_data[1], random_data[2], random_data[3], '{"foo": "bar" }'])
+            random_data.append(
+                string.ascii_letters[random.randint(0, len(string.ascii_letters) - 1)]
+            )
+        random_data = '\t'.join(
+            [
+                random_data[0],
+                random_data[1],
+                random_data[2],
+                random_data[3],
+                '{"foo": "bar" }',
+            ]
+        )
         job = AbstractBotJob()
         returned_row, returned_json_data = job.process_row(random_data)
         assert isinstance(returned_row, list)
@@ -80,8 +107,11 @@ class TestBots(unittest.TestCase):
         save_fn = Mock()
         bot = AbstractBotJob(dry_run=True, limit=10)
         bot.logger.info = Mock()
-        for i in range(bot.limit):  # simulate calling save_fn many times in a run() method
-            if mock_sys_exit.call_count > 1: break
+        for i in range(
+            bot.limit
+        ):  # simulate calling save_fn many times in a run() method
+            if mock_sys_exit.call_count > 1:
+                break
             bot.save(save_fn)
         assert mock_sys_exit.assert_called_once
         assert save_fn.assert_not_called

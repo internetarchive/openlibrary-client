@@ -6,8 +6,15 @@ sources"""
 from .utils import rm_punctuation
 
 VALID_IDENTIFIERS = (
-    'olid', 'oclc', 'isbn_10', 'isbn_13', 'isbns',
-    'lccn', 'goodreads', 'librarything')
+    'olid',
+    'oclc',
+    'isbn_10',
+    'isbn_13',
+    'isbns',
+    'lccn',
+    'goodreads',
+    'librarything',
+)
 
 
 class Entity:
@@ -20,7 +27,9 @@ class Entity:
     def _validate_identifiers(identifiers):
         for id_type, values in identifiers.items():
             if id_type not in VALID_IDENTIFIERS:
-                raise AttributeError(f"ID type '{id_type}' is not one of {VALID_IDENTIFIERS}")
+                raise AttributeError(
+                    f"ID type '{id_type}' is not one of {VALID_IDENTIFIERS}"
+                )
             if type(values) not in (list, tuple):
                 raise TypeError("Identifier values must be lists")
 
@@ -74,7 +83,9 @@ class Author(Entity):
     @staticmethod
     def _validate_name(name):
         if ',' in name:
-            raise ValueError(f"{name} is not a valid Author name - No commas allowed (first last)")
+            raise ValueError(
+                f"{name} is not a valid Author name - No commas allowed (first last)"
+            )
 
 
 class Book(Entity):
@@ -83,9 +94,18 @@ class Book(Entity):
     ingested and compared for similarity.
     """
 
-    def __init__(self, title, subtitle="", identifiers=None,
-                 number_of_pages=None, authors=None, publisher=None,
-                 publish_date="", cover="", **kwargs):
+    def __init__(
+        self,
+        title,
+        subtitle="",
+        identifiers=None,
+        number_of_pages=None,
+        authors=None,
+        publisher=None,
+        publish_date="",
+        cover="",
+        **kwargs,
+    ):
         """
         Args:
             title (unicode) [required]
@@ -161,7 +181,7 @@ class Book(Entity):
                     'lccn': ed.get('lccn', []),
                 },
                 language=ed.get('lang', ''),
-                publish_date=ed.get('year', None)
+                publish_date=ed.get('year', None),
             )
             for isbn in isbns:
                 book.add_id('isbn_%s' % len(isbn), isbn)
