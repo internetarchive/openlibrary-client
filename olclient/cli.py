@@ -25,35 +25,46 @@ from .config import Config, Credentials
 def argparser():
     """Parses command line options and returns an args object"""
     parser = argparse.ArgumentParser(description=__title__)
-    parser.add_argument('-v', help="Displays the currently installed " \
-                        "version of ol", action="version",
-                        version=f"{__title__} v{__version__}")
-    parser.add_argument('--configure', action='store_true',
-                        help='Configure ol client with credentials')
-    parser.add_argument('--get-work', action='store_true',
-                        help='Get a work by --title, --olid')
-    parser.add_argument('--get-author-works', action='store_true',
-                        help='Get a works of an author providing author\'s --olid, --author-name ')
-    parser.add_argument('--get-book', action='store_true',
-                        help='Get a book by --isbn, --olid')
-    parser.add_argument('--get-olid', action='store_true',
-                        help='Get an olid by --title or --isbn')
-    parser.add_argument('--olid', default=None,
-                        help="Specify an olid as an argument")
-    parser.add_argument('--isbn', default=None,
-                        help="Specify an isbn as an argument")
-    parser.add_argument('--create', default='',
-                        help='Create a new work from json')
-    parser.add_argument('--title', default=None,
-                        help="Specify a title as an argument")
-    parser.add_argument('--author-name', default=None,
-                        help="Specify an author as an argument")
-    parser.add_argument('--baseurl', default='https://openlibrary.org',
-                        help="Which OL backend to use")
-    parser.add_argument('--email', default=None,
-                        help="An IA email for requests which " \
-                        "require authentication. You will be prompted " \
-                        "discretely for a password")
+    parser.add_argument(
+        '-v',
+        help="Displays the currently installed " "version of ol",
+        action="version",
+        version=f"{__title__} v{__version__}",
+    )
+    parser.add_argument(
+        '--configure', action='store_true', help='Configure ol client with credentials'
+    )
+    parser.add_argument(
+        '--get-work', action='store_true', help='Get a work by --title, --olid'
+    )
+    parser.add_argument(
+        '--get-author-works',
+        action='store_true',
+        help='Get a works of an author providing author\'s --olid, --author-name ',
+    )
+    parser.add_argument(
+        '--get-book', action='store_true', help='Get a book by --isbn, --olid'
+    )
+    parser.add_argument(
+        '--get-olid', action='store_true', help='Get an olid by --title or --isbn'
+    )
+    parser.add_argument('--olid', default=None, help="Specify an olid as an argument")
+    parser.add_argument('--isbn', default=None, help="Specify an isbn as an argument")
+    parser.add_argument('--create', default='', help='Create a new work from json')
+    parser.add_argument('--title', default=None, help="Specify a title as an argument")
+    parser.add_argument(
+        '--author-name', default=None, help="Specify an author as an argument"
+    )
+    parser.add_argument(
+        '--baseurl', default='https://openlibrary.org', help="Which OL backend to use"
+    )
+    parser.add_argument(
+        '--email',
+        default=None,
+        help="An IA email for requests which "
+        "require authentication. You will be prompted "
+        "discretely for a password",
+    )
 
     # --create : to create a book (e.g. --title, --author, --isbn, ...)
     # --edit : to edit an OL book (e.g. --olid OLXXXXX, ...)
@@ -77,8 +88,7 @@ def main() -> None:
 
         try:
             ol = OpenLibrary(
-                credentials=Credentials(**config['s3']),
-                base_url=args.baseurl
+                credentials=Credentials(**config['s3']), base_url=args.baseurl
             )
         except:
             sys.stderr.write("Incorrect credentials, not updating config.")
@@ -93,9 +103,11 @@ def main() -> None:
         ol = OpenLibrary()
     except ValueError as e:
         if str(e) == 'No cookie set':
-            print("Seems like you haven't configured your olclient with credentials.\n"
-              "You can configure olclient using the following command:\n"
-              "$ol --configure --email <EMAIL>\n")
+            print(
+                "Seems like you haven't configured your olclient with credentials.\n"
+                "You can configure olclient using the following command:\n"
+                "$ol --configure --email <EMAIL>\n"
+            )
             return parser.print_help()
         else:
             raise
@@ -116,7 +128,11 @@ def main() -> None:
         if args.olid:
             print(jsonpickle.encode(ol.Author.get(args.olid).works()))
         elif args.author_name:
-            print(jsonpickle.encode(ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()))
+            print(
+                jsonpickle.encode(
+                    ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()
+                )
+            )
     elif args.create:
         data = json.loads(args.create)
         title = data.pop('title')
