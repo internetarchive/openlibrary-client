@@ -22,6 +22,7 @@ def has_unicode(text):
     """
     return not all(ord(char) < 128 for char in text)
 
+
 def chunks(seq, chunk_size):
     """Returns a generator which yields contiguous chunks of the sequence
     of size (up to) `chunk_size`.
@@ -32,6 +33,7 @@ def chunks(seq, chunk_size):
         >>> list(chunk([1,2,3,4,5], 2))
         [[1, 2], [3, 4], [5]]
     """
+
     def take(seq, n):
         for i in range(n):
             try:
@@ -48,14 +50,16 @@ def chunks(seq, chunk_size):
         else:
             break
 
+
 def rm_punctuation(text):
     """Strips anything that is not an alphanumeric or space"""
     return ALPHANUMERICS_RE.sub('', text)
 
+
 def parse_datetime(value):
     """Parses ISO datetime formatted string.::
-        >>> parse_datetime("2009-01-02T03:04:05.006789")
-        datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
+    >>> parse_datetime("2009-01-02T03:04:05.006789")
+    datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
     """
     if isinstance(value, datetime.datetime):
         return value
@@ -63,8 +67,9 @@ def parse_datetime(value):
         tokens = re.split(r'-|T|:|\.| ', value)
         return datetime.datetime(*map(int, tokens))
 
+
 def merge_unique_lists(lists, hash_fn=None):
-    """ Combine unique lists into a new unique list. Preserves ordering."""
+    """Combine unique lists into a new unique list. Preserves ordering."""
     result = []
     seen = set()
     for lst in lists:
@@ -74,3 +79,38 @@ def merge_unique_lists(lists, hash_fn=None):
                 result.append(el)
                 seen.add(hsh)
     return result
+
+
+def get_text_value(text):
+    """Returns the text value from a property that can either be a properly
+    formed /type/text object, or a (incorrect) string.
+    Used for Work/Edition 'notes' and 'description' and Author 'bio'.
+    """
+    try:
+        return text.get('value')
+    except:
+        return text
+
+
+def extract_olid_from_url(url, url_type):
+    """No single field has the match's OpenLibrary ID in isolation so we
+    extract it from the info_url field.
+
+    Args:
+        url_type (unicode) - "books", "authors", "works", etc
+                             which are found in the ol url, e.g.:
+                             openlibrary.org/books/...
+
+    Returns:
+        olid (unicode)
+
+    Usage:
+        >>> url = u'https://openlibrary.org/books/OL25943366M'
+        >>> _extract_olid_from_url(url, u"books")
+            u"OL25943366M"
+    """
+    ol_url_pattern = r'[/]%s[/]([0-9a-zA-Z]+)' % url_type
+    try:
+        return re.search(ol_url_pattern, url).group(1)
+    except AttributeError:
+        return None  # No match

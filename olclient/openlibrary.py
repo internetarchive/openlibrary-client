@@ -15,6 +15,7 @@ import requests
 
 from . import common
 from .config import Config
+from .entity_helpers.work import get_work_helper_class
 from .utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
@@ -49,8 +50,9 @@ class OpenLibrary:
     BACKOFF_KWARGS = {
         'wait_gen': backoff.expo,
         'exception': requests.exceptions.RequestException,
-        'giveup': lambda e: hasattr(e.response, 'status_code') and 400 <= e.response.status_code < 500,
-        'max_tries': 5
+        'giveup': lambda e: hasattr(e.response, 'status_code')
+        and 400 <= e.response.status_code < 500,
+        'max_tries': 5,
     }
 
     # constants to aid works.json API request's pagination
@@ -60,8 +62,7 @@ class OpenLibrary:
     def __init__(self, credentials=None, base_url='https://openlibrary.org'):
         self.session = requests.Session()
         self.base_url = base_url
-        credentials = credentials or \
-                      Config().get_config().get('s3', None)
+        credentials = credentials or Config().get_config().get('s3', None)
         if credentials:
             self.login(credentials)
 
@@ -103,17 +104,16 @@ class OpenLibrary:
         with open(schemata_path) as schema_data:
             schema = json.load(schema_data)
             resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
-            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(doc.json())
+            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(
+                doc.json()
+            )
 
     def delete(self, olid, comment):
         """Delete a single Open Library entity by olid (str)
         CAUTION: This does not make any checks for backreference consistency,
         Editions could be orphaned, or books left without Authors. Use with care!
         """
-        data = json.dumps({
-                'type': { 'key': '/type/delete' },
-                '_comment': comment
-               })
+        data = json.dumps({'type': {'key': '/type/delete'}, '_comment': comment})
         url = self._generate_url_from_olid(olid)
         return self.session.put(url, data=data)
 
@@ -126,242 +126,28 @@ class OpenLibrary:
         """
         headers = {
             'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
-            '42-comment': comment
+            '42-comment': comment,
         }
         doc_json = [doc.json() for doc in docs]
-        return self.session.post('%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers)
+        return self.session.post(
+            '%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers
+        )
+
+    def delete_many(self, ol_ids: List[str], comment: str):
+        return self.save_many([self.Delete(ol_id) for ol_id in ol_ids], comment=comment)
 
     err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
+
     @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
-    def _get_ol_response(self, path):
+    def get_ol_response(self, path):
         """Makes best effort to perform request w/ exponential backoff"""
         response = self.session.get(self.base_url + path)
         response.raise_for_status()
         return response
 
     @property
-    def Work(ol_self):
-        """
-        >>> from olclient import OpenLibrary
-        >>> ol = OpenLibrary()
-        >>> ol.Work.get(olid)
-        """
-        class Work(common.Entity):
-
-            OL = ol_self
-
-            def __init__(self, olid, **kwargs):
-                self.olid = olid
-                self._editions = []
-                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
-                self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
-                for kwarg in kwargs:
-                    setattr(self, kwarg, kwargs[kwarg])
-
-            def json(self):
-                """Returns a dict JSON representation of an OL Work suitable
-                for saving back to Open Library via its APIs.
-                """
-                exclude = ['_editions', 'olid']
-                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
-                data['key'] = '/works/' + self.olid
-                data['type'] = {'key': '/type/work'}
-                if data.get('description'):
-                    data['description'] = {'type': '/type/text', 'value': data['description']}
-                if data.get('notes'):
-                    data['notes'] = {'type': '/type/text', 'value': data['notes']}
-                return data
-
-            def validate(self):
-                """Validates a Work's json representation against the canonical
-                JSON Schema for Works using jsonschema.validate().
-                Returns:
-                   None
-                Raises:
-                   jsonschema.exceptions.ValidationError if the Work is invalid.
-                """
-                return self.OL.validate(self, 'work.schema.json')
-
-            @property
-            def editions(self):
-                """Returns a list of editions of related to a particular work
-                Args:
-                    None
-
-                Returns
-                    (List) of common.Edition books
-
-                Usage:
-                    >>> from olclient import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> ol.Work(olid).editions
-                """
-                url = f'{self.OL.base_url}/works/{self.olid}/editions.json'
-                try:
-                    r_json: Dict[Any, Any] = self.OL.session.get(url).json()
-                    editions: List[Any] = r_json.get('entries', [])
-                    while True:
-                        next_page_link: Optional[str] = r_json.get('links', {}).get('next')
-                        if next_page_link is not None:
-                            r_json: Dict[Any, Any] = self.OL.session.get(self.OL.base_url + next_page_link).json()
-                            editions.extend(r_json.get('entries', []))
-                        else:
-                            break
-                except Exception as e:
-                    return []
-
-                self._editions = [
-                    self.OL.Edition(
-                        **self.OL.Edition._ol_edition_json_to_book_args(ed))
-                    for ed in editions]
-                return self._editions
-
-            @classmethod
-            def create(cls, book, debug=False):
-                """Creates a new work along with a new edition
-                Args:
-                    book (common.Book object)
-
-                Returns:
-                    (common.Work)
-
-                Usage:
-                    >>> from olclient.openlibrary import OpenLibrary
-                    >>> import olclient.common as common
-
-                    >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
-                    >>> book.add_id(u'isbn_10', u'0525521194')
-                    >>> book.add_id(u'isbn_13', u'978-0525521198'))
-                    >>> ol.Work.create(book)
-                """
-                try:
-                    book.publish_date = re.findall(
-                        r'[\d]{4}', book.publish_date)[0]
-                except:
-                    book.publish_date = ''
-                ed = cls.OL.create_book(book, debug=debug)
-                ed.add_bookcover(book.cover)
-                work = ed.work
-                work.add_bookcover(book.cover)
-                return ed
-
-            def add_author(self, author):
-                author_role = {'type': {'key': '/type/author_role'}}
-                author_role['author'] = {'key': '/authors/' + author.olid}
-                self.authors.append(author_role)
-                return author_role
-
-            def add_bookcover(self, url):
-                _url = f'{self.OL.base_url}/works/{self.olid}/-/add-cover'
-                r = self.OL.session.post(_url, files={
-                    'file': '',
-                    'url': url,
-                    'upload': 'submit'
-                })
-                return r
-
-            def add_subject(self, subject, comment=''):
-                return self.add_subjects([subject], comment)
-
-            def add_subjects(self, subjects, comment=''):
-                url = self.OL.base_url + "/works/" + self.olid + ".json"
-                data = self.OL.session.get(url).json()
-                original_subjects = data.get('subjects', [])
-                changed_subjects = merge_unique_lists([original_subjects, subjects])
-                data['_comment'] = comment or ('adding %s to subjects' % ', '.join(subjects))
-                data['subjects'] = changed_subjects
-                return self.OL.session.put(url, json.dumps(data))
-
-            def rm_subjects(self, subjects, comment=''):
-                url = self.OL.base_url + "/works/" + self.olid + ".json"
-                r = self.OL.session.get(url)
-                data = r.json()
-                data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
-                data['subjects'] = list(set(data['subjects']) - set(subjects))
-                return self.OL.session.put(url, json.dumps(data))
-
-            def save(self, comment):
-                """Saves this work back to Open Library using the JSON API."""
-                body = self.json()
-                body['_comment'] = comment
-                url = self.OL.base_url + '/works/%s.json' % self.olid
-                return self.OL.session.put(url, json.dumps(body))
-
-            @classmethod
-            def get(cls, olid):
-                """Fetches an OpenLibrary Work Object via the book's olid
-                Args:
-                    OLID - Open Library ID
-
-                Returns:
-                    (common.Work)
-
-
-                Usage:
-                    >>> from olclient.openlibrary import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> ol.Work.get('OL26278461W')
-                """
-                path = '/works/%s.json' % olid
-                r = cls.OL._get_ol_response(path)
-                return cls(olid, **r.json())
-
-            @classmethod
-            def search(cls, title=None, author=None):
-                """Get the *closest* matching result in OpenLibrary based on a title
-                and author.
-
-                FIXME: This is essentially a Work and should be moved there
-
-                Args:
-                    title (unicode)
-                    author (unicode)
-
-                Returns:
-                    (common.Book)
-
-                Usage:
-                    >>> from olclient.openlibrary import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> ol.get_book_by_metadata(
-                    ...     title=u'The Autobiography of Benjamin Franklin')
-
-                    or
-                    >>> from olclient.openlibrary import OpenLibrary
-                    >>> ol = OpenLibrary()
-                    >>> ol.get_book_by_metadata(
-                    ...     author=u'Dan Brown')
-
-
-                """
-                if not (title or author):
-                    raise ValueError("Author or title required for metadata search")
-
-                err = lambda e: logger.exception("Error retrieving metadata " \
-                                                 "for book: %s", e)
-                url = f'{cls.OL.base_url}/search.json?title={title}'
-                if author:
-                    url += '&author=%s' % author
-
-                @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
-                def _get_book_by_metadata(url):
-                    """Makes best effort to perform request w/ exponential backoff"""
-                    return cls.OL.session.get(url)
-
-                response = _get_book_by_metadata(url)
-
-                try:
-                    results = Results(**response.json())
-                except Exception as e:
-                    logger.exception(e)
-                    raise Exception("Work Search API failed to return json")
-
-                if results.num_found:
-                    return results.first.to_book()
-
-                return None
-
-        return Work
+    def Work(self):
+        return get_work_helper_class(self)
 
     @property
     def Edition(ol_self):
@@ -369,9 +155,20 @@ class OpenLibrary:
 
             OL = ol_self
 
-            def __init__(self, work_olid, edition_olid, title, subtitle=None,
-                         identifiers=None, number_of_pages=None, authors=None,
-                         publisher=None, publish_date=None, cover=None, **kwargs):
+            def __init__(
+                self,
+                work_olid,
+                edition_olid,
+                title,
+                subtitle=None,
+                identifiers=None,
+                number_of_pages=None,
+                authors=None,
+                publisher=None,
+                publish_date=None,
+                cover=None,
+                **kwargs,
+            ):
                 """
                 Error:
                     TypeError: __init__() missing 2 required positional arguments: 'edition_olid' and 'title'
@@ -385,13 +182,21 @@ class OpenLibrary:
                 self._work = None
                 self.work_olid = work_olid
                 self.olid = edition_olid
-                self.description = OpenLibrary.get_text_value(kwargs.pop('description', None))
+                self.description = OpenLibrary.get_text_value(
+                    kwargs.pop('description', None)
+                )
                 self.notes = OpenLibrary.get_text_value(kwargs.pop('notes', None))
                 super().__init__(
-                    title, subtitle=subtitle, identifiers=identifiers,
-                    number_of_pages=number_of_pages, authors=authors,
-                    publisher=publisher, publish_date=publish_date,
-                    cover=cover, **kwargs)
+                    title,
+                    subtitle=subtitle,
+                    identifiers=identifiers,
+                    number_of_pages=number_of_pages,
+                    authors=authors,
+                    publisher=publisher,
+                    publish_date=publish_date,
+                    cover=cover,
+                    **kwargs,
+                )
 
             @staticmethod
             def _validate_identifiers(identifiers):
@@ -408,17 +213,24 @@ class OpenLibrary:
                 for saving back to Open Library via its APIs.
                 """
                 exclude = ['_work', 'olid', 'work_olid', 'pages']
-                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
+                data = {
+                    k: v for k, v in self.__dict__.items() if v and k not in exclude
+                }
                 data['key'] = '/books/' + self.olid
                 data['type'] = {'key': '/type/edition'}
                 if self.pages:
                     data['number_of_pages'] = self.pages
                 if self.work_olid:
-                    data['works'] = [ { 'key': '/works/' + self.work_olid} ]
+                    data['works'] = [{'key': '/works/' + self.work_olid}]
                 if self.authors:
-                    data['authors'] = [ {'key': '/authors/' + a.olid} for a in self.authors ]
+                    data['authors'] = [
+                        {'key': '/authors/' + a.olid} for a in self.authors
+                    ]
                 if data.get('description'):
-                    data['description'] = {'type': '/type/text', 'value': data['description']}
+                    data['description'] = {
+                        'type': '/type/text',
+                        'value': data['description'],
+                    }
                 if data.get('notes'):
                     data['notes'] = {'type': '/type/text', 'value': data['notes']}
                 return data
@@ -436,11 +248,9 @@ class OpenLibrary:
             def add_bookcover(self, cover_url):
                 """Adds a cover image to this edition"""
                 url = f'{self.OL.base_url}/books/{self.olid}/-/add-cover'
-                r = self.OL.session.post(url, files={
-                    'file': '',
-                    'url': cover_url,
-                    'upload': 'submit'
-                })
+                r = self.OL.session.post(
+                    url, files={'file': '', 'url': cover_url, 'upload': 'submit'}
+                )
                 return r
 
             def save(self, comment):
@@ -470,7 +280,7 @@ class OpenLibrary:
                 return cls.OL.create_book(book, work_olid=work_olid, debug=debug)
 
             @classmethod
-            def _ol_edition_json_to_book_args(cls, data):
+            def ol_edition_json_to_book_args(cls, data):
                 """Creates Book Arguments from OL Edition JSON
 
                 Args:
@@ -482,13 +292,17 @@ class OpenLibrary:
                 Usage:
                     >>> from olclient import OpenLibrary
                     >>> ol = OpenLibrary()
-                    >>> = ol.Edition._ol_edition_json_to_book_args(data)
+                    >>> = ol.Edition.ol_edition_json_to_book_args(data)
                 """
                 book_args = {
                     'edition_olid': data.pop('key', '').split('/')[-1],
-                    'work_olid': data.pop('works')[0]['key'].split('/')[-1] if 'works' in data else None,
-                    'authors': [cls.OL.Author.get(author['key'].split('/')[-1])
-                                for author in data.pop('authors', [])]
+                    'work_olid': data.pop('works')[0]['key'].split('/')[-1]
+                    if 'works' in data
+                    else None,
+                    'authors': [
+                        cls.OL.Author.get(author['key'].split('/')[-1])
+                        for author in data.pop('authors', [])
+                    ],
                 }
                 book_args.update(data)
                 return book_args
@@ -523,25 +337,29 @@ class OpenLibrary:
                     >>> ol.Edition.get(ocaid=u'XXX')
                 """
                 if not any([olid, isbn, oclc, lccn, ocaid]):
-                    raise ValueError("Must supply valid olid, isbn, oclc, ocaid, or lccn")
+                    raise ValueError(
+                        "Must supply valid olid, isbn, oclc, ocaid, or lccn"
+                    )
                 elif not olid:
                     bibkeys = {'ISBN': isbn, 'OCLC': oclc, 'OCAID': ocaid, 'LCCN': lccn}
-                    bibkey, value = [(k, v) for k,v in bibkeys.items() if v][0]
+                    bibkey, value = [(k, v) for k, v in bibkeys.items() if v][0]
                     olid = cls.get_olid(bibkey, value)
                     if not olid:
                         # No edition found by bibkey
                         return
 
                 path = '/books/%s.json' % olid
-                response = cls.OL._get_ol_response(path)
+                response = cls.OL.get_ol_response(path)
 
                 try:
                     data = response.json()
                     data['title'] = data.get('title', None)
-                    edition = cls(**cls._ol_edition_json_to_book_args(data))
+                    edition = cls(**cls.ol_edition_json_to_book_args(data))
                     return edition
                 except Exception as e:
-                    raise Exception(f"Unable to get Edition with olid: {olid}\nDetails: {e}")
+                    raise Exception(
+                        f"Unable to get Edition with olid: {olid}\nDetails: {e}"
+                    )
 
             @classmethod
             def get_olid_by_ocaid(cls, ocaid):
@@ -610,10 +428,12 @@ class OpenLibrary:
                     >>> ol.Edition.get_metadata(u'OCAID', u'XXX')
                 """
                 if key not in ['OCLC', 'ISBN', 'LCCN', 'OLID', 'OCAID']:
-                    raise ValueError("key must be one of OCLC, OLID, ISBN, OCAID, or LCCN")
+                    raise ValueError(
+                        "key must be one of OCLC, OLID, ISBN, OCAID, or LCCN"
+                    )
 
                 path = f'/api/books.json?bibkeys={key}:{value}'
-                response = cls.OL._get_ol_response(path)
+                response = cls.OL.get_ol_response(path)
 
                 try:
                     results = response.json()
@@ -647,7 +467,9 @@ class OpenLibrary:
                 for saving back to Open Library via its APIs.
                 """
                 exclude = ['olid', 'identifiers']
-                data = { k: v for k,v in self.__dict__.items() if v and k not in exclude }
+                data = {
+                    k: v for k, v in self.__dict__.items() if v and k not in exclude
+                }
                 data['key'] = '/authors/' + self.olid
                 data['type'] = {'key': '/type/author'}
                 if 'bio' in data:
@@ -707,7 +529,7 @@ class OpenLibrary:
                 path += f'/?limit={limit}&offset={offset}'
 
                 try:
-                    response = self.OL._get_ol_response(path)
+                    response = self.OL.get_ol_response(path)
                     return response.json()
                 except Exception as e:
                     logger.exception(e)
@@ -730,18 +552,21 @@ class OpenLibrary:
                     >>> ol.Author.get('OL39307A')
                 """
                 path = '/authors/%s.json' % olid
-                r = cls.OL._get_ol_response(path)
+                r = cls.OL.get_ol_response(path)
                 try:
                     data = r.json()
-                    olid = cls.OL._extract_olid_from_url(data.pop('key', ''),
-                                                         url_type='authors')
+                    olid = cls.OL._extract_olid_from_url(
+                        data.pop('key', ''), url_type='authors'
+                    )
                 except:
                     raise Exception("Unable to get Author with olid: %s" % olid)
 
                 return cls(
-                    olid, name=data.pop('name', ''),
+                    olid,
+                    name=data.pop('name', ''),
                     bio=OpenLibrary.get_text_value(data.pop('bio', None)),
-                    **data)
+                    **data,
+                )
 
             @classmethod
             def search(cls, name, limit=1):
@@ -766,9 +591,12 @@ class OpenLibrary:
                 """
                 if name:
                     err = lambda e: logger.exception(
-                        "Error fetching author matches: %s", e)
-                    url = cls.OL.base_url + '/authors/_autocomplete?q=%s&limit=%s' \
-                          % (name, limit)
+                        "Error fetching author matches: %s", e
+                    )
+                    url = cls.OL.base_url + '/authors/_autocomplete?q=%s&limit=%s' % (
+                        name,
+                        limit,
+                    )
 
                     @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                     def _get_matching_authors_by_name(url):
@@ -807,6 +635,7 @@ class OpenLibrary:
                     if _name == author['name'].lower().strip():
                         return author['key'].split('/')[-1]
                 return None
+
         # This returns the Author class from the ol.Author factory method
         return Author
 
@@ -827,7 +656,7 @@ class OpenLibrary:
             def json(self):
                 data = {
                     'key': OpenLibrary.full_key(self.olid),
-                    'type': { 'key': '/type/delete' }
+                    'type': {'key': '/type/delete'},
                 }
                 return data
 
@@ -865,14 +694,16 @@ class OpenLibrary:
                 self.olid = self.olid.upper()
                 self.location = self.location.upper()
 
-                if OpenLibrary.get_type(self.olid) != OpenLibrary.get_type(self.location):
+                if OpenLibrary.get_type(self.olid) != OpenLibrary.get_type(
+                    self.location
+                ):
                     raise Exception("Types don't match!")
 
             def json(self):
                 data = {
                     'key': OpenLibrary.full_key(self.olid),
                     'location': OpenLibrary.full_key(self.location),
-                    'type': { 'key': '/type/redirect' }
+                    'type': {'key': '/type/redirect'},
                 }
                 return data
 
@@ -896,8 +727,7 @@ class OpenLibrary:
 
     @classmethod
     def get_primary_identifier(cls, book):
-        """XXX needs docs
-        """
+        """XXX needs docs"""
         id_name, id_value = None, None
         for valid_key in cls.VALID_IDS:
             if valid_key in book.identifiers:
@@ -938,7 +768,7 @@ class OpenLibrary:
             raise ValueError("Unable to create_book without valid Author name")
 
         author_olid = self.Author.get_olid_by_name(author_name)
-        author_key = ('/authors/' + author_olid) if author_olid else  '__new__'
+        author_key = ('/authors/' + author_olid) if author_olid else '__new__'
         return self._create_book(
             title=book.title,
             author_name=author_name,
@@ -948,21 +778,32 @@ class OpenLibrary:
             id_name=id_name,
             id_value=id_value,
             work_olid=work_olid,
-            debug=debug)
+            debug=debug,
+        )
 
-    def _create_book(self, title, author_name, author_key,
-                     publish_date, publisher, id_name, id_value,
-                     work_olid=None, debug=False):
+    def _create_book(
+        self,
+        title,
+        author_name,
+        author_key,
+        publish_date,
+        publisher,
+        id_name,
+        id_value,
+        work_olid=None,
+        debug=False,
+    ):
         """
         Returns:
             An (OpenLibrary.Edition)
         """
         if id_name not in self.VALID_IDS:
-            raise ValueError("Invalid `id_name`. Must be one of %s, got %s" \
-                             % (self.VALID_IDS, id_name))
+            raise ValueError(
+                "Invalid `id_name`. Must be one of %s, got %s"
+                % (self.VALID_IDS, id_name)
+            )
 
-        err = lambda e: logger.exception("Error creating OpenLibrary " \
-                                         "book: %s", e)
+        err = lambda e: logger.exception("Error creating OpenLibrary " "book: %s", e)
         url = self.base_url + '/books/add'
         if work_olid:
             url += '?work=/works/%s' % work_olid
@@ -974,7 +815,7 @@ class OpenLibrary:
             "publisher": publisher,
             "id_name": id_name,
             "id_value": id_value,
-            "_save": ""
+            "_save": "",
         }
         if debug:
             return data
@@ -1045,88 +886,3 @@ class OpenLibrary:
             return re.search(ol_url_pattern, url).group(1)
         except AttributeError:
             return None  # No match
-
-
-class Results:
-
-    """Container for the results of the Search API"""
-
-    def __init__(self, start=0, num_found=0, docs=None, **kwargs):
-        self.start = start
-        self.num_found = num_found
-        self.docs = [self.Document(**doc) for doc in docs] or []
-
-    @property
-    def first(self):
-        if self.docs:
-            return self.docs[0]
-
-
-    class Document:
-        """An aggregate OpenLibrary Work summarizing all Editions of a Book"""
-
-        def __init__(self, key, title="", subtitle=None, subject=None,
-                     author_name="", author_key=None, edition_key=None,
-                     language="", publisher=None, publish_date=None,
-                     publish_place=None, first_publish_year=None,
-                     isbns=None, lccn=None, oclc=None, id_goodreads=None,
-                     id_librarything=None, **kwargs):
-            """
-            Args:
-                key (unicode) - a '/<type>/<OLID>' uri, e.g. '/works/OLXXXXXX'
-                title (unicode)
-                subtitle (unicode) [optional]
-                subject (list of unicode) [optional]
-                author_name (list of unicode)
-                author_key (list of unicode) - list of author OLIDs
-                edition_key (list of unicode) - list of edition OLIDs
-                language (unicode)
-                publisher (list of unicode)
-                publish_date (list unicode)
-                publish_place (list unicode)
-                first_publish_year (int)
-                isbns (list unicode)
-                lccn (list unicode)
-                oclc (list unicode)
-                id_goodreads (list unicode)
-                id_librarything (list unicode)
-            """
-            work_olid = OpenLibrary._extract_olid_from_url(key, "works")
-            edition_olids = edition_key
-
-            self.title = title
-            self.subtitle = subtitle
-            self.subjects = subject
-            # XXX test that during the zip, author_name and author_key
-            # correspond to each other one-to-one, in order
-            self.authors = [
-                {'name': name, 'olid': author_olid}
-                for (name, author_olid) in
-                zip(author_name or [], author_key or [])]
-            self.publishers = publisher
-            self.publish_dates = publish_date
-            self.publish_places = publish_place
-            self.first_publish_year = first_publish_year
-            self.edition_olids = edition_olids
-            self.language = language
-
-            # These keys all map to [lists] of (usually one) unicode ids
-            self.identifiers = {
-                'olid': [work_olid],
-                'isbns': isbns or [],
-                'oclc': oclc or [],
-                'lccn': lccn or [],
-                'goodreads': id_goodreads or [],
-                'librarything': id_librarything or []
-            }
-
-        def to_book(self):
-            """Converts an OpenLibrary Search API Results Document to a
-            standardized Book
-            """
-            publisher = self.publishers[0] if self.publishers else ""
-            return common.Book(
-                title=self.title, subtitle=self.subtitle,
-                identifiers=self.identifiers,
-                authors=self.authors, publisher=publisher,
-                publish_date=self.first_publish_year)
