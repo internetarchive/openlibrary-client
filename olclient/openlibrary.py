@@ -132,17 +132,10 @@ class OpenLibrary:
         return self.session.post('%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers)
 
     def delete_many(self, ol_ids: List[str], comment: str):
-        headers = {
-            'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
-            '42-comment': comment
-        }
-        payload = [{
-            'key': f'/{self.get_type(ol_id)}s/{ol_id}',
-            'type': {
-                'key': '/type/delete'
-            }
-        } for ol_id in ol_ids]
-        return self.session.post(f'{self.base_url}/api/save_many', json.dumps(payload), headers=headers)
+        return self.save_many(
+            [self.Delete(ol_id) for ol_id in ol_ids],
+            comment=comment
+        )
 
     err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
     @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
