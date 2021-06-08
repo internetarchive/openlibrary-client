@@ -134,7 +134,10 @@ class OpenLibrary:
         )
 
     def delete_many(self, ol_ids: List[str], comment: str):
-        return self.save_many([self.Delete(ol_id) for ol_id in ol_ids], comment=comment)
+        return self.save_many(
+            [self.Delete(ol_id) for ol_id in ol_ids],
+            comment=comment
+        )
 
     err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
 
