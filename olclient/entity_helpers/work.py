@@ -51,20 +51,18 @@ def get_work_helper_class(ol_context):
         @property
         def editions(self):
             url = f'{self.OL.base_url}/works/{self.olid}/editions.json'
-            try:
-                r_json: Dict[Any, Any] = self.OL.session.get(url).json()
-                editions: List[Any] = r_json.get('entries', [])
-                while True:
-                    next_page_link: Optional[str] = r_json.get('links', {}).get('next')
-                    if next_page_link is not None:
-                        r_json: Dict[Any, Any] = self.OL.session.get(
-                            self.OL.base_url + next_page_link
-                        ).json()
-                        editions.extend(r_json.get('entries', []))
-                    else:
-                        break
-            except BaseException:
-                return []
+            r_json: Dict[Any, Any] = self.OL.session.get(url).json()
+            editions: List[Any] = r_json.get('entries', [])
+
+            while True:
+                next_page_link: Optional[str] = r_json.get('links', {}).get('next')
+                if next_page_link is not None:
+                    r_json: Dict[Any, Any] = self.OL.session.get(
+                        self.OL.base_url + next_page_link
+                    ).json()
+                    editions.extend(r_json.get('entries', []))
+                else:
+                    break
 
             self._editions = [
                 self.OL.Edition(**self.OL.Edition.ol_edition_json_to_book_args(ed))
@@ -74,10 +72,8 @@ def get_work_helper_class(ol_context):
 
         @classmethod
         def create(cls, book: Book, debug=False) -> Work:
-            try:
-                book.publish_date = re.findall(r'[\d]{4}', book.publish_date)[0]
-            except:
-                book.publish_date = ''
+            year_matches_in_date: list[Any] = re.findall(r'[\d]{4}', book.publish_date)
+            book.publish_date = year_matches_in_date[0] if len(year_matches_in_date) > 0 else ''
             ed = cls.OL.create_book(book, debug=debug)
             ed.add_bookcover(book.cover)
             work = ed.work
@@ -157,12 +153,7 @@ def get_work_helper_class(ol_context):
                 return cls.OL.session.get(ol_url)
 
             response = _get_book_by_metadata(url)
-
-            try:
-                results = Results(**response.json())
-            except Exception as e:
-                logger.exception(e)
-                raise Exception("Work Search API failed to return json")
+            results = Results(**response.json())
 
             if results.num_found:
                 return results.first.to_book()

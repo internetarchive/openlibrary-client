@@ -3,6 +3,7 @@
 
 import datetime
 import re
+from typing import Union
 
 ALPHANUMERICS_RE = re.compile(r'([^\s\w])+')
 
@@ -88,7 +89,7 @@ def get_text_value(text):
     """
     try:
         return text.get('value')
-    except:
+    except AttributeError:
         return text
 
 
