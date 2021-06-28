@@ -54,7 +54,10 @@ class TrimTitleJob(AbstractBotJob):
                 self.logger.info(
                     '\t'.join([olid, old_title, edition.title])
                 )  # don't forget to log modifications!
-                self.save(lambda: edition.save(comment=comment))
+
+                if self.dry_run is False:
+                    # save only if dry_run is false!
+                    self.save(lambda: edition.save(comment=comment))
 
 
 if __name__ == '__main__':
