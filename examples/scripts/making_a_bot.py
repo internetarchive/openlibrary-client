@@ -28,7 +28,11 @@ class TrimTitleJob(AbstractBotJob):
 
         comment = 'trim whitespace'
         with gzip.open(self.args.file, 'rb') as fin:
-            for row in fin:
+            for line_number, row in enumerate(fin):
+
+                if line_number >= self.limit:
+                    return
+
                 # extract info from the dump file and check it
                 row, json_data = self.process_row(row)
                 if json_data['type']['key'] != '/type/edition':
@@ -53,7 +57,7 @@ class TrimTitleJob(AbstractBotJob):
                 self.save(lambda: edition.save(comment=comment))
 
 
-if '__name__' == __name__:
+if __name__ == '__main__':
     job = TrimTitleJob()
 
     try:

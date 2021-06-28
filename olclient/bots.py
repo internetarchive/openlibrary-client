@@ -32,7 +32,8 @@ class AbstractBotJob:
             help='Path to file containing input data',
         )
         self.parser.add_argument(
-            '-l, --limit',
+            '-l',
+            '--limit',
             type=int,
             default=1,
             help='Limit number of edits performed on external data.'
