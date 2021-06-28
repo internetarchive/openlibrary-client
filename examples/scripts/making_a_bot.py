@@ -52,7 +52,7 @@ class TrimTitleJob(AbstractBotJob):
                 self.save(lambda: edition.save(comment=comment))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     job = TrimTitleJob()
 
     try:
