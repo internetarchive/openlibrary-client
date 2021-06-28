@@ -29,7 +29,6 @@ class TrimTitleJob(AbstractBotJob):
         comment = 'trim whitespace'
         with gzip.open(self.args.file, 'rb') as fin:
             for row in fin:
-
                 # extract info from the dump file and check it
                 row, json_data = self.process_row(row)
                 if json_data['type']['key'] != '/type/edition':
@@ -48,10 +47,8 @@ class TrimTitleJob(AbstractBotJob):
                 # this edition needs editing, so fix it
                 old_title = copy.deepcopy(edition.title)
                 edition.title = edition.title.strip()
-                self.logger.info(
-                    '\t'.join([olid, old_title, edition.title])
-                )  # don't forget to log modifications!
-
+                # don't forget to log modifications!
+                self.logger.info('\t'.join([olid, old_title, edition.title]))
                 self.save(lambda: edition.save(comment=comment))
 
 
