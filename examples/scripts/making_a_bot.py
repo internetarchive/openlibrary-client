@@ -47,13 +47,12 @@ class TrimTitleJob(AbstractBotJob):
                 # this edition needs editing, so fix it
                 old_title = copy.deepcopy(edition.title)
                 edition.title = edition.title.strip()
-                self.logger.info(
-                    '\t'.join([olid, old_title, edition.title])
-                )  # don't forget to log modifications!
+                # don't forget to log modifications!
+                self.logger.info('\t'.join([olid, old_title, edition.title]))
                 self.save(lambda: edition.save(comment=comment))
 
 
-if '__name__' == __name__:
+if __name__ == "__main__":
     job = TrimTitleJob()
 
     try:
