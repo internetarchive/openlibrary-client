@@ -46,7 +46,7 @@ class AbstractBotJob:
             help='Execute the script without performing edits on external data.',
         )
         self.args = self.parser.parse_args()
-        self.dry_run = getattr(self.args, 'dry-run', None) or dry_run
+        self.dry_run = getattr(self.args, 'dry_run', dry_run)
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
