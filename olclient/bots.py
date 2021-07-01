@@ -19,7 +19,7 @@ from os import makedirs, path
 
 
 class AbstractBotJob:
-    def __init__(self, ol=None, dry_run=True, limit=1, job_name=__name__) -> None:
+    def __init__(self, ol=None, write_changes=False, limit=1, job_name=__name__) -> None:
         """Create logger and class variables"""
         self.ol = ol or OpenLibrary()
 
@@ -40,14 +40,14 @@ class AbstractBotJob:
             'Set to zero to allow unlimited edits.',
         )
         self.parser.add_argument(
-            '-d',
-            '--dry-run',
+            '-w',
+            '--write-changes',
             type=self._str2bool,
-            default=True,
-            help='Execute the script without performing edits on external data.',
+            default=False,
+            help='Execute the script and write all changes to external data.',
         )
         self.args = self.parser.parse_args()
-        self.dry_run = getattr(self.args, 'dry-run', None) or dry_run
+        self.write_changes = write_changes or getattr(self.args, 'write-changes', False)
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
@@ -68,12 +68,12 @@ class AbstractBotJob:
         else:
             raise argparse.ArgumentTypeError('Boolean value expected.')
 
-    def dry_run_declaration(self) -> None:
-        """Log whether dry_run is True or False"""
-        if self.dry_run:
-            self.logger.info('dry-run is TRUE. No external modifications will be made.')
+    def write_changes_declaration(self) -> None:
+        """Log whether write_changes is True or False"""
+        if self.write_changes:
+            self.logger.info('write_changes is TRUE. Permanent modifications may be made.')
         else:
-            self.logger.info('dry-run is FALSE. Permanent modifications can be made.')
+            self.logger.info('write_changes is FALSE. No external modifications will be made.')
 
     @staticmethod
     def process_row(row, delimiter='\t') -> Tuple[list, dict]:
@@ -101,13 +101,13 @@ class AbstractBotJob:
 
     def save(self, save_fn) -> None:
         """
-        Modify behavior of OpenLibrary Client based on 'limit' and 'dry_run' parameters
+        Modify behavior of OpenLibrary Client based on 'limit' and 'write_changes' parameters
         :param save_fn: Save function of an OpenLibrary Client record (Work, Edition, Author)
         """
-        if not self.dry_run:
+        if self.write_changes:
             save_fn()
         else:
-            self.logger.info('Modification not made because dry_run is True.')
+            self.logger.info('Modification not made because write_changes is False.')
         self.changed += 1
         if self.limit and self.changed >= self.limit:
             self.logger.info('Modification limit reached. Exiting script.')
