@@ -24,7 +24,7 @@ class TestBots(unittest.TestCase):
         bot = AbstractBotJob()
         assert bot.changed == 0
         assert bot.limit == 1
-        assert bot.dry_run is True
+        assert bot.write_changes is False
         assert bot.logger.handlers
         assert getattr(bot, 'console_handler', None) is not None
         assert isinstance(bot.ol, OpenLibrary)
@@ -45,20 +45,20 @@ class TestBots(unittest.TestCase):
             ArgumentTypeError, bot._str2bool, 'this is a non-boolean string'
         )
 
-    def test_dry_run_declaration_when_dry_run_is_true(self, mock_login):
-        bot = AbstractBotJob(dry_run=True)
+    def test_write_changes_declaration_when_write_changes_is_true(self, mock_login):
+        bot = AbstractBotJob(write_changes=True)
         bot.logger.info = Mock()
-        bot.dry_run_declaration()
+        bot.write_changes_declaration()
         bot.logger.info.assert_called_with(
-            'dry-run is TRUE. No external modifications will be made.'
+            'write_changes is TRUE. Permanent modifications may be made.'
         )  # TODO
 
-    def test_dry_run_declaration_when_dry_run_is_false(self, mock_login):
-        bot = AbstractBotJob(dry_run=False)
+    def test_write_changes_declaration_when_write_changes_is_false(self, mock_login):
+        bot = AbstractBotJob(write_changes=False)
         bot.logger.info = Mock()
-        bot.dry_run_declaration()
+        bot.write_changes_declaration()
         bot.logger.info.assert_called_with(
-            'dry-run is FALSE. Permanent modifications can be made.'
+            'write_changes is FALSE. No external modifications will be made.'
         )  # TODO
 
     def test_process_row_with_bytecode(self, mock_login):
@@ -105,7 +105,7 @@ class TestBots(unittest.TestCase):
     @patch('olclient.bots.sys.exit')
     def test_save_exits_when_limit_reached(self, mock_login, mock_sys_exit):
         save_fn = Mock()
-        bot = AbstractBotJob(dry_run=True, limit=10)
+        bot = AbstractBotJob(write_changes=False, limit=10)
         bot.logger.info = Mock()
         for i in range(
             bot.limit
@@ -119,9 +119,9 @@ class TestBots(unittest.TestCase):
         assert bot.logger.info.call_count == bot.limit + 1
 
     @patch('olclient.bots.sys.exit')
-    def test_save_when_dry_run_is_false(self, mock_login, mock_sys_exit):
+    def test_save_when_write_changes_is_true(self, mock_login, mock_sys_exit):
         save_fn = Mock()
-        bot = AbstractBotJob(dry_run=False)
+        bot = AbstractBotJob(write_changes=True)
         bot.logger.info = Mock()
         old_changed = copy.deepcopy(bot.changed)
         bot.save(save_fn)
@@ -132,9 +132,9 @@ class TestBots(unittest.TestCase):
         assert not bot.changed > bot.limit
 
     @patch('olclient.bots.sys.exit')
-    def test_save_when_dry_run_is_true(self, mock_login, mock_sys_exit):
+    def test_save_when_write_changes_is_false(self, mock_login, mock_sys_exit):
         save_fn = Mock()
-        bot = AbstractBotJob(dry_run=True)
+        bot = AbstractBotJob(write_changes=False)
         bot.logger.info = Mock()
         old_changed = copy.deepcopy(bot.changed)
         bot.save(save_fn)
