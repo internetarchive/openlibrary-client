@@ -3,6 +3,7 @@
 
 import datetime
 import re
+from typing import Union
 
 ALPHANUMERICS_RE = re.compile(r'([^\s\w])+')
 
@@ -69,7 +70,7 @@ def parse_datetime(value):
 
 
 def merge_unique_lists(lists, hash_fn=None):
-    """ Combine unique lists into a new unique list. Preserves ordering."""
+    """Combine unique lists into a new unique list. Preserves ordering."""
     result = []
     seen = set()
     for lst in lists:
@@ -79,3 +80,38 @@ def merge_unique_lists(lists, hash_fn=None):
                 result.append(el)
                 seen.add(hsh)
     return result
+
+
+def get_text_value(text):
+    """Returns the text value from a property that can either be a properly
+    formed /type/text object, or a (incorrect) string.
+    Used for Work/Edition 'notes' and 'description' and Author 'bio'.
+    """
+    try:
+        return text.get('value')
+    except AttributeError:
+        return text
+
+
+def extract_olid_from_url(url, url_type):
+    """No single field has the match's OpenLibrary ID in isolation so we
+    extract it from the info_url field.
+
+    Args:
+        url_type (unicode) - "books", "authors", "works", etc
+                             which are found in the ol url, e.g.:
+                             openlibrary.org/books/...
+
+    Returns:
+        olid (unicode)
+
+    Usage:
+        >>> url = u'https://openlibrary.org/books/OL25943366M'
+        >>> _extract_olid_from_url(url, u"books")
+            u"OL25943366M"
+    """
+    ol_url_pattern = r'[/]%s[/]([0-9a-zA-Z]+)' % url_type
+    try:
+        return re.search(ol_url_pattern, url).group(1)
+    except AttributeError:
+        return None  # No match
