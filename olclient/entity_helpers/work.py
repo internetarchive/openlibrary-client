@@ -160,7 +160,7 @@ def get_work_helper_class(ol_context):
             return cls(olid, **r.json())
 
         @classmethod
-        def search(cls, title=None, author=None) -> Optional[Book]:
+        def search(cls, title: Optional[str] = None, author: Optional[str] = None) -> Optional[Book]:
             """Get the *closest* matching result in OpenLibrary based on a title
             and author.
             FIXME: This is essentially a Work and should be moved there
