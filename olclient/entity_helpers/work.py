@@ -6,6 +6,7 @@ import re
 from typing import List, Dict, Optional, Any
 
 import backoff
+from requests import Response
 
 from olclient.common import Entity, Book
 from olclient.helper_classes.results import Results
@@ -141,8 +142,8 @@ def get_work_helper_class(ol_context):
         def _delete_editions(self, comment: str) -> None:
             edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
             if len(edition_olids) > 0:
-                editions_cleanup_response = self.OL.delete_many(edition_olids, comment)
-                if len(self.editions) > 0:
+                editions_cleanup_response: Response = self.OL.delete_many(edition_olids, comment)
+                if editions_cleanup_response.ok is False:
                     raise Exception(f'Could not delete all editions of work {self.olid}. '
                                     f'response: {editions_cleanup_response}')
 
