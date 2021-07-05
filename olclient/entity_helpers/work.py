@@ -19,7 +19,7 @@ def get_work_helper_class(ol_context):
 
         OL = ol_context
 
-        def __init__(self, olid, identifiers=None, **kwargs):
+        def __init__(self, olid: str, identifiers=None, **kwargs):
             super().__init__(identifiers)
             self.olid = olid
             self._editions = []
@@ -137,6 +137,15 @@ def get_work_helper_class(ol_context):
             data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
+
+        def delete(self, comment: str, editions: bool = False):
+            if editions is True:
+                all_editions_of_work: List = self.editions
+                edition_olids: List[str] = [edition_data.olid for edition_data in all_editions_of_work]
+                editions_cleanup_response = self.OL.delete_many(edition_olids, comment)
+                if len(self.editions) > 0:
+                    raise Exception(f'Could not delete all editions of work {self.olid}. response: {editions_cleanup_response}')
+            return self.OL.delete(self.olid)
 
         def save(self, comment):
             """Saves this work back to Open Library using the JSON API."""
