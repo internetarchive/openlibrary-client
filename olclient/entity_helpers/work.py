@@ -48,8 +48,6 @@ def get_work_helper_class(ol_context):
         def validate(self) -> None:
             """Validates a Work's json representation against the canonical
             JSON Schema for Works using jsonschema.validate().
-            Returns:
-               None
             Raises:
                jsonschema.exceptions.ValidationError if the Work is invalid.
             """
@@ -58,8 +56,6 @@ def get_work_helper_class(ol_context):
         @property
         def editions(self):
             """Returns a list of editions of related to a particular work
-            Args:
-                None
             Returns
                 (List) of common.Edition books
             Usage:
@@ -90,10 +86,6 @@ def get_work_helper_class(ol_context):
         @classmethod
         def create(cls, book: Book, debug=False) -> Work:
             """Creates a new work along with a new edition
-            Args:
-                book (common.Book object)
-            Returns:
-                (common.Work)
             Usage:
                 >>> from olclient.openlibrary import OpenLibrary
                 >>> import olclient.common as common
@@ -164,11 +156,6 @@ def get_work_helper_class(ol_context):
             """Get the *closest* matching result in OpenLibrary based on a title
             and author.
             FIXME: This is essentially a Work and should be moved there
-            Args:
-                title (unicode)
-                author (unicode)
-            Returns:
-                (common.Book)
             Usage:
                 >>> from olclient.openlibrary import OpenLibrary
                 >>> ol = OpenLibrary()
