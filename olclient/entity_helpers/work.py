@@ -154,9 +154,7 @@ def get_work_helper_class(ol_context):
             if should_delete is False:
                 return
 
-            if edition_count > 0:
-                self._delete_editions(edition_olids, comment)
-            return self.OL.delete(self.olid)
+            return self.OL.delete_many([self.olid, *edition_olids], comment)
 
         def save(self, comment):
             """Saves this work back to Open Library using the JSON API."""
