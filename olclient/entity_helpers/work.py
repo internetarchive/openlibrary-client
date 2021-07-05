@@ -138,13 +138,17 @@ def get_work_helper_class(ol_context):
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
-        def delete(self, comment: str, editions: bool = False):
-            if editions is True:
-                all_editions_of_work: List = self.editions
-                edition_olids: List[str] = [edition_data.olid for edition_data in all_editions_of_work]
+        def _delete_editions(self, comment: str) -> None:
+            edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
+            if len(edition_olids) > 0:
                 editions_cleanup_response = self.OL.delete_many(edition_olids, comment)
                 if len(self.editions) > 0:
-                    raise Exception(f'Could not delete all editions of work {self.olid}. response: {editions_cleanup_response}')
+                    raise Exception(f'Could not delete all editions of work {self.olid}. '
+                                    f'response: {editions_cleanup_response}')
+
+        def delete(self, comment: str, editions: bool = False):
+            if editions is True:
+                self._delete_editions(comment)
             return self.OL.delete(self.olid)
 
         def save(self, comment):
