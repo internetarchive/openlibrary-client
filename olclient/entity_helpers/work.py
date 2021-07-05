@@ -46,10 +46,27 @@ def get_work_helper_class(ol_context):
             return data
 
         def validate(self) -> None:
+            """Validates a Work's json representation against the canonical
+            JSON Schema for Works using jsonschema.validate().
+            Returns:
+               None
+            Raises:
+               jsonschema.exceptions.ValidationError if the Work is invalid.
+            """
             return self.OL.validate(self, 'work.schema.json')
 
         @property
         def editions(self):
+            """Returns a list of editions of related to a particular work
+            Args:
+                None
+            Returns
+                (List) of common.Edition books
+            Usage:
+                >>> from olclient import OpenLibrary
+                >>> ol = OpenLibrary()
+                >>> ol.Work(olid).editions
+            """
             url = f'{self.OL.base_url}/works/{self.olid}/editions.json'
             r_json: Dict[Any, Any] = self.OL.session.get(url).json()
             editions: List[Any] = r_json.get('entries', [])
@@ -72,6 +89,19 @@ def get_work_helper_class(ol_context):
 
         @classmethod
         def create(cls, book: Book, debug=False) -> Work:
+            """Creates a new work along with a new edition
+            Args:
+                book (common.Book object)
+            Returns:
+                (common.Work)
+            Usage:
+                >>> from olclient.openlibrary import OpenLibrary
+                >>> import olclient.common as common
+                >>> book = common.Book(title=u"Warlight: A novel", authors=[common.Author(name=u"Michael Ondaatje")], publisher=u"Deckle Edge", publish_date=u"2018")
+                >>> book.add_id(u'isbn_10', u'0525521194')
+                >>> book.add_id(u'isbn_13', u'978-0525521198'))
+                >>> ol.Work.create(book)
+            """
             year_matches_in_date: list[Any] = re.findall(r'[\d]{4}', book.publish_date)
             book.publish_date = year_matches_in_date[0] if len(year_matches_in_date) > 0 else ''
             ed = cls.OL.create_book(book, debug=debug)
@@ -85,7 +115,6 @@ def get_work_helper_class(ol_context):
                 'type': {'key': '/type/author_role'},
                 'author': {'key': '/authors/' + author.olid},
             }
-            # TODO: where is this statement appending to?
             self.authors.append(author_role)
             return author_role
 
@@ -118,6 +147,7 @@ def get_work_helper_class(ol_context):
             return self.OL.session.put(url, json.dumps(data))
 
         def save(self, comment):
+            """Saves this work back to Open Library using the JSON API."""
             body = self.json()
             body['_comment'] = comment
             url = self.OL.base_url + '/works/%s.json' % self.olid
@@ -133,8 +163,22 @@ def get_work_helper_class(ol_context):
         def search(cls, title=None, author=None) -> Optional[Book]:
             """Get the *closest* matching result in OpenLibrary based on a title
             and author.
-
             FIXME: This is essentially a Work and should be moved there
+            Args:
+                title (unicode)
+                author (unicode)
+            Returns:
+                (common.Book)
+            Usage:
+                >>> from olclient.openlibrary import OpenLibrary
+                >>> ol = OpenLibrary()
+                >>> ol.get_book_by_metadata(
+                ...     title=u'The Autobiography of Benjamin Franklin')
+                or
+                >>> from olclient.openlibrary import OpenLibrary
+                >>> ol = OpenLibrary()
+                >>> ol.get_book_by_metadata(
+                ...     author=u'Dan Brown')
             """
             if not (title or author):
                 raise ValueError("Author or title required for metadata search")

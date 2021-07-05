@@ -150,6 +150,11 @@ class OpenLibrary:
 
     @property
     def Work(self):
+        """
+        >>> from olclient import OpenLibrary
+        >>> ol = OpenLibrary()
+        >>> ol.Work.get(olid)
+        """
         return get_work_helper_class(self)
 
     @property
