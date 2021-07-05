@@ -115,3 +115,8 @@ def extract_olid_from_url(url, url_type):
         return re.search(ol_url_pattern, url).group(1)
     except AttributeError:
         return None  # No match
+
+
+def get_approval_from_cli(message: str) -> bool:
+    approval_str: str = input(message)
+    return approval_str.lower() == 'y'

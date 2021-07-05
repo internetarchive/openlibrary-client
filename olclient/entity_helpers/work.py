@@ -10,7 +10,7 @@ from requests import Response
 
 from olclient.common import Entity, Book
 from olclient.helper_classes.results import Results
-from olclient.utils import merge_unique_lists, get_text_value
+from olclient.utils import merge_unique_lists, get_text_value, get_approval_from_cli
 
 logger = logging.getLogger('open_library_work')
 
@@ -139,17 +139,23 @@ def get_work_helper_class(ol_context):
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
-        def _delete_editions(self, comment: str) -> None:
-            edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
-            if len(edition_olids) > 0:
-                editions_cleanup_response: Response = self.OL.delete_many(edition_olids, comment)
-                if editions_cleanup_response.ok is False:
-                    raise Exception(f'Could not delete all editions of work {self.olid}. '
-                                    f'response: {editions_cleanup_response}')
+        def _delete_editions(self, edition_olids: List[str], comment: str) -> None:
+            editions_cleanup_response: Response = self.OL.delete_many(edition_olids, comment)
+            if editions_cleanup_response.ok is False:
+                raise Exception(f'Could not delete all editions of work {self.olid}. '
+                                f'response: {editions_cleanup_response}')
 
-        def delete(self, comment: str, editions: bool = False):
-            if editions is True:
-                self._delete_editions(comment)
+        def delete(self, comment: str, confirm: bool = True):
+            edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
+            edition_count = len(edition_olids)
+            should_delete = confirm is False or get_approval_from_cli(
+                f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions?'
+            )
+            if should_delete is False:
+                return
+
+            if edition_count > 0:
+                self._delete_editions(edition_olids, comment)
             return self.OL.delete(self.olid)
 
         def save(self, comment):
