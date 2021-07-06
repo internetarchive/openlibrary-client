@@ -118,5 +118,4 @@ def extract_olid_from_url(url, url_type):
 
 
 def get_approval_from_cli(message: str) -> bool:
-    approval_str: str = input(message)
     return input(message).strip().lower() in ('y', 'yes')
