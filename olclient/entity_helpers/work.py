@@ -146,7 +146,7 @@ def get_work_helper_class(ol_context):
                 f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions? (y/n)'
             )
             if should_delete is False:
-                return
+                return None
 
             return self.OL.delete_many([self.olid, *edition_olids], comment)
 
