@@ -143,7 +143,7 @@ def get_work_helper_class(ol_context):
             edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
             edition_count = len(edition_olids)
             should_delete = confirm is False or get_approval_from_cli(
-                f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions?'
+                f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions? (y/n)'
             )
             if should_delete is False:
                 return
