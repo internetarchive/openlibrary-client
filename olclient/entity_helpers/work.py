@@ -139,7 +139,7 @@ def get_work_helper_class(ol_context):
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
-        def delete(self, comment: str, confirm: bool = True):
+        def delete(self, comment: str, confirm: bool = True) -> Optional[Response]:
             edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
             edition_count = len(edition_olids)
             should_delete = confirm is False or get_approval_from_cli(
