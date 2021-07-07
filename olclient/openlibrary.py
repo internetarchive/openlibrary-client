@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 
 import backoff
 import requests
+from requests import Response
 
 from . import common
 from .config import Config
@@ -117,7 +118,7 @@ class OpenLibrary:
         url = self._generate_url_from_olid(olid)
         return self.session.put(url, data=data)
 
-    def save_many(self, docs, comment):
+    def save_many(self, docs, comment) -> Response:
         """
         Uses the Open Library save_many API endpoint to
         write any number or combination of documents (Edition, Work, or Author)
@@ -133,7 +134,7 @@ class OpenLibrary:
             '%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers
         )
 
-    def delete_many(self, ol_ids: List[str], comment: str):
+    def delete_many(self, ol_ids: List[str], comment: str) -> Response:
         return self.save_many(
             [self.Delete(ol_id) for ol_id in ol_ids],
             comment=comment

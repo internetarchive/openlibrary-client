@@ -6,10 +6,11 @@ import re
 from typing import List, Dict, Optional, Any
 
 import backoff
+from requests import Response
 
 from olclient.common import Entity, Book
 from olclient.helper_classes.results import Results
-from olclient.utils import merge_unique_lists, get_text_value
+from olclient.utils import merge_unique_lists, get_text_value, get_approval_from_cli
 
 logger = logging.getLogger('open_library_work')
 
@@ -19,7 +20,7 @@ def get_work_helper_class(ol_context):
 
         OL = ol_context
 
-        def __init__(self, olid, identifiers=None, **kwargs):
+        def __init__(self, olid: str, identifiers=None, **kwargs):
             super().__init__(identifiers)
             self.olid = olid
             self._editions = []
@@ -137,6 +138,17 @@ def get_work_helper_class(ol_context):
             data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
+
+        def delete(self, comment: str, confirm: bool = True) -> Optional[Response]:
+            edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
+            edition_count = len(edition_olids)
+            should_delete = confirm is False or get_approval_from_cli(
+                f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions? (y/n)'
+            )
+            if should_delete is False:
+                return None
+
+            return self.OL.delete_many([self.olid, *edition_olids], comment)
 
         def save(self, comment):
             """Saves this work back to Open Library using the JSON API."""
