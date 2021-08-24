@@ -4,3 +4,5 @@ include olclient/schemata/author.schema.json
 include olclient/schemata/edition.schema.json
 include olclient/schemata/work.schema.json
 include olclient/schemata/shared_definitions.json
+include olclient/entity_helpers/*
+include olclient/helper_classes/*
