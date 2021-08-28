@@ -42,12 +42,11 @@ class AbstractBotJob:
         self.parser.add_argument(
             '-w',
             '--write-changes',
-            type=self._str2bool,
-            default=False,
+            action="store_true",
             help='Execute the script and write all changes to external data.',
         )
         self.args = self.parser.parse_args()
-        self.write_changes = write_changes or getattr(self.args, 'write-changes', False)
+        self.write_changes = self.args.write_changes
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
