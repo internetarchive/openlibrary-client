@@ -26,7 +26,7 @@
     },
     "authors": {
       "type": "array",
-      "items": { "$ref": "#definitions/author_role" }
+      "items": { "$ref": "work.schema.json/#definitions/author_role" }
     },
     "covers": {
       "type": "array",
