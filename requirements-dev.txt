@@ -2,4 +2,4 @@ mypy
 flake8==3.9.2
 pytest==6.2.5
 pytest-socket
-types-requests==2.25.0
+types-requests==2.25.9
