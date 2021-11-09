@@ -139,16 +139,13 @@ def get_work_helper_class(ol_context):
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
-        def delete(self, comment: str, confirm: bool = True) -> Optional[Response]:
-            edition_olids: List[str] = [edition_data.olid for edition_data in self.editions]
-            edition_count = len(edition_olids)
+        def delete(self, confirm: bool = True) -> Optional[Response]:
             should_delete = confirm is False or get_approval_from_cli(
-                f'Delete https://openlibrary.org/works/{self.olid} and its {edition_count} editions? (y/n)'
+                f'Delete https://openlibrary.org/works/{self.olid} and its editions? (y/n)'
             )
             if should_delete is False:
                 return None
-
-            return self.OL.delete_many([self.olid, *edition_olids], comment)
+            return self.OL.session.post(f'{self.OL.base_url}/works/{self.olid}/-/delete.json')
 
         def save(self, comment):
             """Saves this work back to Open Library using the JSON API."""
