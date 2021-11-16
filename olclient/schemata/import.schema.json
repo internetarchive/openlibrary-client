@@ -93,6 +93,12 @@
         "12 ounces",
         "1 pounds"
       ]
+    },
+    "identifiers": {
+      "type": "object",
+      "patternProperties": {
+        "^\\w+": { "$ref": "shared_definitions.json#/string_array" }
+      }
     }
   },
   "definitions": {
