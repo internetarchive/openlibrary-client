@@ -98,7 +98,13 @@
       "type": "object",
       "patternProperties": {
         "^\\w+": { "$ref": "shared_definitions.json#/string_array" }
-      }
+      },
+      "description": "Unique identifiers used by external sites to identify a book. Useful for linking to other sites.",
+      "examples": [
+        "standard_ebooks",
+        "project_gutenberg",
+        "wikisource"
+      ]
     }
   },
   "definitions": {
