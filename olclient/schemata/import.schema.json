@@ -99,7 +99,7 @@
       "patternProperties": {
         "^\\w+": { "$ref": "shared_definitions.json#/string_array" }
       },
-      "description": "Unique identifiers used by external sites to identify a book. Useful for linking to other sites.",
+      "description": "Unique identifiers used by external sites to identify a book. Used by Open Library to link offsite.",
       "examples": [
         "standard_ebooks",
         "project_gutenberg",
