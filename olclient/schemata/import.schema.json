@@ -101,9 +101,12 @@
       },
       "description": "Unique identifiers used by external sites to identify a book. Used by Open Library to link offsite.",
       "examples": [
-        "standard_ebooks",
-        "project_gutenberg",
-        "wikisource"
+        {
+            "standard_ebooks": ["leo-tolstoy/what-is-art/aylmer-maude"]
+        },
+        {
+            "project_gutenberg": ["64317"]
+        }
       ]
     }
   },
