@@ -108,6 +108,13 @@
             "project_gutenberg": ["64317"]
         }
       ]
+    },
+    "cover": {
+      "type": "string",
+      "description": "URL for an edition's cover",
+      "examples": [
+        "https://www.example.com/images/8.jpeg"
+      ]
     }
   },
   "definitions": {
