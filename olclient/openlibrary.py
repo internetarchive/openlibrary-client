@@ -262,6 +262,22 @@ class OpenLibrary:
                 )
                 return r
 
+            def add_book_cover_from_file(
+                    self,
+                    file_name: str,
+                    cover_data: bytes,
+                    mime_type: str
+            ):
+                form_data_body = {
+                    "file": (file_name, cover_data, mime_type),
+                    "url": (None, "https://"),
+                    "upload": (None, "Submit")
+                }
+                return self.OL.session.post(
+                    f'https://openlibrary.org/books/{self.olid}/-/add-cover',
+                    files=form_data_body
+                )
+
             def save(self, comment):
                 """Saves this edition back to Open Library using the JSON API."""
                 body = self.json()
