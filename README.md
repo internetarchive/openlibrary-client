@@ -153,3 +153,4 @@ Other Open Library client libraries include:
 - Javascript: https://github.com/onaclovtech/openlibrary
 - Python: https://github.com/felipeborges/python-openlibrary and https://github.com/the-metalgamer/python-openlibrary-client
 - PHP: https://github.com/beezus/openlibrary-php
+- Go: https://github.com/Open-pi/gol
