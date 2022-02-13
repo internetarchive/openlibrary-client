@@ -1,5 +1,4 @@
-mypy
 flake8==4.0.1
+mypy
 pytest==7.0.1
 pytest-socket
-types-requests==2.26.1
