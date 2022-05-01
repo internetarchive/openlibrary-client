@@ -142,7 +142,7 @@ class OpenLibrary:
 
     err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
 
-    @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)
+    @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)  # type: ignore
     def get_ol_response(self, path):
         """Makes best effort to perform request w/ exponential backoff"""
         response = self.session.get(self.base_url + path)
