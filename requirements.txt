@@ -4,3 +4,4 @@ internetarchive==3.0.1
 jsonschema==3.2.0
 requests[security]==2.27.1
 simplejson==3.17.6
+tqdm
