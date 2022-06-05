@@ -7,7 +7,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install test dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install tqdm -r requirements-dev.txt
       - name: Flake8 linting.
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - name: Install openlibrary-client dependencies
