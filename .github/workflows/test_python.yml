@@ -11,7 +11,7 @@ jobs:
       - run: codespell --ignore-words-list=ba,tha,wege
       - name: Flake8 linting
         run: flake8 . --count --max-complexity=32 --max-line-length=1501 --show-source --statistics
-                      --select=E301,E402,E722,E731,F401,F841,R502,R503,R504,W291,W503
+                      --ignore=E301,E402,E722,E731,F401,F841,W291,W503
       - name: Install openlibrary-client dependencies
         run: pip install -r requirements.txt
       - name: Run python unit tests

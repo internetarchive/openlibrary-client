@@ -23,7 +23,7 @@ def get_work_helper_class(ol_context):
         def __init__(self, olid: str, identifiers=None, **kwargs):
             super().__init__(identifiers)
             self.olid = olid
-            self._editions = []
+            self._editions: List = []
             self.description = get_text_value(kwargs.pop('description', None))
             self.notes = get_text_value(kwargs.pop('notes', None))
             for kwarg in kwargs:
