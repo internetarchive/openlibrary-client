@@ -5,14 +5,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install test dependencies
-        run: pip install -r requirements-dev.txt
-      - name: Flake8 linting.
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: pip install codespell -r requirements-dev.txt
+      - run: codespell --ignore-words-list=ba,tha,wege
+      - name: Flake8 linting
+        run: flake8 . --count --max-complexity=32 --max-line-length=1501 --show-source --statistics
+                      --select=E301,E402,E722,E731,F401,F841,R502,R503,R504,W291,W503
       - name: Install openlibrary-client dependencies
         run: pip install -r requirements.txt
       - name: Run python unit tests
         run: pytest
       - name: Mypy type checking
-        run: mypy --ignore-missing-imports --install-types --non-interactive -m olclient
+        run: mypy --ignore-missing-imports --install-types --non-interactive .
