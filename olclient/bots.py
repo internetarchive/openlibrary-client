@@ -119,7 +119,7 @@ class AbstractBotJob:
         :param job_name: The name that will appear on the log files
         :returns: a tuple of the logger instance and the console handler instance
         """
-        logger = logging.getLogger("jobs.%s" % job_name)
+        logger = logging.getLogger(f"jobs.{job_name}")
         logger.setLevel(logging.DEBUG)
         log_formatter = logging.Formatter(
             '%(name)s;%(levelname)-8s;%(asctime)s %(message)s'

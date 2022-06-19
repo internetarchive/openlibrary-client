@@ -131,7 +131,7 @@ class OpenLibrary:
         }
         doc_json = [doc.json() for doc in docs]
         return self.session.post(
-            '%s/api/save_many' % self.base_url, json.dumps(doc_json), headers=headers
+            f'{self.base_url}/api/save_many', json.dumps(doc_json), headers=headers
         )
 
     def delete_many(self, ol_ids: List[str], comment: str) -> Response:
@@ -266,7 +266,7 @@ class OpenLibrary:
                 """Saves this edition back to Open Library using the JSON API."""
                 body = self.json()
                 body['_comment'] = comment
-                url = self.OL.base_url + '/books/%s.json' % self.olid
+                url = self.OL.base_url + f'/books/{self.olid}.json'
                 return self.OL.session.put(url, json.dumps(body))
 
             @classmethod
@@ -357,7 +357,7 @@ class OpenLibrary:
                         # No edition found by bibkey
                         return
 
-                path = '/books/%s.json' % olid
+                path = f'/books/{olid}.json'
                 response = cls.OL.get_ol_response(path)
 
                 try:
@@ -499,7 +499,7 @@ class OpenLibrary:
                 """Saves this author back to Open Library using the JSON API."""
                 body = self.json()
                 body['_comment'] = comment
-                url = self.OL.base_url + '/authors/%s.json' % self.olid
+                url = self.OL.base_url + f'/authors/{self.olid}.json'
                 return self.OL.session.put(url, json.dumps(body))
 
             def works(self, limit=OL.WORKS_LIMIT, offset=OL.WORKS_PAGINATION_OFFSET):
@@ -528,7 +528,7 @@ class OpenLibrary:
                     or
                     >>> ol.Author.get(ol.Author.get_olid_by_name('Dan Brown')).works()
                 """
-                path = '/authors/%s/works.json' % self.olid
+                path = f'/authors/{self.olid}/works.json'
 
                 # check to prevent 'None' value
                 limit = limit or self.OL.WORKS_LIMIT
@@ -560,7 +560,7 @@ class OpenLibrary:
                     >>> ol = OpenLibrary()
                     >>> ol.Author.get('OL39307A')
                 """
-                path = '/authors/%s.json' % olid
+                path = f'/authors/{olid}.json'
                 r = cls.OL.get_ol_response(path)
                 try:
                     data = r.json()
@@ -568,7 +568,7 @@ class OpenLibrary:
                         data.pop('key', ''), url_type='authors'
                     )
                 except:
-                    raise Exception("Unable to get Author with olid: %s" % olid)
+                    raise Exception(f"Unable to get Author with olid: {olid}")
 
                 return cls(
                     olid,
@@ -602,7 +602,7 @@ class OpenLibrary:
                     err = lambda e: logger.exception(
                         "Error fetching author matches: %s", e
                     )
-                    url = cls.OL.base_url + '/authors/_autocomplete?q=%s&limit=%s' % (
+                    url = cls.OL.base_url + '/authors/_autocomplete?q={}&limit={}'.format(
                         name,
                         limit,
                     )
@@ -808,14 +808,13 @@ class OpenLibrary:
         """
         if id_name not in self.VALID_IDS:
             raise ValueError(
-                "Invalid `id_name`. Must be one of %s, got %s"
-                % (self.VALID_IDS, id_name)
+                f"Invalid `id_name`. Must be one of {self.VALID_IDS}, got {id_name}"
             )
 
         err = lambda e: logger.exception("Error creating OpenLibrary " "book: %s", e)
         url = self.base_url + '/books/add'
         if work_olid:
-            url += '?work=/works/%s' % work_olid
+            url += f'?work=/works/{work_olid}'
         data = {
             "title": title,
             "author_name": author_name,
@@ -844,7 +843,7 @@ class OpenLibrary:
         """Returns the .json url for an olid (str)"""
         ol_paths = {'OL..A': 'authors', 'OL..M': 'books', 'OL..W': 'works'}
         kind = re.sub(r'\d+', '..', olid)
-        return "{}/{}/{}.json".format(self.base_url, ol_paths[kind], olid)
+        return f"{self.base_url}/{ol_paths[kind]}/{olid}.json"
 
     @staticmethod
     def get_text_value(text):
@@ -864,13 +863,13 @@ class OpenLibrary:
         try:
             return ol_types[kind]
         except KeyError:
-            raise ValueError("Unknown type for olid: %s" % olid)
+            raise ValueError(f"Unknown type for olid: {olid}")
 
     @staticmethod
     def full_key(olid):
         """Returns the Open Library JSON key of format /<type(plural)>/<olid> as used by the
         Open Library API."""
-        return "/{}s/{}".format(OpenLibrary.get_type(olid), olid)
+        return f"/{OpenLibrary.get_type(olid)}s/{olid}"
 
     @staticmethod
     def _extract_olid_from_url(url, url_type):
