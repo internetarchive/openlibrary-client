@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Any
 import backoff
 from requests import Response
 
-from olclient.common import Entity, Book
+from olclient.common import Book, Edition, Entity
 from olclient.helper_classes.results import Results
 from olclient.utils import merge_unique_lists, get_text_value, get_approval_from_cli
 
@@ -23,7 +23,7 @@ def get_work_helper_class(ol_context):
         def __init__(self, olid: str, identifiers=None, **kwargs):
             super().__init__(identifiers)
             self.olid = olid
-            self._editions = []
+            self._editions: List[Edition] = []
             self.description = get_text_value(kwargs.pop('description', None))
             self.notes = get_text_value(kwargs.pop('notes', None))
             for kwarg in kwargs:
