@@ -1,5 +1,10 @@
 name: tests
-on: [pull_request, push]
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
 jobs:
   test_python:
     strategy:
