@@ -9,6 +9,7 @@ import logging
 import os
 import re
 from urllib.parse import urlencode
+from urllib.request import pathname2url
 
 import backoff
 import requests
@@ -101,10 +102,10 @@ class OpenLibrary:
           jsonschema.exceptions.ValidationError if validation fails.
         """
         path = os.path.dirname(os.path.realpath(__file__))
-        schemata_path = f"{path}/schemata/{schema_name}"
+        schemata_path = os.path.join(path, 'schemata', schema_name)
         with open(schemata_path) as schema_data:
             schema = json.load(schema_data)
-            resolver = jsonschema.RefResolver('file://' + schemata_path, schema)
+            resolver = jsonschema.RefResolver('file:' + pathname2url(schemata_path), schema)
             return jsonschema.Draft4Validator(schema, resolver=resolver).validate(
                 doc.json()
             )

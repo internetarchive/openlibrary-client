@@ -1,11 +1,23 @@
 name: tests
-on: [pull_request, push]
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
 jobs:
   test_python:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]  # , macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
       - name: Install test dependencies
         run: pip install codespell -r requirements-dev.txt
       - run: codespell --ignore-words-list=ba,tha,wege

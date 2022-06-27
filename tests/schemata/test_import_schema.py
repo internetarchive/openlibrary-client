@@ -1,10 +1,11 @@
 import json
+from nturl2path import pathname2url
 import jsonschema
 import os
 import pytest
 
 IMPORT_SCHEMA = os.path.join(
-    os.path.dirname(__file__), '../../olclient/schemata/import.schema.json'
+    os.path.dirname(__file__), '..', '..', 'olclient', 'schemata', 'import.schema.json'
 )
 
 # Examples taken from openlibrary/plugins/importapi/import_edition_builder.py
@@ -90,6 +91,6 @@ examples = [
 def test_import_examples(example):
     with open(IMPORT_SCHEMA) as schema_data:
         schema = json.load(schema_data)
-        resolver = jsonschema.RefResolver('file://' + IMPORT_SCHEMA, schema)
+        resolver = jsonschema.RefResolver('file:' + pathname2url(IMPORT_SCHEMA), schema)
         result = jsonschema.Draft4Validator(schema, resolver=resolver).validate(example)
         assert result is None
