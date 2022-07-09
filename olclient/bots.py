@@ -46,7 +46,7 @@ class AbstractBotJob:
             help='Execute the script and write all changes to external data.',
         )
         self.args = self.parser.parse_args()
-        self.write_changes = write_changes or self.args.write_changes 
+        self.write_changes = write_changes or self.args.write_changes
         self.limit = getattr(self.args, 'limit', None) or limit
         self.changed = 0
 
@@ -73,8 +73,10 @@ class AbstractBotJob:
             self.logger.info('write_changes is TRUE. Permanent modifications may be made.')
         else:
             self.logger.info('write_changes is FALSE. No external modifications will be made.')
+
     def dry_run_declaration(self):
         self.write_changes_declaration()
+
     @staticmethod
     def process_row(row, delimiter='\t') -> Tuple[list, dict]:
         """

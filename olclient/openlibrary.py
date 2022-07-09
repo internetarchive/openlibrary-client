@@ -88,7 +88,7 @@ class OpenLibrary:
             """Makes best effort to perform request w/ exponential backoff"""
             return self.session.post(url, data=data, headers=headers)
 
-        response = _login(url, headers, data)
+        _ = _login(url, headers, data)
 
         if not self.session.cookies:
             raise ValueError("No cookie set")

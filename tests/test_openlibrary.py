@@ -257,7 +257,7 @@ class TestOpenLibrary(unittest.TestCase):
         for _type, suffix in suffixes.items():
             target = "OLnotfound%s" % suffix
             with pytest.raises(requests.HTTPError):
-                r = self.ol.get(target)
+                _ = self.ol.get(target)
                 pytest.fail(f"HTTPError not raised for {_type}: {target}")
 
     @patch('requests.Session.post')

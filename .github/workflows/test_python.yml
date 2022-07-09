@@ -1,4 +1,4 @@
-name: tests
+name: test_python
 on:
   pull_request:
     branches: [master]
@@ -18,15 +18,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
-      - name: Install test dependencies
-        run: pip install codespell -r requirements-dev.txt
-      - run: codespell --ignore-words-list=ba,tha,wege
-      - name: Flake8 linting
-        run: flake8 . --count --max-complexity=32 --max-line-length=1501 --show-source --statistics
-                      --ignore=E301,E402,E722,E731,F401,F841,W291,W503
-      - name: Install openlibrary-client dependencies
-        run: pip install -r requirements.txt
-      - name: Run python unit tests
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run Python unit tests
         run: pytest
       - name: Mypy type checking
         run: mypy --ignore-missing-imports --install-types --non-interactive .
