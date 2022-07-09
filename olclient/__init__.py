@@ -9,7 +9,7 @@
 """
 
 __title__ = 'olclient'
-__version__ = '0.0.20'
+__version__ = '0.0.31'
 __author__ = 'Internet Archive'
 
 
