@@ -266,7 +266,7 @@ class OpenLibrary:
                     self,
                     file_name: str,
                     cover_data: bytes,
-                    mime_type: str
+                    mime_type: str = "image/jpeg",
             ):
                 form_data_body = {
                     "file": (file_name, cover_data, mime_type),
@@ -274,7 +274,7 @@ class OpenLibrary:
                     "upload": (None, "Submit")
                 }
                 return self.OL.session.post(
-                    f'https://openlibrary.org/books/{self.olid}/-/add-cover',
+                    f'{self.OL.base_url}/books/{self.olid}/-/add-cover',
                     files=form_data_body
                 )
 
