@@ -56,7 +56,7 @@ class Entity:
         return self.identifiers
 
     def __repr__(self):
-        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
+        return f'<{str(self.__class__)[1:-1]} {self.__dict__}>'
 
 
 class Author(Entity):
@@ -78,7 +78,7 @@ class Author(Entity):
             setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
-        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
+        return f'<{str(self.__class__)[1:-1]} {self.__dict__}>'
 
     @staticmethod
     def _validate_name(name):
@@ -133,7 +133,7 @@ class Book(Entity):
             setattr(self, kwarg, kwargs[kwarg])
 
     def __repr__(self):
-        return '<{} {}>'.format(str(self.__class__)[1:-1], self.__dict__)
+        return f'<{str(self.__class__)[1:-1]} {self.__dict__}>'
 
     @property
     def canonical_title(self):
@@ -184,6 +184,6 @@ class Book(Entity):
                 publish_date=ed.get('year', None),
             )
             for isbn in isbns:
-                book.add_id('isbn_%s' % len(isbn), isbn)
+                book.add_id(f'isbn_{len(isbn)}', isbn)
             books.append(book)
         return books

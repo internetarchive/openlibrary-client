@@ -6,16 +6,15 @@ Classes and methods for bulk edits that match the following pattern:
 4. Repeat 1-3 for all records that meet condition X
 """
 
-
 import argparse
-import datetime
 import json
 import logging
 import sys
-
-from typing import Tuple
-from olclient.openlibrary import OpenLibrary
+from datetime import datetime
 from os import makedirs, path
+from typing import Tuple
+
+from olclient.openlibrary import OpenLibrary
 
 
 class AbstractBotJob:
@@ -121,7 +120,7 @@ class AbstractBotJob:
         :param job_name: The name that will appear on the log files
         :returns: a tuple of the logger instance and the console handler instance
         """
-        logger = logging.getLogger("jobs.%s" % job_name)
+        logger = logging.getLogger(f"jobs.{job_name}")
         logger.setLevel(logging.DEBUG)
         log_formatter = logging.Formatter(
             '%(name)s;%(levelname)-8s;%(asctime)s %(message)s'
@@ -133,8 +132,7 @@ class AbstractBotJob:
         here = path.dirname(path.abspath(__name__))
         log_dir = path.join(here, 'logs', 'jobs', job_name)
         makedirs(log_dir, exist_ok=True)
-        log_file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = path.join(log_dir, f'{job_name}_{log_file_datetime}.log')
+        log_file = path.join(log_dir, f'{job_name}_{datetime.now():%Y%m%d_%H%M%S}.log')
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(log_formatter)

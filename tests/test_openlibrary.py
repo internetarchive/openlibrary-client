@@ -97,7 +97,7 @@ class TestOpenLibrary(unittest.TestCase):
         canonical_title = book.canonical_title
         self.assertTrue(
             'franklin' in canonical_title,
-            "Expected 'franklin' to appear in result title: %s" % canonical_title,
+            f"Expected 'franklin' to appear in result title: {canonical_title}",
         )
 
     @patch('requests.Session.get')
@@ -115,10 +115,10 @@ class TestOpenLibrary(unittest.TestCase):
         book = self.ol.Edition.get(isbn='0374202915')
         mock_get.assert_has_calls(
             [
-                call("%s/api/books.json?bibkeys=ISBN:0374202915" % self.ol.base_url),
+                call(f"{self.ol.base_url}/api/books.json?bibkeys=ISBN:0374202915"),
                 call().raise_for_status(),
                 call().json(),
-                call("{}/books/OL23575801M.json".format(self.ol.base_url)),
+                call(f"{self.ol.base_url}/books/OL23575801M.json"),
                 call().raise_for_status(),
                 call().json(),
             ]
@@ -156,9 +156,7 @@ class TestOpenLibrary(unittest.TestCase):
         mock_get.return_value.json.return_value = author_autocomplete
         got_result = self.ol.create_book(book, debug=True)
         mock_get.assert_called_with(
-            "{}/authors/_autocomplete?q={}&limit=1".format(
-                self.ol.base_url, "Karl Schwarzer"
-            )
+            f"{self.ol.base_url}/authors/_autocomplete?q=Karl Schwarzer&limit=1"
         )
         expected_result = {
             '_save': '',
@@ -172,7 +170,7 @@ class TestOpenLibrary(unittest.TestCase):
         }
         self.assertTrue(
             got_result == expected_result,
-            "Expected create_book to return %s, got %s" % (expected_result, got_result),
+            f"Expected create_book to return {expected_result}, got {got_result}",
         )
 
     def test_get_work(self):
@@ -255,7 +253,7 @@ class TestOpenLibrary(unittest.TestCase):
         mock_get.return_value.raise_for_status = raise_http_error
         suffixes = {'edition': 'M', 'work': 'W', 'author': 'A'}
         for _type, suffix in suffixes.items():
-            target = "OLnotfound%s" % suffix
+            target = f"OLnotfound{suffix}"
             with pytest.raises(requests.HTTPError):
                 _ = self.ol.get(target)
                 pytest.fail(f"HTTPError not raised for {_type}: {target}")
@@ -268,7 +266,7 @@ class TestOpenLibrary(unittest.TestCase):
         work = self.ol.Work(olid='OL12W', title='minimal work')
         self.ol.save_many([edition, work], "test comment")
         mock_post.assert_called_with(
-            "%s/api/save_many" % self.ol.base_url, ANY, headers=ANY
+            f"{self.ol.base_url}/api/save_many", ANY, headers=ANY
         )
         called_with_json = json.loads(mock_post.call_args[0][1])
         called_with_headers = mock_post.call_args[1]['headers']
@@ -347,7 +345,7 @@ class TestFullEditionGet(unittest.TestCase):
                 call(f"{self.ol.base_url}/books/{self.target_olid}.json"),
                 call().raise_for_status(),
                 call().json(),
-                call("%s/authors/OL440500A.json" % self.ol.base_url),
+                call(f"{self.ol.base_url}/authors/OL440500A.json"),
                 call().raise_for_status(),
                 call().json(),
             ]
@@ -374,7 +372,7 @@ class TestFullEditionGet(unittest.TestCase):
                 call(f"{self.ol.base_url}/books/{self.target_olid}.json"),
                 call().raise_for_status(),
                 call().json(),
-                call("%s/authors/OL440500A.json" % self.ol.base_url),
+                call(f"{self.ol.base_url}/authors/OL440500A.json"),
                 call().raise_for_status(),
                 call().json(),
             ]

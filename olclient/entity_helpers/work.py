@@ -126,7 +126,7 @@ def get_work_helper_class(ol_context):
             original_subjects = data.get('subjects', [])
             changed_subjects = merge_unique_lists([original_subjects, subjects])
             data['_comment'] = comment or (
-                'adding %s to subjects' % ', '.join(subjects)
+                f"adding {', '.join(subjects)} to subjects"
             )
             data['subjects'] = changed_subjects
             return self.OL.session.put(url, json.dumps(data))
@@ -135,7 +135,7 @@ def get_work_helper_class(ol_context):
             url = self.OL.base_url + "/works/" + self.olid + ".json"
             r = self.OL.session.get(url)
             data = r.json()
-            data['_comment'] = comment or ('rm subjects: %s' % ', '.join(subjects))
+            data['_comment'] = comment or (f"rm subjects: {', '.join(subjects)}")
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
@@ -151,12 +151,12 @@ def get_work_helper_class(ol_context):
             """Saves this work back to Open Library using the JSON API."""
             body = self.json()
             body['_comment'] = comment
-            url = self.OL.base_url + '/works/%s.json' % self.olid
+            url = self.OL.base_url + f'/works/{self.olid}.json'
             return self.OL.session.put(url, json.dumps(body))
 
         @classmethod
         def get(cls, olid: str) -> Work:
-            path = '/works/%s.json' % olid
+            path = f'/works/{olid}.json'
             r = cls.OL.get_ol_response(path)
             return cls(olid, **r.json())
 
@@ -181,7 +181,7 @@ def get_work_helper_class(ol_context):
 
             url = f'{cls.OL.base_url}/search.json?title={title}'
             if author:
-                url += '&author=%s' % author
+                url += f'&author={author}'
 
             @backoff.on_exception(
                 on_giveup=lambda error: logger.exception(

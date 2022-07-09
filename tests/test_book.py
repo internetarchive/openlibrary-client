@@ -64,17 +64,17 @@ class TestBook(unittest.TestCase):
         book = Book(title="Test Book", authors=["Jane Doe"], publish_date=2015)
         self.assertTrue(
             book.title == "Test Book",
-            "Book title should be %s, instead is %s" % ("Test Book", book.title),
+            f"Book title should be Test Book, instead is {book.title}",
         )
 
         self.assertTrue(
             book.authors[0] == "Jane Doe",
-            "Book author should be %s, instead is %s" % ("Jane Doe", book.authors),
+            f"Book author should be Jane Doe, instead is {book.authors}",
         )
 
         self.assertTrue(
             book.publish_date == 2015,
-            "Book year should be %s, instead is %s" % (2015, book.publish_date),
+            f"Book year should be {2015}, instead is {book.publish_date}",
         )
 
     def test_canonical_title(self):
@@ -84,7 +84,7 @@ class TestBook(unittest.TestCase):
         got = book.canonical_title
         self.assertTrue(
             got == expected,
-            "Title canonicalization expected %s, got %s" % (expected, got),
+            f"Title canonicalization expected {expected}, got {got}",
         )
 
     def test_xisbn_to_books(self):
