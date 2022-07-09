@@ -33,7 +33,7 @@ Successfully configured
 ```
 
 ### Using Keys Directly
-The ol.ini has two variables, access and secret. If you have both of them, you can manually initialise them 
+The ol.ini has two variables, access and secret. If you have both of them, you can manually initialise them
 ```
 from olclient import OpenLibrary, config
 ol = OpenLibrary(credentials=config.Credentials(access='<access>', secret='<secret>'))
