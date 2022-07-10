@@ -15,6 +15,10 @@ A reference client library for the Open Library API. Tested with Python 3.7, 3.8
 
 To install the openlibrary-client package:
 ```
+$ pipx install git+https://github.com/internetarchive/openlibrary-client.git
+```
+__-- or --__
+```
 $ git clone https://github.com/internetarchive/openlibrary-client.git
 $ cd openlibrary-client
 $ pip install .
