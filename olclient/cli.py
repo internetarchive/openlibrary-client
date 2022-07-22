@@ -81,7 +81,9 @@ def main() -> None:
             raise ValueError("--email required for configuration")
         password = getpass.getpass("Password: ")
 
-        ia.configure(email, password)
+        # Explicitly specify host until next release of ia tool
+        # See https://github.com/internetarchive/openlibrary-client/issues/322
+        ia.configure(email, password, host='archive.org')
         config_tool = Config()
         config = config_tool._get_config()
         config['s3'] = ia.config.get_config()['s3']
