@@ -1,9 +1,9 @@
 openlibrary-client
 ==================
 
-![Travis CI build status](https://travis-ci.org/internetarchive/openlibrary-client.svg?branch=master)
+[![pre-commit](https://github.com/internetarchive/openlibrary-client/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/internetarchive/openlibrary-client/actions/workflows/pre-commit.yml) [![test_python](https://github.com/internetarchive/openlibrary-client/actions/workflows/test_python.yml/badge.svg)](https://github.com/internetarchive/openlibrary-client/actions/workflows/test_python.yml)
 
-A reference client library for the Open Library API. Tested with Python 3.7, 3.8, and 3.9.
+A reference client library for the Open Library API. Tested with Python 3.7, 3.8, 3.9, and 3.10.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -18,6 +18,8 @@ To install the openlibrary-client package:
 $ git clone https://github.com/internetarchive/openlibrary-client.git
 $ cd openlibrary-client
 $ pip install .
+-- or --
+$ pipx install git+https://github.com/internetarchive/openlibrary-client.git
 ```
 
 ## Configuration
@@ -102,31 +104,36 @@ Author Information for existing authors can be done in the following manner.
 
 ### Command Line Tool
 
-Installing the openlibrary-client library will also install the `ol` command line utility. Right now it does exactly nothing.
+Installing the openlibrary-client library will also install the `ol` command line utility.  Right now it does exactly nothing.
 
 ```
-    $ ol
+$ ol
 
-usage: ol [-h] [-v] [--configure] [--get-work] [--get-book] [--get-olid]
-          [--olid OLID] [--isbn ISBN] [--create CREATE] [--title TITLE]
+usage: ol [-h] [-v] [--configure] [--get-work] [--get-author-works]
+          [--get-book] [--get-olid] [--olid OLID] [--isbn ISBN]
+          [--create CREATE] [--title TITLE] [--author-name AUTHOR_NAME]
           [--baseurl BASEURL] [--email EMAIL]
 
 olclient
 
 optional arguments:
-  -h, --help         show this help message and exit
-  -v                 Displays the currently installed version of ol
-  --configure        Configure ol client with credentials
-  --get-work         Get a work by --title, --olid
-  --get-book         Get a book by --isbn, --olid
-  --get-olid         Get an olid by --title or --isbn
-  --olid OLID        Specify an olid as an argument
-  --isbn ISBN        Specify an isbn as an argument
-  --create CREATE    Create a new work from json
-  --title TITLE      Specify a title as an argument
-  --baseurl BASEURL  Which OL backend to use
-  --email EMAIL      An IA email for requests which require authentication.
-                     You will be prompted discretely for a password
+  -h, --help            show this help message and exit
+  -v                    Displays the currently installed version of ol
+  --configure           Configure ol client with credentials
+  --get-work            Get a work by --title, --olid
+  --get-author-works    Get a works of an author providing author's --olid,
+                        --author-name
+  --get-book            Get a book by --isbn, --olid
+  --get-olid            Get an olid by --title or --isbn
+  --olid OLID           Specify an olid as an argument
+  --isbn ISBN           Specify an isbn as an argument
+  --create CREATE       Create a new work from json
+  --title TITLE         Specify a title as an argument
+  --author-name AUTHOR_NAME
+                        Specify an author as an argument
+  --baseurl BASEURL     Which OL backend to use
+  --email EMAIL         An IA email for requests which require authentication.
+                        You will be prompted discretely for a password
 ```
 
 You can create a new work from the command line using the following syntax. It's almost identical to the olclient.common.Book object construction, except instead of providing an Author object, you instead pass a key for "author" and a corresponding value:
