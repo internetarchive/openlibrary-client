@@ -1,4 +1,4 @@
-backoff==2.1.2
+backoff==2.2.1
 internetarchive==3.0.2
 jsonpickle==2.2.0
 jsonschema==4.15.0
