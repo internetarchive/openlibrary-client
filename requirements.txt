@@ -1,6 +1,6 @@
 backoff==2.2.1
 internetarchive==3.0.2
-jsonpickle==3.0.0
+jsonpickle==3.0.1
 jsonschema==4.17.3
 requests[security]==2.28.1
 simplejson==3.18.0
