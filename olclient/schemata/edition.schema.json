@@ -179,7 +179,7 @@
         }
       }
     },
-    "translation_from": {
+    "translated_from": {
       "type": "object",
       "required": [ "key" ],
       "additionalProperties": false,
