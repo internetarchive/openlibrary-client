@@ -175,7 +175,7 @@
         "key": {
           "type": "string",
           "pattern": "^/languages/[a-z]{3}$",
-	  "examples": [ "/langauges/eng", "/languages/ger" ]
+	  "examples": [ "/languages/eng", "/languages/ger" ]
         }
       }
     },
