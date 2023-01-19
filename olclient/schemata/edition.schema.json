@@ -166,7 +166,7 @@
         }
       }
     },
-    "language": {
+    "languages": {
       "type": "object",
       "required": [ "key" ],
       "additionalProperties": false,
