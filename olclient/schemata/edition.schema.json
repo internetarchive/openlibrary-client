@@ -74,6 +74,16 @@
       "type": "array",
       "items": { "$ref": "#/definitions/language" }
     },
+    "translated_from": {
+      "type": "array",
+      "description": "Translated from original language(s)",
+      "items": { "$ref": "#/definitions/language" }
+    },
+    "translation_of": {
+      "type": "string",
+      "description": "The title of the original language work",
+      "examples": [ "Ai margini del caos" ]
+    },
     "by_statement": { "type": "string" },
     "weight": {
       "type": "string",
@@ -166,7 +176,7 @@
         }
       }
     },
-    "languages": {
+    "language": {
       "type": "object",
       "required": [ "key" ],
       "additionalProperties": false,
@@ -178,24 +188,6 @@
 	  "examples": [ "/languages/eng", "/languages/ger" ]
         }
       }
-    },
-    "translated_from": {
-      "type": "object",
-      "required": [ "key" ],
-      "additionalProperties": false,
-      "description": "Translated from original language(s). Uses the same language format as 'languages'",
-      "properties": {
-        "key": {
-          "type": "string",
-          "pattern": "^/languages/[a-z]{3}$",
-	  "examples": [ "/languages/fre" ]
-        }
-      }
-    },
-    "translation_of": {
-      "type": "string",
-      "description": "The title of the original language work",
-      "example": "Ai margini del caos"
     }
   }
 }
