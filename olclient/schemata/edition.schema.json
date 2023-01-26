@@ -45,7 +45,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^[0-9]+$"
+        "pattern": "^[a-z]{,3}[0-9]+$"
       }
     },
     "ocaid": {
