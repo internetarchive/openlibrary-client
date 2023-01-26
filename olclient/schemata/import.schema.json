@@ -37,6 +37,13 @@
       "type": "array",
       "items": { "$ref": "shared_definitions.json#/language_code" }
     },
+    "translated_from": {
+      "type": "array",
+      "items": { "$ref": "shared_definitions.json#/language_code" }
+    },
+    "translation_of": {
+      "type": "string"
+    },
     "isbn_10": {
       "type": "array",
       "items": { "$ref": "edition.schema.json#/definitions/isbn_10" }
