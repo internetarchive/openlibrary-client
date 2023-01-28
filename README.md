@@ -54,7 +54,7 @@ For more examples, you can take a look at our [examples directory](examples/scri
 
 ### Google Colab
 
-You can view interactive documentation of openlibrary-client at this [Google Colab document.](https://colab.research.google.com/drive/10prZ3JwaV1ATJiR_xC6Y-oU7ApRHwaxG?usp=sharing)
+You can view interactive documentation of openlibrary-client at this [Google Colab document.](https://colab.research.google.com/drive/1lVBmEGU10CR5uKZyhjYCvveobsG9yix4?usp=sharing)
 
 #### Adding a new Book
 
