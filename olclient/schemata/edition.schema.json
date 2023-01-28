@@ -15,7 +15,6 @@
     "key": { "$ref": "shared_definitions.json#/edition_key" },
     "title":    { "type": "string" },
     "subtitle": { "type": "string" },
-    "full_title": { "type": "string" },
     "type": {
       "type": "object",
       "additionalProperties": false,
