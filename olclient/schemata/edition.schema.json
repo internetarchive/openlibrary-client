@@ -119,6 +119,12 @@
         "Spiral-bound"
       ]
     },
+    "copyright_date": {
+      "type": "string",
+      "examples": [
+        "1992"
+      ]
+    },
     "publish_country": { "$ref": "shared_definitions.json#/publish_country" },
     "publish_date": {
       "type": "string",
