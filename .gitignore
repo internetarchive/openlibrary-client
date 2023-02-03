@@ -13,3 +13,4 @@ dist/
 *.ipynb_checkpoints/
 .pytest_cache/
 .idea
+venv/
