@@ -108,7 +108,7 @@ Author Information for existing authors can be done in the following manner.
 
 ### Command Line Tool
 
-Installing the openlibrary-client library will also install the `ol` command line utility.  Right now it does exactly nothing.
+Installing the openlibrary-client library will also install the `ol` command line utility.
 
 ```
 $ ol
