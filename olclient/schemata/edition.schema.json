@@ -45,7 +45,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^[0-9]+$"
+        "pattern": "^[a-z]{,3}[0-9]+$"
       }
     },
     "ocaid": {
@@ -61,6 +61,10 @@
         "type": "string",
         "pattern": "^[0-9]+$"
       }
+    },
+    "local_id": {
+      "type": "array",
+      "items": { "type": "string" }
     },
     "covers": {
       "type": "array",
@@ -113,6 +117,12 @@
         "Paperback",
         "Hardcover",
         "Spiral-bound"
+      ]
+    },
+    "copyright_date": {
+      "type": "string",
+      "examples": [
+        "1992"
       ]
     },
     "publish_country": { "$ref": "shared_definitions.json#/publish_country" },
