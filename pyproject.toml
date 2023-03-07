@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "openlibrary-client"
+
+[tool.distutils.bdist_wheel]
+universal = 1
+
+[tool.codespell]
+ignore-words-list = "ba,fromm,tha,wege"
+skip = "./.*"
+
+[tool.mypy]
+ignore_missing_imports = true
+pretty = true
+show_error_codes = true
+show_error_context = true
+
+[tool.pytest.ini_options]
+norecursedirs = ["lib*"]
+
+[tool.ruff]
+extend-select = ["C4", "C9", "PLC", "PLE", "W"]
+ignore = ["E703", "E722", "E731", "F401", "E402"]
+line-length=1501
+show-source = true
+target-version = "py37"
+
+[tool.ruff.mccabe]
+max-complexity = 33
+
+[tool.setuptools]
+include-package-data = false
