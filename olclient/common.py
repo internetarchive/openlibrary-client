@@ -60,7 +60,7 @@ class Entity:
 
 
 class Author(Entity):
-    """Represets a book Author and their identifier on a service
+    """Represents a book Author and their identifier on a service
     (currently only OpenLibrary -- this should be refactored to
     include multiple identifiers, such as wikidata ID (see
     Book.identifiers), as well as other RDFA Author fields like date

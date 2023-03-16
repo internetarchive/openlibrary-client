@@ -62,11 +62,7 @@ class TestBots(unittest.TestCase):
         )  # TODO
 
     def test_process_row_with_bytecode(self, mock_login):
-        random_data = list()
-        for i in range(4):
-            random_data.append(
-                string.ascii_letters[random.randint(0, len(string.ascii_letters) - 1)]
-            )
+        random_data = [random.choice(string.ascii_letters) for _ in range(4)]
         random_data = '\t'.join(
             [
                 random_data[0],
@@ -83,11 +79,7 @@ class TestBots(unittest.TestCase):
         assert isinstance(returned_json_data, dict)
 
     def test_process_row_with_string(self, mock_login):
-        random_data = list()
-        for i in range(4):
-            random_data.append(
-                string.ascii_letters[random.randint(0, len(string.ascii_letters) - 1)]
-            )
+        random_data = [random.choice(string.ascii_letters) for _ in range(4)]
         random_data = '\t'.join(
             [
                 random_data[0],
@@ -107,9 +99,8 @@ class TestBots(unittest.TestCase):
         save_fn = Mock()
         bot = AbstractBotJob(write_changes=False, limit=10)
         bot.logger.info = Mock()
-        for i in range(
-            bot.limit
-        ):  # simulate calling save_fn many times in a run() method
+        # simulate calling save_fn many times in a run() method
+        for i in range(bot.limit):
             if mock_sys_exit.call_count > 1:
                 break
             bot.save(save_fn)
