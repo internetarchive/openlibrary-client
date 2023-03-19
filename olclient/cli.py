@@ -18,8 +18,8 @@ import sys
 
 import internetarchive as ia
 
-from . import __title__, __version__, OpenLibrary, common
-from .config import Config, Credentials
+from olclient import __title__, __version__, OpenLibrary, common
+from olclient.config import Config, Credentials
 
 
 def argparser():
