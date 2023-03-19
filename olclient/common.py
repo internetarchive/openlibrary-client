@@ -3,7 +3,7 @@ interoperability between OpenLibrary and partner services + data
 sources"""
 
 
-from .utils import rm_punctuation
+from olclient.utils import rm_punctuation
 
 VALID_IDENTIFIERS = (
     'olid',
