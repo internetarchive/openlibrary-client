@@ -15,10 +15,10 @@ import backoff
 import requests
 from requests import Response
 
-from . import common
-from .config import Config
-from .entity_helpers.work import get_work_helper_class
-from .utils import merge_unique_lists
+from olclient import common
+from olclient.config import Config
+from olclient.entity_helpers.work import get_work_helper_class
+from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
