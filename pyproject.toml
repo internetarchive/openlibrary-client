@@ -5,6 +5,46 @@ build-backend = "setuptools.build_meta"
 [project]
 dynamic = ["version"]
 name = "openlibrary-client"
+authors = [{name = "Internet Archive", email = "mek@archive.org"}]
+license = {text = "LICENSE"}
+description = "A Python client for Open Library"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "backoff==2.2.1",
+    "internetarchive==3.3.0",
+    "jsonpickle==3.0.1",
+    "jsonschema==4.17.3",
+    "requests[security]==2.28.2",
+    "simplejson==3.18.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/internetarchive/openlibrary-client"
+
+[project.scripts]
+ol = "olclient.cli:main"
+
+[tool.setuptools]
+packages = ["olclient"]
+include-package-data = true
+platforms = ["any"]
+
+[tool.setuptools.dynamic]
+version = {attr = "olclient.__version__"}
 
 [tool.distutils.bdist_wheel]
 universal = 1
@@ -31,6 +71,3 @@ target-version = "py37"
 
 [tool.ruff.mccabe]
 max-complexity = 33
-
-[tool.setuptools]
-include-package-data = false
