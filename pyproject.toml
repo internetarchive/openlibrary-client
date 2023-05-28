@@ -28,7 +28,7 @@ dependencies = [
     "internetarchive==3.5.0",
     "jsonpickle==3.0.1",
     "jsonschema==4.17.3",
-    "requests[security]==2.30.0",
+    "requests[security]==2.31.0",
     "simplejson==3.19.1",
 ]
 
