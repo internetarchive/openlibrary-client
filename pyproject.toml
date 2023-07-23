@@ -27,7 +27,7 @@ dependencies = [
     "backoff==2.2.1",
     "internetarchive==3.5.0",
     "jsonpickle==3.0.1",
-    "jsonschema==4.18.3",
+    "jsonschema==4.18.4",
     "requests[security]==2.31.0",
     "simplejson==3.19.1",
 ]
