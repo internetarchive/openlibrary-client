@@ -3,4 +3,4 @@ internetarchive==3.5.0
 jsonpickle==3.0.2
 jsonschema==4.19.1
 requests[security]==2.31.0
-simplejson==3.19.1
+simplejson==3.19.2
