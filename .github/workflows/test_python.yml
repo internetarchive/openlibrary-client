@@ -12,7 +12,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - run: pip install ruff
-    - run: ruff --format=github .
+    - run: ruff --output-format=github .
 
   test_python:
     strategy:
