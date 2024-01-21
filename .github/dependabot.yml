@@ -1,11 +1,26 @@
 version: 2
 updates:
+- package-ecosystem: "github-actions"
+  directory: "/"
+  groups:
+    GitHub_Actions:
+      patterns:
+        - "*"  # Group all Actions updates into a single larger pull request
+  reviewers:
+    - cclauss
+    - cdrini
+  schedule:
+    interval: weekly
+    day: sunday
 - package-ecosystem: "pip"
   directory: "/"
-  open-pull-requests-limit: 10
+  groups:
+    PyPI:
+      patterns:
+        - "*"  # Group all PyPI updates into a single larger pull request
   reviewers:
-      - cclauss
-      - cdrini
+    - cclauss
+    - cdrini
   schedule:
     interval: weekly
     day: sunday
