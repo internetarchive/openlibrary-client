@@ -19,10 +19,10 @@
       "type": "array",
       "items": { "$ref": "#/definitions/import_author" }
     },
-    "import_contributor": {
+    "contributor": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/contributors"
+        "$ref": "#/definitions/import_contributor"
       }
     },
     "publish_date": {
