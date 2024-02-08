@@ -166,7 +166,7 @@
 	}
       }
     },
-    "contributors": {
+    "import_contributor": {
       "type": "object",
       "additionalProperties": false,
       "required": [
