@@ -1,5 +1,5 @@
 -r requirements.txt
 
 mypy
-pytest==8.0.0
+pytest==8.0.1
 pytest-socket
