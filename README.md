@@ -165,3 +165,4 @@ Other Open Library client libraries include:
 - PHP: https://github.com/beezus/openlibrary-php
 - Python: https://github.com/felipeborges/python-openlibrary and https://github.com/the-metalgamer/python-openlibrary-client
 - Ruby: https://github.com/jayfajardo/openlibrary
+- C#: https://github.com/Luca3317/OpenLibrary.NET
