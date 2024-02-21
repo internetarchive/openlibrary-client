@@ -160,9 +160,9 @@ $ pytest
 ## Other Client Libraries
 
 Other Open Library client libraries include:
+- C#: https://github.com/Luca3317/OpenLibrary.NET
 - Go: https://github.com/Open-pi/gol
 - Javascript: https://github.com/onaclovtech/openlibrary
 - PHP: https://github.com/beezus/openlibrary-php
 - Python: https://github.com/felipeborges/python-openlibrary and https://github.com/the-metalgamer/python-openlibrary-client
 - Ruby: https://github.com/jayfajardo/openlibrary
-- C#: https://github.com/Luca3317/OpenLibrary.NET
