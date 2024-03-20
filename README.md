@@ -31,24 +31,34 @@ $ pipx install git+https://github.com/internetarchive/openlibrary-client.git
 ```
 
 ## Configuration
+### Authentication Against Production
 
 Many Open Library actions (like creating Works and Editions) require authentication, i.e. certain requests must be provided a valid cookie of a user which has been logged in with their openlibrary account credentials.  The openlibrary-client can be configured to "remember you" so you don't have to provide credentials with each request.
 
 First time users may run the following command to enable the "remember me" feature. This process will ask for an **Archive.org email and password**, will authenticate the credentials, and then store the account's corresponding s3 keys in `~/.config/ol.ini` (or whichever config location the user has specified):
 
-```
+```sh
 $ ol --configure --email mek@archive.org
 password: ***********
 Successfully configured
 ```
 
-### Using Keys Directly
+#### Using Keys Directly
 The ol.ini has two variables, access and secret. If you have both of them, you can manually initialise them
-```
+```python
 from olclient import OpenLibrary, config
 ol = OpenLibrary(credentials=config.Credentials(access='<access>', secret='<secret>'))
 ```
 This way, access and secret can be pulled from environment variables at runtime!
+
+### Authentication Against the Local Development Environment
+```python
+from olclient import OpenLibrary
+from collections import namedtuple
+Credentials = namedtuple("Credentials", ["username", "password"])
+credentials = Credentials("openlibrary@example.com", "admin123")
+ol = OpenLibrary(base_url="http://localhost:8080", credentials=credentials)
+```
 
 ## Usage
 
