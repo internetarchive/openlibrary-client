@@ -19,6 +19,10 @@ $ pipx install git+https://github.com/internetarchive/openlibrary-client.git
 ```
 __-- or --__
 ```
+pip install git+https://github.com/internetarchive/openlibrary-client.git
+```
+__-- or --__
+```
 $ git clone https://github.com/internetarchive/openlibrary-client.git
 $ cd openlibrary-client
 $ pip install .
