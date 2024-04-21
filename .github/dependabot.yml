@@ -7,7 +7,6 @@ updates:
       patterns:
         - "*"  # Group all Actions updates into a single larger pull request
   reviewers:
-    - cclauss
     - cdrini
   schedule:
     interval: weekly
@@ -19,7 +18,6 @@ updates:
       patterns:
         - "*"  # Group all PyPI updates into a single larger pull request
   reviewers:
-    - cclauss
     - cdrini
   schedule:
     interval: weekly
