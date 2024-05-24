@@ -19,6 +19,12 @@
       "type": "array",
       "items": { "$ref": "#/definitions/import_author" }
     },
+    "contributor": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/import_contributor"
+      }
+    },
     "publish_date": {
       "type": "string",
       "description": "The publication date in Extended Date/Time Format (EDTF) -- https://www.loc.gov/standards/datetime/",
@@ -158,6 +164,30 @@
 	  "type": "string",
 	  "examples": ["duc d'Otrante"]
 	}
+      }
+    },
+    "import_contributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "examples": [
+            "Author",
+            "Editor",
+            "Illustrator"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "examples": [
+            "Freeman H. Hubbard",
+            "Joan Miró"
+          ]
+        }
       }
     }
   }
