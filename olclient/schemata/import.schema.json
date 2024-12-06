@@ -166,6 +166,7 @@
         },
         "identifiers": {
           "type": "object",
+          "additionalProperties": true,
           "properties": {
             "amazon": {
               "type": "string",
