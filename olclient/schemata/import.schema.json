@@ -212,6 +212,10 @@
               "type": "string",
               "examples": ["9129"]
             },
+            "project_runeberg": {
+              "type": "string",
+              "examples": ["adamsein"]
+            },
             "opac_sbn": {
               "type": "string",
               "examples": ["CFIV000261"]

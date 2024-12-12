@@ -96,6 +96,10 @@
           "type": "string",
           "pattern": "^[1-9]\\d*$"
         },
+        "project_runeberg": {
+          "type": "string",
+          "pattern": "^[0-9a-z]{1,8}$"
+        },
         "opac_sbn": {
           "type": "string",
           "pattern": "^\\D{2}[A-Z0-3]V\\d{6}$"
