@@ -273,7 +273,7 @@ class OpenLibrary:
                     file_name=file_name,
                     cover_data=response.content,
                     mime_type=mime_type
-                )):
+                )
                 
             def add_book_cover_from_file(
                     self,
