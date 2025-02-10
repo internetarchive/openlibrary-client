@@ -114,7 +114,7 @@
         },
         "wikidata": {
           "type": "string",
-          "pattern": "^Q[1-9]\\d*$"
+          "pattern": "^Q[0-9]\\d*$"
         },
         "youtube": {
           "type": "string",
