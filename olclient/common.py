@@ -14,6 +14,8 @@ VALID_IDENTIFIERS = (
     'lccn',
     'goodreads',
     'librarything',
+    'wikidata',
+    'bookbrainz',
 )
 
 
