@@ -63,10 +63,6 @@
         }
       }
     },
-    "wikipedia": {
-      "type": "string",
-      "description": "DEPRECATED: Not many authors have this property. Should be moved to Links and/or remote_ids: wikidata."
-    },
     "revision":        { "type": "number" },
     "latest_revision": { "type": "number" },
     "created":         { "$ref": "shared_definitions.json#/internal_datetime" },
