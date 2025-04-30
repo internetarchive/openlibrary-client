@@ -12,7 +12,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - run: pip install ruff
-    - run: ruff .
+    - run: ruff
 
   test_python:
     strategy:
