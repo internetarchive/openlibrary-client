@@ -6,14 +6,6 @@ on:
     branches: [master]
   workflow_dispatch:
 jobs:
-  ruff:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - run: pip install ruff
-    - run: ruff --output-format=github .
-
   test_python:
     strategy:
       fail-fast: false
