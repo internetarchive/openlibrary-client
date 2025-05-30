@@ -139,31 +139,105 @@
       "properties": {
         "name": {
           "type": "string",
-	  "examples": [
-	    "Hubbard, Freeman H.",
-	    "Joan Miró"
-	  ]
-	},
-	"personal_name": {
-	  "type": "string",
-	  "description": "Can be identical to 'name'. TODO: provide information on the intended difference."
-	},
-	"birth_date": {
-	  "type": "string",
-	  "examples": []
-	},
-	"death_date": {
-	  "type": "string",
-	  "examples": []
-	},
-	"entity_type": {
-	  "type": "string",
-	  "enum": ["person", "org", "event"]
-	},
-	"title": {
-	  "type": "string",
-	  "examples": ["duc d'Otrante"]
-	}
+          "examples": [
+            "Hubbard, Freeman H.",
+            "Joan Miró"
+          ]
+        },
+        "personal_name": {
+          "type": "string",
+          "description": "Can be identical to 'name'. TODO: provide information on the intended difference."
+        },
+        "birth_date": {
+          "type": "string",
+          "examples": []
+        },
+        "death_date": {
+          "type": "string",
+          "examples": []
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": ["person", "org", "event"]
+        },
+        "title": {
+          "type": "string",
+          "examples": ["duc d'Otrante"]
+        },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "amazon": {
+              "type": "string",
+              "examples": ["B000AQ0DXI"]
+            },
+            "bookbrainz": {
+              "type": "string",
+              "examples": ["1ada691b-c9df-4643-a4f8-5eb7c76e0493"]
+            },
+            "goodreads": {
+              "type": "string",
+              "examples": ["67032"]
+            },
+            "isni": {
+              "type": "string",
+              "examples": ["0000000121171982"]
+            },
+            "imdb": {
+              "type": "string",
+              "examples": ["nm0308243"]
+            },
+            "inventaire": {
+              "type": "string",
+              "examples": ["wd:Q42", "inv:914ad8068b8711ead0cc2efbed56e53c"]
+            },
+            "lc_naf": {
+              "type": "string",
+              "examples": ["n79139252"]
+            },
+            "librarything": {
+              "type": "string",
+              "examples": ["colmangeorge-1"]
+            },
+            "librivox": {
+              "type": "string",
+              "examples": ["8628"]
+            },
+            "musicbrainz": {
+              "type": "string",
+              "examples": ["e9928a31-aa02-4b49-9e56-7bd837753de9"]
+            },
+            "project_gutenberg": {
+              "type": "string",
+              "examples": ["9129"]
+            },
+            "project_runeberg": {
+              "type": "string",
+              "examples": ["adamsein"]
+            },
+            "opac_sbn": {
+              "type": "string",
+              "examples": ["CFIV000261"]
+            },
+            "storygraph": {
+              "type": "string",
+              "examples": ["40dce906-6580-4c63-ab54-bc593e36e3f0"]
+            },
+            "viaf": {
+              "type": "string",
+              "examples": ["305913238"]
+            },
+            "wikidata": {
+              "type": "string",
+              "examples": ["Q207515"]
+            },
+            "youtube": {
+              "type": "string",
+              "examples": ["@UChUFRXFCbozHOAkFovcTKOA"]
+            }
+          }
+        }
       }
     },
     "import_contributor": {

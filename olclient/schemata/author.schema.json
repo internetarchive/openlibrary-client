@@ -53,13 +53,72 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "wikidata": {
+        "amazon": {
           "type": "string",
-          "pattern": "^Q[0-9]+$"
+          "pattern": "^B[0-9A-Za-z]{9}$"
+        },
+        "bookbrainz": {
+          "type": "string",
+          "pattern": "^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$"
+        },
+        "goodreads": {
+          "type": "string",
+          "pattern": "^[1-9]\\d*$"
+        },
+        "isni": {
+          "type": "string",
+          "pattern": "^[0]{4} ?[0-9]{4} ?[0-9]{4} ?[0-9]{3}[0-9X]$"
+        },
+        "imdb": {
+          "type": "string",
+          "pattern": "^\\w{2}\\d+$"
+        },
+        "inventaire": {
+          "type": "string"
+        },
+        "lc_naf": {
+          "type": "string",
+          "pattern": "^n[bors]?[0-9]+$"
+        },
+        "librarything": {
+          "type": "string",
+          "pattern": "^\\S+$"
+        },
+        "librivox": {
+          "type": "string",
+          "pattern": "^[1-9]\\d*$"
+        },
+        "musicbrainz": {
+          "type": "string",
+          "pattern": "^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$"
+        },
+        "project_gutenberg": {
+          "type": "string",
+          "pattern": "^[1-9]\\d*$"
+        },
+        "project_runeberg": {
+          "type": "string",
+          "pattern": "^[0-9a-z]{1,8}$"
+        },
+        "opac_sbn": {
+          "type": "string",
+          "pattern": "^\\D{2}[A-Z0-3]V\\d{6}$"
+        },
+        "storygraph": {
+          "type": "string",
+          "pattern": "^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$"
         },
         "viaf": {
           "type": "string",
-          "pattern": "^[0-9]+$"
+          "pattern": "^[1-9]\\d*$"
+        },
+        "wikidata": {
+          "type": "string",
+          "pattern": "^Q[0-9]\\d*$"
+        },
+        "youtube": {
+          "type": "string",
+          "pattern": "^@[A-Za-z0-9_\\-.]{3,30}"
         }
       }
     },
