@@ -10,6 +10,8 @@ import os
 import re
 from urllib.parse import urlencode
 from urllib.request import pathname2url
+from urllib.request import pathname2url
+from referencing import Registry, Resource
 
 import backoff
 import requests
@@ -105,10 +107,12 @@ class OpenLibrary:
         schemata_path = os.path.join(path, 'schemata', schema_name)
         with open(schemata_path) as schema_data:
             schema = json.load(schema_data)
-            resolver = jsonschema.RefResolver('file:' + pathname2url(schemata_path), schema)
-            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(
-                doc.json()
+            base_uri = "file:" + pathname2url(schemata_path)
+            registry = Registry().with_resource(
+                base_uri,
+                Resource.from_contents(schema)
             )
+            jsonschema.Draft4Validator(schema, registry=registry).validate(doc.json())
 
     def delete(self, olid, comment):
         """Delete a single Open Library entity by olid (str)
