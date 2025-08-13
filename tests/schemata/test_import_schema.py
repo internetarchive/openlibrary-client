@@ -3,6 +3,8 @@ from nturl2path import pathname2url
 import jsonschema
 import os
 import pytest
+from urllib.request import pathname2url
+from referencing import Registry, Resource
 
 IMPORT_SCHEMA = os.path.join(
     os.path.dirname(__file__), '..', '..', 'olclient', 'schemata', 'import.schema.json'
@@ -86,11 +88,19 @@ examples = [
     },
 ]
 
-
 @pytest.mark.parametrize('example', examples)
 def test_import_examples(example):
-    with open(IMPORT_SCHEMA) as schema_data:
+    with open(IMPORT_SCHEMA, encoding="utf-8") as schema_data:
         schema = json.load(schema_data)
-        resolver = jsonschema.RefResolver('file:' + pathname2url(IMPORT_SCHEMA), schema)
-        result = jsonschema.Draft4Validator(schema, resolver=resolver).validate(example)
+
+        base_uri = "file:" + pathname2url(IMPORT_SCHEMA)
+
+        # Create a registry with the schema at the base URI
+        registry = Registry().with_resource(
+            base_uri,
+            Resource.from_contents(schema)
+        )
+
+        # Validate using the registry instead of RefResolver
+        result = jsonschema.Draft4Validator(schema, registry=registry).validate(example)
         assert result is None
