@@ -784,21 +784,18 @@ class OpenLibrary:
             ...     isbn=u"3570028364", publish_date=u"1982"))
         """
         id_name, id_value = self.get_primary_identifier(book)
-        author_name = None
-        for _author in book.authors:
-            if len(_author.name.split(" ")) > 1:
-                author_name = _author.name
-                continue
 
-        if not author_name:
+
+        if len(book.authors) == 0 :
             raise ValueError("Unable to create_book without valid Author name")
-
-        author_olid = self.Author.get_olid_by_name(author_name)
-        author_key = ('/authors/' + author_olid) if author_olid else '__new__'
+        author_keys = {}
+        for _author in book.authors:
+            author_olid = self.Author.get_olid_by_name(_author.name)
+            author_keys[_author.name] = ('/authors/' + author_olid) if author_olid else '__new__'
         return self._create_book(
             title=book.title,
-            author_name=author_name,
-            author_key=author_key,
+            author_names=author_keys.keys(),
+            author_keys=author_keys,
             publish_date=book.publish_date,
             publisher=book.publisher,
             id_name=id_name,
@@ -810,8 +807,8 @@ class OpenLibrary:
     def _create_book(
         self,
         title,
-        author_name,
-        author_key,
+        author_names,
+        author_keys,
         publish_date,
         publisher,
         id_name,
@@ -833,15 +830,17 @@ class OpenLibrary:
         if work_olid:
             url += f'?work=/works/{work_olid}'
         data = {
-            "title": title,
-            "author_name": author_name,
-            "author_key": author_key,
+            "book_title": title,
             "publish_date": publish_date,
             "publisher": publisher,
             "id_name": id_name,
             "id_value": id_value,
             "_save": "",
         }
+        for i,_name in enumerate(author_names):
+            data[f"author_names--{i}"] = _name
+            data[f"authors--{i}--author--key"] = author_keys[_name]
+
         if debug:
             return data
 
