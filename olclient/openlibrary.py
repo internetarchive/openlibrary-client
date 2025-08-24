@@ -279,6 +279,18 @@ class OpenLibrary:
                     files=form_data_body
                 )
 
+            def add_book_cover_from_url(self, cover_url, file_name="cover.jpg", mime_type="image/jpeg"):
+                response = requests.get(cover_url)
+                
+                if response.status_code != 200:
+                    raise ValueError(f"Failed to download image from {cover_url}. Status code: {response.status_code}")
+            
+                return self.add_book_cover_from_file(
+                    file_name=file_name,
+                    cover_data=response.content,
+                    mime_type=mime_type
+                )
+
             def save(self, comment):
                 """Saves this edition back to Open Library using the JSON API."""
                 body = self.json()
