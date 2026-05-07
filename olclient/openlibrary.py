@@ -263,10 +263,8 @@ class OpenLibrary:
         text = response.text
 
         def _field(label):
-            m = re.search(rf'{re.escape(label)}\s*</p>\s*<p[^>]*>([^<]+)', text)
-            if not m:
-                # Also try inline: "Label: value"
-                m = re.search(rf'{re.escape(label)}:?\s*</?\w*>?\s*([^\n<]+)', text)
+            # Handles both "<p>Label: value</p>" and "<p>Label:</p><p>value</p>"
+            m = re.search(rf'{re.escape(label)}\s*([^<\n]+)', text)
             return m.group(1).strip() if m else None
 
         # Parse status counts: "<li>status: N</li>"

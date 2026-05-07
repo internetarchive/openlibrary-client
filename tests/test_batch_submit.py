@@ -211,6 +211,21 @@ class TestGetBatch:
         ol.get_batch(42)
         ol.session.get.assert_called_once_with('https://openlibrary.org/import/batch/42')
 
+    def test_returns_batch_name(self, ol):
+        ol.session.get = MagicMock(return_value=_mock_response(200, BATCH_STATUS_HTML))
+        result = ol.get_batch(42)
+        assert result['batch_name'] == 'batch-abc123def456'
+
+    def test_returns_submitter(self, ol):
+        ol.session.get = MagicMock(return_value=_mock_response(200, BATCH_STATUS_HTML))
+        result = ol.get_batch(42)
+        assert result['submitter'] == 'mek'
+
+    def test_returns_submit_time(self, ol):
+        ol.session.get = MagicMock(return_value=_mock_response(200, BATCH_STATUS_HTML))
+        result = ol.get_batch(42)
+        assert result['submit_time'] == '2026-05-07 00:30:00'
+
     def test_404_raises_value_error(self, ol):
         ol.session.get = MagicMock(return_value=_mock_response(404, 'Not Found'))
         with pytest.raises(ValueError, match="not found"):
