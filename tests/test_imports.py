@@ -12,7 +12,6 @@ Coverage:
 
 import json
 import os
-import tempfile
 from nturl2path import pathname2url
 from typing import Iterator, Optional
 
@@ -356,13 +355,6 @@ class _TestJSONLProvider(JSONLProvider):
 
 
 class TestJSONLProvider:
-    def _write_jsonl(self, lines: list) -> str:
-        f = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
-        for line in lines:
-            f.write(json.dumps(line) + '\n')
-        f.close()
-        return f.name
-
     def test_reads_valid_jsonl(self, tmp_path):
         path = str(tmp_path / "data.jsonl")
         records = [

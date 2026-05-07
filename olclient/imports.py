@@ -40,11 +40,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import urllib.request
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class OLAuthor(BaseModel):
     personal_name: Optional[str] = None
     birth_date: Optional[str] = None
     death_date: Optional[str] = None
-    entity_type: Optional[str] = None  # "person" | "org" | "event"
+    entity_type: Optional[Literal["person", "org", "event"]] = None
     title: Optional[str] = None
 
 
@@ -147,6 +148,17 @@ class OLImportRecord(BaseModel):
 
     # Optional identifiers (external site IDs; values are lists per schema)
     identifiers: Optional[dict[str, List[str]]] = None
+
+    @field_validator('identifiers')
+    @classmethod
+    def _validate_identifier_keys(cls, v: Optional[dict]) -> Optional[dict]:
+        if v:
+            for key in v:
+                if not re.match(r'^\w+$', key):
+                    raise ValueError(
+                        f"Identifier key {key!r} must match ^\\w+ (letters, digits, underscores only)"
+                    )
+        return v
 
 
 # ---------------------------------------------------------------------------
@@ -229,8 +241,10 @@ class JSONLProvider(DataProvider, ABC):
         else:
             yield from self._iter_local(self.SOURCE_URL)
 
+    TIMEOUT: int = 30  # seconds; override on subclass for slow sources
+
     def _iter_remote(self, url: str) -> Iterator[DataProviderRecord]:
-        with urllib.request.urlopen(url) as f:
+        with urllib.request.urlopen(url, timeout=self.TIMEOUT) as f:
             for lineno, raw in enumerate(f, 1):
                 yield from self._parse_line(raw, lineno)
 
@@ -242,10 +256,12 @@ class JSONLProvider(DataProvider, ABC):
     def _parse_line(self, raw: bytes, lineno: int) -> Iterator[DataProviderRecord]:
         try:
             data = json.loads(raw)
-            yield self.RECORD_CLASS.model_validate(data)
         except json.JSONDecodeError as exc:
             log.warning("Line %d: JSON parse error — %s", lineno, exc)
-        except Exception as exc:
+            return
+        try:
+            yield self.RECORD_CLASS.model_validate(data)
+        except ValidationError as exc:
             log.warning("Line %d: validation error — %s", lineno, exc)
 
 
