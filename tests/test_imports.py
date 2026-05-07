@@ -410,7 +410,6 @@ class TestJSONLProvider:
         assert any("validation error" in m for m in caplog.messages)
 
     def test_empty_file(self, tmp_path):
-        path = str(tmp_path / "empty.jsonl")
         path_obj = tmp_path / "empty.jsonl"
         path_obj.write_text("")
         provider = _TestJSONLProvider(str(path_obj))
