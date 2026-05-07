@@ -16,3 +16,13 @@ __author__ = 'Internet Archive'
 from olclient.bots import AbstractBotJob
 from olclient.openlibrary import OpenLibrary
 from olclient.common import Book, Author
+from olclient.imports import (
+    DataProvider,
+    DataProviderRecord,
+    JSONLProvider,
+    OLAuthor,
+    OLContributor,
+    OLImportRecord,
+    OLLink,
+    PaginatedAPIProvider,
+)
