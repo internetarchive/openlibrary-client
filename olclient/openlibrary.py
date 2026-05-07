@@ -141,6 +141,148 @@ class OpenLibrary:
             comment=comment
         )
 
+    def submit_batch(self, records, *, dry_run: bool = False) -> dict:
+        """Submit OLImportRecord instances to POST /import/batch/new.
+
+        Any logged-in user may submit. Records from non-admin accounts land in
+        'needs_review' status and require admin approval before ImportBot picks
+        them up. Admin accounts go straight to 'pending'.
+
+        Args:
+            records: iterable of OLImportRecord (or dicts) to submit.
+            dry_run: if True, serialize to JSONL and return the record count
+                     without making any HTTP request.
+
+        Returns a dict with one of two shapes:
+
+        Success::
+
+            {
+                'success': True,
+                'batch_id': 42,
+                'batch_name': 'batch-abc123',
+                'total_submitted': 67,
+                'total_queued': 67,
+                'total_skipped': 0,
+                'batch_url': 'https://openlibrary.org/import/batch/42',
+            }
+
+        Failure (validation errors)::
+
+            {
+                'success': False,
+                'errors': [{'line': 3, 'message': 'Publication year too old'}],
+            }
+
+        Note: a JSON API endpoint for this would be cleaner; this method
+        parses the HTML response from the form-based /import/batch/new endpoint.
+        """
+        from olclient.imports import OLImportRecord
+
+        lines = []
+        for rec in records:
+            if isinstance(rec, OLImportRecord):
+                lines.append(rec.model_dump_json(exclude_none=True))
+            else:
+                lines.append(json.dumps(rec))
+
+        if dry_run:
+            return {'dry_run': True, 'record_count': len(lines)}
+
+        response = self.session.post(
+            f'{self.base_url}/import/batch/new',
+            data={'batchImportText': '\n'.join(lines)},
+        )
+
+        if response.status_code == 403:
+            raise PermissionError("Not authorized — must be logged in to submit a batch")
+
+        text = response.text
+
+        if 'Import failed' in text:
+            errors = [
+                {'line': int(m.group(1)), 'message': m.group(2).strip()}
+                for m in re.finditer(r'Line (\d+):</strong>\s*([^<]+)', text)
+            ]
+            return {'success': False, 'errors': errors}
+
+        if 'Import results for batch' in text:
+            def _int(pattern):
+                m = re.search(pattern, text)
+                return int(m.group(1)) if m else None
+
+            batch_id = _int(r'Batch #(\d+)')
+            name_m = re.search(r'Batch #\d+ \(([^)]+)\)', text)
+            return {
+                'success': True,
+                'batch_id': batch_id,
+                'batch_name': name_m.group(1) if name_m else None,
+                'total_submitted': _int(r'Records submitted:.*?(\d+)'),
+                'total_queued': _int(r'Total queued:.*?(\d+)'),
+                'total_skipped': _int(r'Total skipped:.*?(\d+)'),
+                'batch_url': f'{self.base_url}/import/batch/{batch_id}' if batch_id else None,
+            }
+
+        return {
+            'success': False,
+            'errors': [{'line': 0, 'message': f'Unexpected response (status {response.status_code})'}],
+        }
+
+    def get_batch(self, batch_id: int) -> dict:
+        """Fetch the current status of a batch import.
+
+        Args:
+            batch_id: the integer batch ID returned by submit_batch().
+
+        Returns::
+
+            {
+                'batch_id': 42,
+                'batch_name': 'batch-abc123',
+                'submitter': 'username',
+                'submit_time': '2026-05-07 00:30:00',
+                'status_counts': {
+                    'pending': 10,
+                    'needs_review': 5,
+                    'imported': 52,
+                    'error': 0,
+                },
+                'batch_url': 'https://openlibrary.org/import/batch/42',
+            }
+
+        Note: parses the HTML from GET /import/batch/{id}; a JSON API
+        endpoint would be preferable and is a candidate for a future OL PR.
+        """
+        response = self.session.get(f'{self.base_url}/import/batch/{batch_id}')
+
+        if response.status_code == 404:
+            raise ValueError(f"Batch {batch_id} not found")
+        if response.status_code == 403:
+            raise PermissionError("Not authorized to view this batch")
+
+        text = response.text
+
+        def _field(label):
+            m = re.search(rf'{re.escape(label)}\s*</p>\s*<p[^>]*>([^<]+)', text)
+            if not m:
+                # Also try inline: "Label: value"
+                m = re.search(rf'{re.escape(label)}:?\s*</?\w*>?\s*([^\n<]+)', text)
+            return m.group(1).strip() if m else None
+
+        # Parse status counts: "<li>status: N</li>"
+        status_counts = {}
+        for m in re.finditer(r'<li>(\w+):\s*(\d+)', text):
+            status_counts[m.group(1)] = int(m.group(2))
+
+        return {
+            'batch_id': batch_id,
+            'batch_name': _field('Batch Name:'),
+            'submitter': _field('Submitter:'),
+            'submit_time': _field('Submit Time:'),
+            'status_counts': status_counts,
+            'batch_url': f'{self.base_url}/import/batch/{batch_id}',
+        }
+
     err = lambda e: logger.exception("Error retrieving OpenLibrary response: %s", e)
 
     @backoff.on_exception(on_giveup=err, **BACKOFF_KWARGS)  # type: ignore
