@@ -36,10 +36,6 @@
       "type": "array",
       "items": { "$ref": "shared_definitions.json#/link" }
     },
-    "id": {
-      "description": "Unsure what this is for, deprecate?",
-      "type": "number"
-     },
     "lc_classifications":  { "$ref": "shared_definitions.json#/string_array" },
     "subjects":            { "$ref": "shared_definitions.json#/string_array" },
 
