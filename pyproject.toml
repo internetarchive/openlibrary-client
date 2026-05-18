@@ -17,17 +17,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
+requires-python = ">=3.9"
 dependencies = [
     "backoff==2.2.1",
     "internetarchive==5.7.1",
     "jsonpickle==3.0.2",
     "jsonschema==4.21.1",
+    "pydantic>=2.0,<3",
     "requests[security]==2.31.0",
     "simplejson==3.19.2",
 ]
@@ -67,7 +68,7 @@ extend-select = ["C4", "C9", "PLC", "PLE", "W"]
 ignore = ["E703", "E722", "E731", "F401", "E402"]
 line-length=1501
 show-source = true
-target-version = "py37"
+target-version = "py39"
 
 [tool.ruff.mccabe]
 max-complexity = 33

@@ -2,5 +2,6 @@ backoff==2.2.1
 internetarchive==5.7.1
 jsonpickle==3.0.2
 jsonschema==4.21.1
+pydantic>=2.0
 requests[security]==2.31.0
 simplejson==3.19.2
