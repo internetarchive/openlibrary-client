@@ -129,6 +129,7 @@ class OpenLibrary:
         headers = {
             'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
             '42-comment': comment,
+            'Content-Type': 'application/json',
         }
         doc_json = [doc.json() for doc in docs]
         return self.session.post(

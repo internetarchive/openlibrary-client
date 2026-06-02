@@ -273,6 +273,7 @@ class TestOpenLibrary(unittest.TestCase):
         assert len(called_with_json) == 2
         self.assertIn('ns=42', called_with_headers['Opt'])
         self.assertEqual('test comment', called_with_headers['42-comment'])
+        self.assertEqual('application/json', called_with_headers['Content-Type'])
 
     def test_delete(self):
         delete = self.ol.Delete('OL1W')
