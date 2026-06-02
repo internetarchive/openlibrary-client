@@ -223,7 +223,7 @@ class OpenLibrary:
                 """Returns a dict JSON representation of an OL Edition suitable
                 for saving back to Open Library via its APIs.
                 """
-                exclude = ['_work', 'olid', 'work_olid', 'pages']
+                exclude = {'_work', 'olid', 'work_olid', 'pages'} | common.READONLY_FIELDS
                 data = {
                     k: v for k, v in self.__dict__.items() if v and k not in exclude
                 }
@@ -493,7 +493,7 @@ class OpenLibrary:
                 """Returns a dict JSON representation of an OL Author suitable
                 for saving back to Open Library via its APIs.
                 """
-                exclude = ['olid', 'identifiers']
+                exclude = {'olid', 'identifiers'} | common.READONLY_FIELDS
                 data = {
                     k: v for k, v in self.__dict__.items() if v and k not in exclude
                 }

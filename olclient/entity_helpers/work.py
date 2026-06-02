@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Any
 import backoff
 from requests import Response
 
-from olclient.common import Entity, Book
+from olclient.common import Entity, Book, READONLY_FIELDS
 from olclient.helper_classes.results import Results
 from olclient.utils import merge_unique_lists, get_text_value, get_approval_from_cli
 
@@ -33,7 +33,7 @@ def get_work_helper_class(ol_context):
             """Returns a dict JSON representation of an OL Work suitable
             for saving back to Open Library via its APIs.
             """
-            exclude = ['_editions', 'olid']
+            exclude = {'_editions', 'olid'} | READONLY_FIELDS
             data = {k: v for k, v in self.__dict__.items() if v and k not in exclude}
             data['key'] = '/works/' + self.olid
             data['type'] = {'key': '/type/work'}

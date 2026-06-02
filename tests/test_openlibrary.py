@@ -275,6 +275,25 @@ class TestOpenLibrary(unittest.TestCase):
         self.assertEqual('test comment', called_with_headers['42-comment'])
         self.assertEqual('application/json', called_with_headers['Content-Type'])
 
+    def test_json_strips_readonly_fields(self):
+        readonly = ('revision', 'latest_revision', 'created', 'last_modified')
+        edition = create_edition(self.ol)
+        for field in readonly:
+            self.assertNotIn(field, edition.json(), f"Edition.json() must not include '{field}'")
+
+        work = create_work(self.ol)
+        for field in readonly:
+            self.assertNotIn(field, work.json(), f"Work.json() must not include '{field}'")
+
+        author = self.ol.Author(
+            'OL123A', name='Test Author',
+            revision=1, latest_revision=1,
+            created={'type': '/type/datetime', 'value': '2008-01-01T00:00:00'},
+            last_modified={'type': '/type/datetime', 'value': '2024-01-01T00:00:00'},
+        )
+        for field in readonly:
+            self.assertNotIn(field, author.json(), f"Author.json() must not include '{field}'")
+
     def test_delete(self):
         delete = self.ol.Delete('OL1W')
         self.assertEqual(delete.olid, 'OL1W')

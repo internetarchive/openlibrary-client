@@ -5,6 +5,9 @@ sources"""
 
 from olclient.utils import rm_punctuation
 
+# Fields set by the OL server that must not be submitted in write operations.
+READONLY_FIELDS = frozenset({'revision', 'latest_revision', 'created', 'last_modified'})
+
 VALID_IDENTIFIERS = (
     'olid',
     'oclc',

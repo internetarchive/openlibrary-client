@@ -5,9 +5,7 @@
   "required": [
     "key",
     "title",
-    "type",
-    "revision",
-    "last_modified"
+    "type"
   ],
   "additionalProperties": true,
   "properties": {
