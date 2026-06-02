@@ -294,6 +294,105 @@ class TestOpenLibrary(unittest.TestCase):
         for field in readonly:
             self.assertNotIn(field, author.json(), f"Author.json() must not include '{field}'")
 
+    def test_load_edition(self):
+        doc = {
+            'type': {'key': '/type/edition'},
+            'key': '/books/OL123M',
+            'works': [{'key': '/works/OL123W'}],
+            'title': 'Test Book',
+            'revision': 3,
+            'last_modified': {'type': '/type/datetime', 'value': '2024-01-01T00:00:00'},
+        }
+        edition = self.ol.load(doc)
+        self.assertEqual('Edition', type(edition).__name__)
+        self.assertEqual('OL123M', edition.olid)
+        self.assertEqual('OL123W', edition.work_olid)
+        self.assertEqual('Test Book', edition.title)
+        edition_json = edition.json()
+        self.assertNotIn('revision', edition_json)
+        self.assertNotIn('last_modified', edition_json)
+
+    def test_load_edition_with_authors(self):
+        doc = {
+            'type': {'key': '/type/edition'},
+            'key': '/books/OL123M',
+            'works': [{'key': '/works/OL123W'}],
+            'title': 'Test Book',
+            'authors': [{'key': '/authors/OL456A'}],
+        }
+        edition = self.ol.load(doc)
+        self.assertEqual(1, len(edition.authors))
+        self.assertEqual('OL456A', edition.authors[0].olid)
+        self.assertEqual([{'key': '/authors/OL456A'}], edition.json()['authors'])
+
+    def test_load_work(self):
+        doc = {
+            'type': {'key': '/type/work'},
+            'key': '/works/OL123W',
+            'title': 'Test Work',
+            'revision': 2,
+            'last_modified': {'type': '/type/datetime', 'value': '2024-01-01T00:00:00'},
+        }
+        work = self.ol.load(doc)
+        self.assertEqual('OL123W', work.olid)
+        self.assertEqual('Test Work', work.title)
+        work_json = work.json()
+        self.assertNotIn('revision', work_json)
+        self.assertNotIn('last_modified', work_json)
+
+    def test_load_author(self):
+        doc = {
+            'type': {'key': '/type/author'},
+            'key': '/authors/OL123A',
+            'name': 'Test Author',
+            'revision': 1,
+        }
+        author = self.ol.load(doc)
+        self.assertEqual('OL123A', author.olid)
+        self.assertEqual('Test Author', author.name)
+        self.assertNotIn('revision', author.json())
+
+    def test_load_delete(self):
+        doc = {'type': {'key': '/type/delete'}, 'key': '/works/OL1W'}
+        delete = self.ol.load(doc)
+        self.assertEqual('/type/delete', delete.json()['type']['key'])
+        self.assertEqual('/works/OL1W', delete.json()['key'])
+
+    def test_load_redirect(self):
+        doc = {
+            'type': {'key': '/type/redirect'},
+            'key': '/works/OL1W',
+            'location': '/works/OL2W',
+        }
+        redirect = self.ol.load(doc)
+        self.assertEqual('/type/redirect', redirect.json()['type']['key'])
+        self.assertEqual('/works/OL1W', redirect.json()['key'])
+
+    def test_load_unknown_type(self):
+        with self.assertRaises(ValueError):
+            self.ol.load({'type': {'key': '/type/unknown'}})
+        with self.assertRaises(ValueError):
+            self.ol.load({})
+
+    def test_load_roundtrip(self):
+        """load() then json() produces a save-ready payload with no readonly fields."""
+        doc = {
+            'type': {'key': '/type/work'},
+            'key': '/works/OL123W',
+            'title': 'Roundtrip Work',
+            'revision': 5,
+            'latest_revision': 5,
+            'created': {'type': '/type/datetime', 'value': '2010-01-01T00:00:00'},
+            'last_modified': {'type': '/type/datetime', 'value': '2024-01-01T00:00:00'},
+            'subjects': ['Fiction'],
+        }
+        work = self.ol.load(doc)
+        payload = work.json()
+        for field in ('revision', 'latest_revision', 'created', 'last_modified'):
+            self.assertNotIn(field, payload)
+        self.assertEqual('/works/OL123W', payload['key'])
+        self.assertEqual(['Fiction'], payload['subjects'])
+
     def test_delete(self):
         delete = self.ol.Delete('OL1W')
         self.assertEqual(delete.olid, 'OL1W')

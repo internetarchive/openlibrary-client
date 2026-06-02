@@ -743,6 +743,55 @@ class OpenLibrary:
 
         return Redirect
 
+    def load(self, doc: dict):
+        """Construct the appropriate typed OL entity from a raw API document dict.
+
+        Dispatches on doc['type']['key'] and returns an Edition, Work, Author,
+        Delete, or Redirect.  The resulting object's json() strips server-managed
+        readonly fields, so it is safe to pass directly to save_many().
+
+        Args:
+            doc: a dict as returned by the OL JSON API, must contain a 'type' key.
+
+        Raises:
+            ValueError: if the type is absent or unrecognised.
+        """
+        doc = doc.copy()
+        type_key = doc.get('type', {}).get('key', '')
+
+        if type_key == '/type/edition':
+            edition_olid = doc.pop('key', '').split('/')[-1]
+            work_olid = (
+                doc.pop('works')[0]['key'].split('/')[-1] if 'works' in doc else None
+            )
+            authors = [
+                self.Author(a['key'].split('/')[-1], name='')
+                for a in doc.pop('authors', [])
+            ]
+            doc.pop('type', None)
+            return self.Edition(
+                edition_olid=edition_olid, work_olid=work_olid, authors=authors, **doc
+            )
+        elif type_key == '/type/work':
+            olid = doc.pop('key', '').split('/')[-1]
+            doc.pop('type', None)
+            return self.Work(olid, **doc)
+        elif type_key == '/type/author':
+            olid = self._extract_olid_from_url(doc.pop('key', ''), url_type='authors')
+            doc.pop('type', None)
+            name = doc.pop('name', '')
+            bio = self.get_text_value(doc.pop('bio', None))
+            return self.Author(olid, name=name, bio=bio, **doc)
+        elif type_key == '/type/delete':
+            return self.Delete(doc.get('key', '').split('/')[-1])
+        elif type_key == '/type/redirect':
+            return self.Redirect(
+                f=doc.get('key', '').split('/')[-1],
+                t=doc.get('location', '').split('/')[-1],
+            )
+        else:
+            raise ValueError(f"Unknown or missing type in doc: {type_key!r}")
+
     def get(self, olid):
         _olid = olid.lower()
         if _olid.endswith('m'):
