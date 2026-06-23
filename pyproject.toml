@@ -65,8 +65,7 @@ norecursedirs = ["lib*"]
 [tool.ruff]
 extend-select = ["C4", "C9", "PLC", "PLE", "W"]
 ignore = ["E703", "E722", "E731", "F401", "E402"]
-line-length=1501
-show-source = true
+line-length = 1501
 target-version = "py37"
 
 [tool.ruff.mccabe]

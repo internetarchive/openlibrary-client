@@ -1,12 +1,29 @@
 import json
-from nturl2path import pathname2url
 import jsonschema
 import os
 import pytest
+from referencing import Registry, Resource
+from urllib.request import pathname2url
 
-IMPORT_SCHEMA = os.path.join(
-    os.path.dirname(__file__), '..', '..', 'olclient', 'schemata', 'import.schema.json'
-)
+SCHEMATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'olclient', 'schemata')
+IMPORT_SCHEMA = os.path.join(SCHEMATA_DIR, 'import.schema.json')
+
+
+def _schema_uri(path):
+    return 'file:' + pathname2url(os.path.realpath(path))
+
+
+def _build_schema_registry(schemata_dir):
+    """Build a Registry containing all JSON schemas in schemata_dir."""
+    resources = {}
+    for fname in os.listdir(schemata_dir):
+        if not fname.endswith('.json'):
+            continue
+        fpath = os.path.join(schemata_dir, fname)
+        with open(fpath, encoding='utf-8') as f:
+            schema = json.load(f)
+        resources[_schema_uri(fpath)] = Resource.from_contents(schema)
+    return Registry().with_resources(resources.items())
 
 # Examples taken from openlibrary/plugins/importapi/import_edition_builder.py
 
@@ -89,8 +106,9 @@ examples = [
 
 @pytest.mark.parametrize('example', examples)
 def test_import_examples(example):
-    with open(IMPORT_SCHEMA) as schema_data:
+    with open(IMPORT_SCHEMA, encoding='utf-8') as schema_data:
         schema = json.load(schema_data)
-        resolver = jsonschema.RefResolver('file:' + pathname2url(IMPORT_SCHEMA), schema)
-        result = jsonschema.Draft4Validator(schema, resolver=resolver).validate(example)
-        assert result is None
+    registry = _build_schema_registry(SCHEMATA_DIR)
+    schema.setdefault('id', _schema_uri(IMPORT_SCHEMA))
+    result = jsonschema.Draft4Validator(schema, registry=registry).validate(example)
+    assert result is None

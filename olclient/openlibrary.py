@@ -11,6 +11,8 @@ import re
 from urllib.parse import urlencode
 from urllib.request import pathname2url
 
+from referencing import Registry, Resource
+
 import backoff
 import requests
 from requests import Response
@@ -21,6 +23,28 @@ from olclient.entity_helpers.work import get_work_helper_class
 from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
+
+
+def _schema_uri(path: str) -> str:
+    """Return a canonical file:// URI for an absolute schema path."""
+    return 'file:' + pathname2url(os.path.realpath(path))
+
+
+def _build_schema_registry(schemata_dir: str) -> Registry:
+    """Build a referencing.Registry containing all JSON schemas in schemata_dir.
+
+    Registers each .json file under a file:// URI so that cross-schema
+    $ref resolution works without the deprecated jsonschema.RefResolver.
+    """
+    resources = {}
+    for fname in os.listdir(schemata_dir):
+        if not fname.endswith('.json'):
+            continue
+        fpath = os.path.join(schemata_dir, fname)
+        with open(fpath, encoding='utf-8') as f:
+            schema = json.load(f)
+        resources[_schema_uri(fpath)] = Resource.from_contents(schema)
+    return Registry().with_resources(resources.items())
 
 
 class OpenLibrary:
@@ -102,13 +126,15 @@ class OpenLibrary:
           jsonschema.exceptions.ValidationError if validation fails.
         """
         path = os.path.dirname(os.path.realpath(__file__))
-        schemata_path = os.path.join(path, 'schemata', schema_name)
+        schemata_dir = os.path.join(path, 'schemata')
+        schemata_path = os.path.join(schemata_dir, schema_name)
         with open(schemata_path) as schema_data:
             schema = json.load(schema_data)
-            resolver = jsonschema.RefResolver('file:' + pathname2url(schemata_path), schema)
-            return jsonschema.Draft4Validator(schema, resolver=resolver).validate(
-                doc.json()
-            )
+        registry = _build_schema_registry(schemata_dir)
+        # Inject the schema's own URI as `id` so relative $refs resolve correctly.
+        # Draft4Validator uses `id` (not `$id`) as the base URI for the resolver.
+        schema.setdefault('id', _schema_uri(schemata_path))
+        return jsonschema.Draft4Validator(schema, registry=registry).validate(doc.json())
 
     def delete(self, olid, comment):
         """Delete a single Open Library entity by olid (str)
