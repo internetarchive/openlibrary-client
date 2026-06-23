@@ -61,6 +61,9 @@ show_error_context = true
 
 [tool.pytest.ini_options]
 norecursedirs = ["lib*"]
+markers = [
+    "integration: requires a running OL instance (set OL_TEST_URL)",
+]
 
 [tool.ruff]
 extend-select = ["C4", "C9", "PLC", "PLE", "W"]
