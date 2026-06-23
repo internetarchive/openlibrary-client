@@ -421,3 +421,77 @@ class TestTextType(unittest.TestCase):
         self.assertIsInstance(work.description, str)
         self.assertIn('type', work.json()['description'])
         self.assertEqual(work.json()['description']['value'], "A Text Description")
+
+
+class TestTag(unittest.TestCase):
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
+
+    def test_tag_init(self):
+        tag = self.ol.Tag('OL32T', name='cooking', tag_type='subject')
+        assert tag.olid == 'OL32T'
+        assert tag.name == 'cooking'
+        assert tag.tag_type == 'subject'
+
+    def test_tag_init_kwargs(self):
+        tag = self.ol.Tag(
+            'OL32T',
+            name='cooking',
+            tag_type='subject',
+            tag_description='Books about cooking',
+        )
+        assert tag.tag_description == 'Books about cooking'
+
+    def test_tag_json(self):
+        tag = self.ol.Tag('OL32T', name='cooking', tag_type='subject')
+        data = tag.json()
+        assert data['key'] == '/tags/OL32T'
+        assert data['type'] == {'key': '/type/tag'}
+        assert data['name'] == 'cooking'
+        assert data['tag_type'] == 'subject'
+        # Read-only fields must not appear
+        assert 'olid' not in data
+        assert 'revision' not in data
+
+    def test_tag_json_excludes_none_values(self):
+        tag = self.ol.Tag('OL32T', name='cooking', tag_type='subject')
+        data = tag.json()
+        assert 'tag_description' not in data
+
+    @patch('requests.Session.get')
+    def test_tag_get(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'key': '/tags/OL32T',
+            'name': 'cooking',
+            'tag_type': 'subject',
+            'tag_description': 'Books about cooking',
+            'type': {'key': '/type/tag'},
+        }
+        tag = self.ol.Tag.get('OL32T')
+        assert tag.olid == 'OL32T'
+        assert tag.name == 'cooking'
+        assert tag.tag_type == 'subject'
+        assert tag.tag_description == 'Books about cooking'
+
+    @patch('requests.Session.get')
+    def test_tag_get_not_found(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'error': 'notfound',
+            'key': '/tags/OL9999T',
+        }
+        tag = self.ol.Tag.get('OL9999T')
+        assert tag is None
+
+    @patch('requests.Session.get')
+    def test_get_dispatches_to_tag(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'key': '/tags/OL32T',
+            'name': 'cooking',
+            'tag_type': 'subject',
+            'type': {'key': '/type/tag'},
+        }
+        result = self.ol.get('OL32T')
+        assert result is not None
+        assert result.olid == 'OL32T'
+        assert result.name == 'cooking'
