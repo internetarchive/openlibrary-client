@@ -31,6 +31,7 @@ def getdef(self, section, option, default_value):
 
 
 Credentials = namedtuple('Credentials', ['access', 'secret'])
+UserCredentials = namedtuple('UserCredentials', ['username', 'password'])
 
 
 class Config:

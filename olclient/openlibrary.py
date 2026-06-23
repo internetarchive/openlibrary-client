@@ -16,7 +16,7 @@ import requests
 from requests import Response
 
 from olclient import common
-from olclient.config import Config
+from olclient.config import Config, Credentials, UserCredentials
 from olclient.entity_helpers.work import get_work_helper_class
 from olclient.utils import merge_unique_lists
 
@@ -61,12 +61,56 @@ class OpenLibrary:
     WORKS_LIMIT = 50
     WORKS_PAGINATION_OFFSET = 0
 
-    def __init__(self, credentials=None, base_url='https://openlibrary.org'):
+    def __init__(self, credentials=None, base_url=None):
         self.session = requests.Session()
-        self.base_url = base_url
-        credentials = credentials or Config().get_config().get('s3', None)
+        self.base_url = base_url or os.environ.get('OL_BASE_URL', 'https://openlibrary.org')
+        if credentials is None:
+            # Env var credentials take precedence over config file
+            username = os.environ.get('OL_USERNAME')
+            password = os.environ.get('OL_PASSWORD')
+            s3_access = os.environ.get('OL_S3_ACCESS')
+            s3_secret = os.environ.get('OL_S3_SECRET')
+            if username and password:
+                credentials = UserCredentials(username=username, password=password)
+            elif s3_access and s3_secret:
+                credentials = Credentials(access=s3_access, secret=s3_secret)
+            else:
+                credentials = Config().get_config().get('s3', None)
         if credentials:
             self.login(credentials)
+
+    @classmethod
+    def from_local(cls, port=8080, username=None, password=None):
+        """Create an OpenLibrary client pointed at a local Docker dev instance.
+
+        Args:
+            port (int): port the local OL web server is listening on (default 8080)
+            username (str): OL account username/email (optional)
+            password (str): OL account password (optional)
+
+        Returns:
+            OpenLibrary: client instance connected to http://localhost:{port}
+
+        Example:
+            >>> ol = OpenLibrary.from_local()
+            >>> ol = OpenLibrary.from_local(port=8081, username='admin@example.com', password='secret')
+        """
+        creds = UserCredentials(username=username, password=password) if username and password else None
+        return cls(credentials=creds, base_url=f'http://localhost:{port}')
+
+    def health_check(self):
+        """Verify the OL instance is reachable.
+
+        Returns True if the instance responds (any HTTP status), False on connection error.
+        Useful in tests and scripts before performing operations.
+        """
+        try:
+            response = self.session.get(
+                f'{self.base_url}/api/books.json', params={'bibkeys': 'ISBN:0000000000'}, timeout=5
+            )
+            return response.status_code < 500
+        except requests.exceptions.RequestException:
+            return False
 
     def login(self, credentials):
         """Login to Open Library with given credentials, ensures the requests

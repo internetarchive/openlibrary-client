@@ -421,3 +421,65 @@ class TestTextType(unittest.TestCase):
         self.assertIsInstance(work.description, str)
         self.assertIn('type', work.json()['description'])
         self.assertEqual(work.json()['description']['value'], "A Text Description")
+
+
+class TestLocalDev(unittest.TestCase):
+    """Tests for local dev ergonomics: from_local(), env vars, health_check()."""
+
+    @patch('olclient.config.Config.get_config', return_value={'s3': None})
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_from_local_default_port(self, mock_login, mock_config):
+        ol = OpenLibrary.from_local()
+        self.assertEqual(ol.base_url, 'http://localhost:8080')
+        mock_login.assert_not_called()
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_from_local_custom_port(self, mock_login):
+        ol = OpenLibrary.from_local(port=8081)
+        self.assertEqual(ol.base_url, 'http://localhost:8081')
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_from_local_with_credentials(self, mock_login):
+        ol = OpenLibrary.from_local(username='admin@example.com', password='secret')
+        self.assertEqual(ol.base_url, 'http://localhost:8080')
+        mock_login.assert_called_once()
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_env_var_base_url(self, mock_login):
+        with patch.dict('os.environ', {'OL_BASE_URL': 'http://testserver:9000'}):
+            ol = OpenLibrary()
+        self.assertEqual(ol.base_url, 'http://testserver:9000')
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_env_var_username_password(self, mock_login):
+        envs = {'OL_USERNAME': 'user@example.com', 'OL_PASSWORD': 'pass'}
+        with patch.dict('os.environ', envs):
+            ol = OpenLibrary()
+        mock_login.assert_called_once()
+        args = mock_login.call_args[0][0]
+        self.assertEqual(args.username, 'user@example.com')
+        self.assertEqual(args.password, 'pass')
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_env_var_s3_credentials(self, mock_login):
+        envs = {'OL_S3_ACCESS': 'MYACCESS', 'OL_S3_SECRET': 'MYSECRET'}
+        with patch.dict('os.environ', envs):
+            ol = OpenLibrary()
+        mock_login.assert_called_once()
+        args = mock_login.call_args[0][0]
+        self.assertEqual(args.access, 'MYACCESS')
+        self.assertEqual(args.secret, 'MYSECRET')
+
+    @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_health_check_true(self, mock_login, mock_get):
+        ol = OpenLibrary()
+        mock_get.return_value.status_code = 200
+        self.assertTrue(ol.health_check())
+
+    @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def test_health_check_false_on_connection_error(self, mock_login, mock_get):
+        ol = OpenLibrary()
+        mock_get.side_effect = requests.exceptions.ConnectionError("refused")
+        self.assertFalse(ol.health_check())
