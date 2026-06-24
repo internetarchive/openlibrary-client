@@ -454,7 +454,7 @@ class TestLocalDev(unittest.TestCase):
     def test_env_var_username_password(self, mock_login):
         envs = {'OL_USERNAME': 'user@example.com', 'OL_PASSWORD': 'pass'}
         with patch.dict('os.environ', envs):
-            ol = OpenLibrary()
+            OpenLibrary()
         mock_login.assert_called_once()
         args = mock_login.call_args[0][0]
         self.assertEqual(args.username, 'user@example.com')
@@ -464,7 +464,7 @@ class TestLocalDev(unittest.TestCase):
     def test_env_var_s3_credentials(self, mock_login):
         envs = {'OL_S3_ACCESS': 'MYACCESS', 'OL_S3_SECRET': 'MYSECRET'}
         with patch.dict('os.environ', envs):
-            ol = OpenLibrary()
+            OpenLibrary()
         mock_login.assert_called_once()
         args = mock_login.call_args[0][0]
         self.assertEqual(args.access, 'MYACCESS')
