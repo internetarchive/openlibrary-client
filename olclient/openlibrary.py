@@ -63,6 +63,7 @@ class OpenLibrary:
 
     def __init__(self, credentials=None, base_url='https://openlibrary.org'):
         self.session = requests.Session()
+        self.session.headers.update({'Content-Type': 'application/json'})
         self.base_url = base_url
         credentials = credentials or Config().get_config().get('s3', None)
         if credentials:
