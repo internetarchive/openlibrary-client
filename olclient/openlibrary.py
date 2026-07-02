@@ -769,6 +769,106 @@ class OpenLibrary:
 
         return Redirect
 
+    @property
+    def Tag(ol_self):
+        class Tag:
+            """Represents an Open Library Tag document (/tags/OLnT).
+
+            Tags are first-class OL entities used for controlled-vocabulary
+            subject tagging. Each tag has a name, a tag_type (e.g. "subject"),
+            an optional description, and optional body HTML.
+
+            Usage:
+                >>> tag = ol.Tag.get('OL32T')
+                >>> print(tag.name, tag.tag_type)
+                cooking subject
+            """
+
+            OL = ol_self
+
+            def __init__(self, olid, name, tag_type='subject', **kwargs):
+                self.olid = olid
+                self.name = name
+                self.tag_type = tag_type
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
+
+            def json(self):
+                """Returns a dict representation suitable for saving to OL."""
+                exclude = {
+                    'olid',
+                    'revision',
+                    'latest_revision',
+                    'created',
+                    'last_modified',
+                }
+                data = {
+                    k: v for k, v in self.__dict__.items() if v is not None and k not in exclude
+                }
+                data['key'] = f'/tags/{self.olid}'
+                data['type'] = {'key': '/type/tag'}
+                return data
+
+            def save(self, comment):
+                """Saves this Tag back to Open Library using the JSON API."""
+                body = self.json()
+                body['_comment'] = comment
+                url = self.OL.base_url + f'/tags/{self.olid}.json'
+                return self.OL.session.put(url, json.dumps(body))
+
+            @classmethod
+            def get(cls, olid):
+                """Retrieves an OL Tag by olid (e.g. 'OL32T').
+
+                Returns:
+                    Tag instance, or None if not found.
+
+                Usage:
+                    >>> ol.Tag.get('OL32T')
+                """
+                path = f'/tags/{olid}.json'
+                r = cls.OL.get_ol_response(path)
+                if r is None:
+                    return None
+                try:
+                    data = r.json()
+                except Exception:
+                    return None
+                if 'error' in data:
+                    return None
+                _olid = data.pop('key', f'/tags/{olid}').split('/')[-1]
+                name = data.pop('name', '')
+                tag_type = data.pop('tag_type', 'subject')
+                # Strip read-only fields that callers can't set
+                data.pop('type', None)
+                return cls(_olid, name=name, tag_type=tag_type, **data)
+
+            @classmethod
+            def create(cls, name, tag_type, description='', comment='add tag'):
+                """Creates a new Tag in Open Library.
+
+                Args:
+                    name (str) - tag name (e.g. 'cooking')
+                    tag_type (str) - one of 'subject', 'genre', etc.
+                    description (str) - human-readable description
+                    comment (str) - edit comment
+
+                Returns:
+                    Response from save_many.
+
+                Usage:
+                    >>> ol.Tag.create('cooking', 'subject', 'Books about cooking')
+                """
+                tag = cls(
+                    olid='',  # OL assigns the OLID on creation
+                    name=name,
+                    tag_type=tag_type,
+                    tag_description=description or None,
+                )
+                return cls.OL.save_many([tag], comment)
+
+        return Tag
+
     def get(self, olid):
         _olid = olid.lower()
         if _olid.endswith('m'):
@@ -777,6 +877,8 @@ class OpenLibrary:
             return self.Work.get(olid)
         elif _olid.endswith('a'):
             return self.Author.get(olid)
+        elif _olid.endswith('t'):
+            return self.Tag.get(olid)
 
     @classmethod
     def get_primary_identifier(cls, book):

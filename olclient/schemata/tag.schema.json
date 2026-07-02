@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Open Library Tag Schema",
+  "type": "object",
+  "required": [
+    "key",
+    "name",
+    "tag_type",
+    "type"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^/tags/OL[0-9]+T$"
+    },
+    "name": { "type": "string" },
+    "tag_type": { "type": "string" },
+    "tag_description": { "type": "string" },
+    "body": { "type": "string" },
+    "slugs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tag_plugins": {
+      "type": "array"
+    },
+    "type": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["/type/tag"]
+        }
+      }
+    },
+    "revision":        { "type": "number" },
+    "latest_revision": { "type": "number" },
+    "created":         { "$ref": "shared_definitions.json#/internal_datetime" },
+    "last_modified":   { "$ref": "shared_definitions.json#/internal_datetime" }
+  }
+}
