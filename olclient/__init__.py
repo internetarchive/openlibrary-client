@@ -13,6 +13,6 @@ __version__ = '0.0.31'
 __author__ = 'Internet Archive'
 
 
-from olclient.bots import AbstractBotJob
-from olclient.openlibrary import OpenLibrary
-from olclient.common import Book, Author
+from olclient.bots import AbstractBotJob as AbstractBotJob
+from olclient.openlibrary import OpenLibrary as OpenLibrary
+from olclient.common import Book as Book, Author as Author
