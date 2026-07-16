@@ -2,7 +2,7 @@
 
 
 import json
-from typing import List, Dict, Optional, Any
+from typing import List
 
 import jsonschema
 import logging
@@ -20,7 +20,6 @@ from requests import Response
 from olclient import common
 from olclient.config import Config
 from olclient.entity_helpers.work import get_work_helper_class
-from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
