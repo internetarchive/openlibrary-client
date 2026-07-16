@@ -25,10 +25,10 @@ classifiers = [
 ]
 dependencies = [
     "backoff==2.2.1",
-    "internetarchive==5.7.1",
+    "internetarchive==5.9.0",
     "jsonpickle==3.0.2",
     "jsonschema==4.21.1",
-    "requests[security]==2.31.0",
+    "requests[security]==2.34.2",
     "simplejson==3.20.2",
 ]
 
