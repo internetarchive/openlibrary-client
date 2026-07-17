@@ -386,6 +386,117 @@ class TestFullEditionGet(unittest.TestCase):
         )
 
 
+class TestGetMany(unittest.TestCase):
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
+
+    @patch('requests.Session.get')
+    def test_get_many_empty_returns_empty(self, mock_get):
+        results = self.ol.get_many([])
+        assert results == []
+        mock_get.assert_not_called()
+
+    @patch('requests.Session.get')
+    def test_get_many_returns_work(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            '/works/OL45804W': {
+                'key': '/works/OL45804W',
+                'title': 'Harry Potter',
+                'type': {'key': '/type/work'},
+            }
+        }
+        results = self.ol.get_many(['OL45804W'])
+        assert len(results) == 1
+        assert results[0].olid == 'OL45804W'
+        assert results[0].title == 'Harry Potter'
+
+    @patch('requests.Session.get')
+    def test_get_many_skips_null_docs(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            '/works/OL45804W': {
+                'key': '/works/OL45804W',
+                'title': 'Harry Potter',
+            },
+            '/works/OL99999W': None,
+        }
+        results = self.ol.get_many(['OL45804W', 'OL99999W'])
+        assert len(results) == 1
+
+    @patch('requests.Session.get')
+    def test_get_many_returns_edition(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            '/books/OL1526129M': {
+                'key': '/books/OL1526129M',
+                'title': "Artificial Intelligence",
+                'works': [{'key': '/works/OL82563W'}],
+            }
+        }
+        results = self.ol.get_many(['OL1526129M'])
+        assert len(results) == 1
+        assert results[0].olid == 'OL1526129M'
+        assert results[0].title == 'Artificial Intelligence'
+        assert results[0].work_olid == 'OL82563W'
+
+    @patch('requests.Session.get')
+    def test_get_many_returns_author(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            '/authors/OL26170A': {
+                'key': '/authors/OL26170A',
+                'name': 'Benjamin Franklin',
+                'type': {'key': '/type/author'},
+            }
+        }
+        results = self.ol.get_many(['OL26170A'])
+        assert len(results) == 1
+        assert results[0].olid == 'OL26170A'
+        assert results[0].name == 'Benjamin Franklin'
+
+    @patch('requests.Session.get')
+    def test_get_many_constructs_correct_url(self, mock_get):
+        mock_get.return_value.json.return_value = {}
+        self.ol.get_many(['OL45804W', 'OL1526129M'])
+        called_url = mock_get.call_args[0][0]
+        assert '/api/get_many.json?keys=' in called_url
+        assert '/works/OL45804W' in called_url
+        assert '/books/OL1526129M' in called_url
+
+    @patch('requests.Session.get')
+    def test_get_many_by_isbn_empty_returns_empty(self, mock_get):
+        results = self.ol.get_many_by_isbn([])
+        assert results == []
+        mock_get.assert_not_called()
+
+    @patch('requests.Session.get')
+    def test_get_many_by_isbn_fetches_editions(self, mock_get):
+        books_api_response = {
+            'ISBN:0374202915': {
+                'info_url': 'https://openlibrary.org/books/OL23575801M/Marie_LaVeau'
+            }
+        }
+        get_many_response = {
+            '/books/OL23575801M': {
+                'key': '/books/OL23575801M',
+                'title': 'Marie LaVeau',
+                'works': [{'key': '/works/OL1W'}],
+            }
+        }
+        mock_get.return_value.json.side_effect = [books_api_response, get_many_response]
+        results = self.ol.get_many_by_isbn(['0374202915'])
+        assert len(results) == 1
+        assert results[0].olid == 'OL23575801M'
+        assert results[0].title == 'Marie LaVeau'
+        assert results[0].work_olid == 'OL1W'
+
+    @patch('requests.Session.get')
+    def test_get_many_by_isbn_constructs_bibkeys(self, mock_get):
+        mock_get.return_value.json.side_effect = [{}, {}]
+        self.ol.get_many_by_isbn(['0374202915', '9780525521198'])
+        called_url = mock_get.call_args_list[0][0][0]
+        assert 'ISBN:0374202915' in called_url
+        assert 'ISBN:9780525521198' in called_url
+
+
 class TestTextType(unittest.TestCase):
     @patch('olclient.openlibrary.OpenLibrary.login')
     def setUp(self, mock_login):

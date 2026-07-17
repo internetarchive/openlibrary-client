@@ -880,6 +880,86 @@ class OpenLibrary:
         elif _olid.endswith('t'):
             return self.Tag.get(olid)
 
+    def get_many(self, olids):
+        """Fetch multiple OL entities by OLID in a single API call.
+
+        Uses /api/get_many.json with comma-separated full keys.
+        Documents not found in OL are silently skipped.
+
+        Args:
+            olids (list[str]) - OLIDs, e.g. ['OL45804W', 'OL1526129M', 'OL26170A']
+
+        Returns:
+            list - typed objects (Work, Edition, or Author) in response order
+
+        Raises:
+            ValueError if any OLID has an unrecognized type suffix
+
+        Usage:
+            >>> results = ol.get_many(['OL45804W', 'OL1526129M'])
+        """
+        if not olids:
+            return []
+        keys = [self.full_key(olid) for olid in olids]
+        path = '/api/get_many.json?keys=' + ','.join(keys)
+        response = self.get_ol_response(path)
+        data = response.json()
+        results = []
+        for key, doc in data.items():
+            if doc is None:
+                continue
+            olid = key.split('/')[-1]
+            _type = olid[-1].upper()
+            if _type == 'W':
+                results.append(self.Work(olid, **doc))
+            elif _type == 'M':
+                results.append(
+                    self.Edition(**self.Edition.ol_edition_json_to_book_args(doc))
+                )
+            elif _type == 'A':
+                _olid = self._extract_olid_from_url(
+                    doc.pop('key', ''), url_type='authors'
+                )
+                results.append(
+                    self.Author(
+                        _olid or olid,
+                        name=doc.pop('name', ''),
+                        bio=self.get_text_value(doc.pop('bio', None)),
+                        **doc,
+                    )
+                )
+        return results
+
+    def get_many_by_isbn(self, isbns):
+        """Fetch multiple editions by ISBN in two API calls.
+
+        Resolves ISBNs to OLIDs via /api/books.json (one call), then
+        fetches full edition data via /api/get_many.json (one call).
+
+        Args:
+            isbns (list[str]) - ISBN-10 or ISBN-13 values
+
+        Returns:
+            list of Edition objects (only editions found in OL)
+
+        Usage:
+            >>> ol.get_many_by_isbn(['0374202915', '9780525521198'])
+        """
+        if not isbns:
+            return []
+        bibkeys = ','.join(f'ISBN:{isbn}' for isbn in isbns)
+        path = f'/api/books.json?bibkeys={bibkeys}'
+        metadata = self.get_ol_response(path).json()
+        olids = []
+        for entry in metadata.values():
+            info_url = entry.get('info_url', '')
+            olid = self._extract_olid_from_url(info_url, url_type='books')
+            if olid:
+                olids.append(olid)
+        if not olids:
+            return []
+        return self.get_many(olids)
+
     @classmethod
     def get_primary_identifier(cls, book):
         """XXX needs docs"""
