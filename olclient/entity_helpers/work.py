@@ -9,6 +9,7 @@ import backoff
 from requests import Response
 
 from olclient.common import Entity, Book
+from olclient.covers import upload_cover_from_url
 from olclient.helper_classes.results import Results
 from olclient.utils import merge_unique_lists, get_text_value, get_approval_from_cli
 
@@ -112,9 +113,33 @@ def get_work_helper_class(ol_context):
             return author_role
 
         def add_bookcover(self, url):
+            """Adds a cover image to this work.
+
+            Fetches the image client-side and uploads the raw bytes rather
+            than handing the OL server a URL to fetch itself — see
+            olclient.covers for why that server-side fetch is unreliable.
+
+            Returns the upload Response, or None if the cover could not be
+            fetched (callers should treat that as "no cover", not an error).
+            """
+            return upload_cover_from_url(
+                url, self.add_book_cover_from_file, olid=self.olid
+            )
+
+        def add_book_cover_from_file(
+            self,
+            file_name: str,
+            cover_data: bytes,
+            mime_type: str = 'image/jpeg',
+        ) -> Response:
+            """Uploads raw image bytes as this work's cover."""
             return self.OL.session.post(
                 f'{self.OL.base_url}/works/{self.olid}/-/add-cover',
-                files={'file': '', 'url': url, 'upload': 'submit'},
+                files={
+                    'file': (file_name, cover_data, mime_type),
+                    'url': (None, 'https://'),
+                    'upload': (None, 'Submit'),
+                },
             )
 
         def add_subject(self, subject, comment=''):

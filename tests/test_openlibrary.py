@@ -12,6 +12,7 @@ from unittest.mock import Mock, call, patch, ANY
 
 from olclient.config import Config
 from olclient.common import Author, Book
+from olclient.covers import CoverFetchError
 from olclient.openlibrary import OpenLibrary
 
 
@@ -284,6 +285,74 @@ class TestOpenLibrary(unittest.TestCase):
         redirect = self.ol.Redirect(f='OL1W', t='OL2W')
         self.assertEqual('/type/redirect', redirect.json()['type']['key'])
         self.assertIn('location', redirect.json())
+
+
+class TestAddBookcover(unittest.TestCase):
+    """add_bookcover() fetches the cover client-side and uploads bytes,
+    rather than asking the OL server to fetch a `source_url` itself — that
+    server-side fetch is blocked for hosts outside a small allowlist (see
+    olclient.covers).
+    """
+
+    @patch('olclient.openlibrary.OpenLibrary.login')
+    def setUp(self, mock_login):
+        self.ol = OpenLibrary()
+        self.edition = create_edition(self.ol)
+
+    @patch('requests.Session.post')
+    @patch('olclient.covers.fetch_cover_bytes')
+    def test_uploads_fetched_bytes(self, mock_fetch, mock_post):
+        mock_fetch.return_value = (b'\xff\xd8\xff...', 'cover.jpg', 'image/jpeg')
+
+        self.edition.add_bookcover('https://bookdash.org/wp-content/uploads/cover.jpg')
+
+        mock_fetch.assert_called_once_with(
+            'https://bookdash.org/wp-content/uploads/cover.jpg'
+        )
+        mock_post.assert_called_once()
+        _, kwargs = mock_post.call_args
+        self.assertEqual(
+            kwargs['files']['file'], ('cover.jpg', b'\xff\xd8\xff...', 'image/jpeg')
+        )
+
+    @patch('requests.Session.post')
+    @patch('olclient.covers.fetch_cover_bytes')
+    def test_returns_none_and_skips_upload_on_fetch_failure(self, mock_fetch, mock_post):
+        mock_fetch.side_effect = CoverFetchError('boom')
+
+        result = self.edition.add_bookcover('https://bookdash.org/broken.jpg')
+
+        self.assertIsNone(result)
+        mock_post.assert_not_called()
+
+    @patch('requests.Session.post')
+    def test_missing_cover_url_is_skipped_not_raised(self, mock_post):
+        """`cover` is optional across the import pipeline (OLImportRecord.cover
+        is Optional[str], Book.cover defaults to ''), and Work.create() calls
+        add_bookcover() unconditionally — a record with no cover must skip,
+        not blow up the whole import.
+        """
+        for empty in (None, ''):
+            with self.subTest(cover=empty):
+                self.assertIsNone(self.edition.add_bookcover(empty))
+        mock_post.assert_not_called()
+
+    @patch('requests.Session.post')
+    @patch('olclient.covers.fetch_cover_bytes')
+    def test_work_add_bookcover_uploads_bytes(self, mock_fetch, mock_post):
+        """Work.add_bookcover() must use the byte-upload path too — Work.create()
+        calls it right after the Edition's, so leaving it on URL mode would keep
+        the work-level cover subject to the server-side allowlist.
+        """
+        mock_fetch.return_value = (b'\x89PNG...', 'cover.png', 'image/png')
+
+        self.ol.Work('OL1W').add_bookcover('https://bookdash.org/cover.png')
+
+        args, kwargs = mock_post.call_args
+        self.assertIn('/works/OL1W/-/add-cover', args[0])
+        self.assertEqual(
+            kwargs['files']['file'], ('cover.png', b'\x89PNG...', 'image/png')
+        )
 
 
 class TestAuthors(unittest.TestCase):

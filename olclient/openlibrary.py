@@ -19,6 +19,7 @@ from requests import Response
 
 from olclient import common
 from olclient.config import Config
+from olclient.covers import upload_cover_from_url
 from olclient.entity_helpers.work import get_work_helper_class
 from olclient.utils import merge_unique_lists
 
@@ -283,12 +284,22 @@ class OpenLibrary:
                 return self.OL.validate(self, 'edition.schema.json')
 
             def add_bookcover(self, cover_url):
-                """Adds a cover image to this edition"""
-                url = f'{self.OL.base_url}/books/{self.olid}/-/add-cover'
-                r = self.OL.session.post(
-                    url, files={'file': '', 'url': cover_url, 'upload': 'submit'}
+                """Adds a cover image to this edition.
+
+                Fetches the image at `cover_url` from wherever
+                openlibrary-client is running and uploads the raw bytes,
+                rather than asking the OL server to fetch `cover_url`
+                itself — that server-side fetch is blocked for any host
+                outside a small allowlist (see olclient.covers), which
+                silently drops covers from most partner/provider hosts.
+
+                Returns the upload Response on success, or None if the
+                cover could not be fetched or was not a usable image —
+                callers should treat that as "no cover", not a fatal error.
+                """
+                return upload_cover_from_url(
+                    cover_url, self.add_book_cover_from_file, olid=self.olid
                 )
-                return r
 
             def add_book_cover_from_file(
                     self,
