@@ -1152,6 +1152,63 @@ class OpenLibrary:
 
                 return result
 
+            @classmethod
+            def retype(
+                cls, from_type, to_type, comment='rename tag_type', write=False
+            ):
+                """Renames the tag_type of every Tag currently of from_type.
+
+                This is what the singular-to-plural migration needs
+                (internetarchive/openlibrary#13814): e.g. the production Tags
+                of type ``literary_form`` become ``literary_forms``. Unlike
+                create_missing, which is a no-op when the Tags already exist,
+                retype changes the existing Tags in place.
+
+                Each Tag is re-saved through ``tag.save()`` (a PUT of the full
+                document), so its name, description and slugs are preserved.
+                Dry-run by default.
+
+                Note:
+                    Editing a Tag does NOT reindex the works that reference it,
+                    so this is a small change -- but it is still a production
+                    write and needs a maintainer's sign-off.
+
+                Args:
+                    from_type (str) - the current (e.g. singular) tag_type.
+                    to_type (str) - the new (e.g. plural) tag_type.
+                    comment (str) - edit comment for each write.
+                    write (bool) - actually re-save (True) or dry-run (False).
+
+                Returns:
+                    dict with 'from_type', 'to_type', 'dry_run',
+                    'to_retype' (list of {'olid', 'name'}) and 'retyped'
+                    (list of {'olid', 'name', 'key'}; empty on a dry-run).
+
+                Usage:
+                    >>> ol.Tag.retype('literary_form', 'literary_forms')  # dry-run
+                    >>> ol.Tag.retype('genre', 'genres', write=True)
+                """
+                tags = cls.find(tag_type=from_type)
+                result = {
+                    'from_type': from_type,
+                    'to_type': to_type,
+                    'dry_run': not write,
+                    'to_retype': [{'olid': t.olid, 'name': t.name} for t in tags],
+                    'retyped': [],
+                }
+                if write:
+                    for t in tags:
+                        t.tag_type = to_type
+                        r = t.save(comment=comment)
+                        # Fail loudly rather than reporting a write that was
+                        # actually rejected (e.g. 403 without auth).
+                        if r is not None:
+                            r.raise_for_status()
+                        result['retyped'].append(
+                            {'olid': t.olid, 'name': t.name, 'key': f'/tags/{t.olid}'}
+                        )
+                return result
+
         return Tag
 
     def get(self, olid):

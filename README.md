@@ -139,9 +139,15 @@ controlled-vocabulary tagging. Managed `tag_type` values are **plural**:
 >>> genres = ol.Tag.find(tag_type='genres')
 >>> fantasy = ol.Tag.find(tag_type='genres', name='fantasy')
 
-# Change a Tag's type (e.g. renaming a singular type to its plural form)
+# Change one Tag's type
 >>> tag.tag_type = 'genres'
 >>> tag.save(comment='rename tag_type genre -> genres')
+
+# Rename the type of every Tag of a (singular) type to its plural form. This
+# is the openlibrary#13814 migration; dry-run by default. A Tag edit does not
+# reindex works, but it is still a production write.
+>>> ol.Tag.retype('literary_form', 'literary_forms')             # dry-run
+>>> ol.Tag.retype('genre', 'genres', write=True)                 # re-saves
 
 # Create one Tag (via /api/new; returns the new key). Production write.
 >>> ol.Tag.create('Cooking', 'subject', 'Books about cooking')
@@ -171,6 +177,19 @@ $ python -m olclient.scripts.create_missing_tags \
 $ python -m olclient.scripts.create_missing_tags \
     tag_types/literary_form/vocabulary.json --tag-type literary_forms \
     --comment "create literary_forms from approved vocabulary" --write
+```
+
+To rename the type of the existing production Tags that still carry a singular
+type (openlibrary#13814), use the sibling entry point (dry-run by default;
+`--to-type` defaults to the known plural):
+
+```
+# Dry-run: list the literary_form Tags that would become literary_forms
+$ python -m olclient.scripts.retype_tags --from-type literary_form
+
+# Actually retype the singular 'genre' Tag(s) to 'genres'
+$ python -m olclient.scripts.retype_tags --from-type genre --to-type genres \
+    --comment "retype genre -> genres (#13814)" --write
 ```
 
 Creating or editing a Tag is a production write (it does not reindex works).

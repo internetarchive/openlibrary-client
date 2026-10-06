@@ -692,3 +692,39 @@ class TestTag(unittest.TestCase):
         assert result['to_create'] == []
         assert result['skipped_existing'] == ['fiction']
         mock_post.assert_not_called()
+
+    # --- retype (singular -> plural migration) -----------------------------
+
+    @patch('requests.Session.put')
+    def test_retype_dry_run_writes_nothing(self, mock_put):
+        self._patch_find(
+            [
+                {'key': '/tags/OL183T', 'name': 'Fiction', 'tag_type': 'literary_form'},
+                {'key': '/tags/OL184T', 'name': 'Nonfiction', 'tag_type': 'literary_form'},
+            ]
+        )
+        result = self.ol.Tag.retype('literary_form', 'literary_forms')
+        assert result['dry_run'] is True
+        assert result['from_type'] == 'literary_form'
+        assert result['to_type'] == 'literary_forms'
+        assert [t['olid'] for t in result['to_retype']] == ['OL183T', 'OL184T']
+        assert result['retyped'] == []
+        mock_put.assert_not_called()
+
+    @patch('requests.Session.put')
+    def test_retype_write_resaves_each_with_new_type(self, mock_put):
+        self._patch_find(
+            [
+                {'key': '/tags/OL183T', 'name': 'Fiction', 'tag_type': 'literary_form'},
+                {'key': '/tags/OL184T', 'name': 'Nonfiction', 'tag_type': 'literary_form'},
+            ]
+        )
+        result = self.ol.Tag.retype(
+            'literary_form', 'literary_forms', comment='retype', write=True
+        )
+        assert mock_put.call_count == 2
+        # Each PUT carries the NEW tag_type and preserves the Tag's key
+        bodies = [json.loads(c[0][1]) for c in mock_put.call_args_list]
+        assert all(b['tag_type'] == 'literary_forms' for b in bodies)
+        assert {b['key'] for b in bodies} == {'/tags/OL183T', '/tags/OL184T'}
+        assert [t['olid'] for t in result['retyped']] == ['OL183T', 'OL184T']
