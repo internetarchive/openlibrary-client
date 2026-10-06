@@ -120,6 +120,63 @@ Author Information for existing authors can be done in the following manner.
 >>> author_obj = ol.get(author_olid)
 ```
 
+#### Tags
+
+Tags are first-class Open Library entities (`/tags/OLnT`) used for
+controlled-vocabulary tagging. Managed `tag_type` values are **plural**:
+`genres`, `subgenres`, `audiences`, `literary_forms`, `content_formats`
+(plus the open-ended `subject`).
+
+```python
+>>> from olclient.openlibrary import OpenLibrary
+>>> ol = OpenLibrary()
+
+# Fetch one Tag
+>>> tag = ol.Tag.get('OL84T')
+
+# Every Tag of a type (name match is done in Python because query.json's
+# name~= is case-sensitive)
+>>> genres = ol.Tag.find(tag_type='genres')
+>>> fantasy = ol.Tag.find(tag_type='genres', name='fantasy')
+
+# Change a Tag's type (e.g. renaming a singular type to its plural form)
+>>> tag.tag_type = 'genres'
+>>> tag.save(comment='rename tag_type genre -> genres')
+
+# Create one Tag (via /api/new; returns the new key). Production write.
+>>> ol.Tag.create('Cooking', 'subject', 'Books about cooking')
+'/tags/OL123T'
+
+# Idempotently create the Tags of an approved vocabulary that don't exist
+# yet. Dry-run by default; pass write=True to actually create them. Terms are
+# dicts with 'name' (and optional 'description', 'slug', 'key'); a term that
+# already carries a 'key' is skipped.
+>>> terms = [{'name': 'Almanac', 'slug': 'almanac', 'description': '...'}]
+>>> ol.Tag.create_missing('content_formats', terms)             # dry-run
+>>> ol.Tag.create_missing('content_formats', terms, write=True)  # creates
+```
+
+To manage a vocabulary from an approved `vocabulary.json` (the shape used by
+[open-Book-Genome-Project/tags](https://github.com/open-Book-Genome-Project/tags)),
+use the bundled entry point. It is **dry-run by default**; the target
+`--tag-type` is given explicitly (plural) and is never derived from the file,
+whose directory/`type` is singular for `audience` and `literary_form`:
+
+```
+# Dry-run: show which content_formats Tags would be created (no writes)
+$ python -m olclient.scripts.create_missing_tags \
+    tag_types/content_formats/vocabulary.json --tag-type content_formats
+
+# Actually create the missing literary_forms Tags (needs ~/.config/ol.ini auth)
+$ python -m olclient.scripts.create_missing_tags \
+    tag_types/literary_form/vocabulary.json --tag-type literary_forms \
+    --comment "create literary_forms from approved vocabulary" --write
+```
+
+Creating or editing a Tag is a production write (it does not reindex works).
+Adding a term that isn't in the approved vocabulary needs the working group's
+approval first.
+
 ### Command Line Tool
 
 Installing the openlibrary-client library will also install the `ol` command line utility.

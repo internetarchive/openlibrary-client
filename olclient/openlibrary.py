@@ -24,6 +24,76 @@ from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
+# Open Library's managed Tag vocabularies use *plural* tag_type values.
+# See internetarchive/openlibrary#13755 (Tags project) and #13814 (type prep).
+MANAGED_TAG_TYPES = (
+    'genres',
+    'subgenres',
+    'audiences',
+    'literary_forms',
+    'content_formats',
+)
+
+# Singular tag_type values that exist in production today and are being renamed
+# to their plural form (internetarchive/openlibrary#13814). The source
+# vocabularies in open-Book-Genome-Project/tags also use singular directory
+# names (``audience/``, ``literary_form/``), so a tag_type must never be
+# derived from a directory name -- it is passed explicitly by the caller.
+SINGULAR_TO_PLURAL_TAG_TYPE = {
+    'genre': 'genres',
+    'subgenre': 'subgenres',
+    'audience': 'audiences',
+    'literary_form': 'literary_forms',
+    'content_format': 'content_formats',
+}
+
+
+def _key_from_new_response(r):
+    """Extracts the created key from an ``/api/new`` response.
+
+    ``/api/new`` returns a JSON list of keys when posted a list, or a bare
+    JSON string when posted a single doc. Returns the first key, or None if
+    the response can't be parsed.
+    """
+    if r is None:
+        return None
+    try:
+        data = r.json()
+    except Exception:
+        return None
+    if isinstance(data, list):
+        return data[0] if data else None
+    if isinstance(data, str):
+        return data
+    return None
+
+
+def _plan_missing_tags(existing_names, terms):
+    """Splits approved ``terms`` against the names already present.
+
+    Args:
+        existing_names (set[str]) - casefolded names already on OL for the type.
+        terms (iterable[dict]) - approved terms (see Tag.create_missing).
+
+    Returns:
+        (to_create, skipped_existing, skipped_has_key) where ``to_create`` is a
+        list of term dicts and the other two are lists of names.
+    """
+    to_create = []
+    skipped_existing = []
+    skipped_has_key = []
+    for term in terms:
+        name = (term.get('name') or '').strip()
+        if not name:
+            continue
+        if term.get('key'):
+            skipped_has_key.append(name)
+        elif name.casefold() in existing_names:
+            skipped_existing.append(name)
+        else:
+            to_create.append(term)
+    return to_create, skipped_existing, skipped_has_key
+
 
 def _schema_uri(path: str) -> str:
     """Return a canonical file:// URI for an absolute schema path."""
@@ -775,13 +845,21 @@ class OpenLibrary:
             """Represents an Open Library Tag document (/tags/OLnT).
 
             Tags are first-class OL entities used for controlled-vocabulary
-            subject tagging. Each tag has a name, a tag_type (e.g. "subject"),
-            an optional description, and optional body HTML.
+            tagging. Each tag has a name, a tag_type, an optional description
+            (``tag_description``) and optional body HTML.
+
+            Open Library's *managed* tag vocabularies use plural tag_type
+            values: ``genres``, ``subgenres``, ``audiences``,
+            ``literary_forms`` and ``content_formats`` (plus the open-ended
+            ``subject``). A handful of production tags still carry the older
+            singular types (``audience``, ``literary_form``, ``genre``) and are
+            being renamed; see internetarchive/openlibrary#13814.
 
             Usage:
                 >>> tag = ol.Tag.get('OL32T')
                 >>> print(tag.name, tag.tag_type)
                 cooking subject
+                >>> genres = ol.Tag.find(tag_type='genres')  # every genre Tag
             """
 
             OL = ol_self
@@ -810,11 +888,35 @@ class OpenLibrary:
                 return data
 
             def save(self, comment):
-                """Saves this Tag back to Open Library using the JSON API."""
+                """Saves this Tag back to Open Library using the JSON API.
+
+                This is also how a Tag's type is changed: set ``tag.tag_type``
+                to the new (plural) value and call ``save()``. The full
+                document is written back, so existing fields (description,
+                slugs, body) are preserved.
+
+                Usage:
+                    >>> tag = ol.Tag.get('OL84T')
+                    >>> tag.tag_type = 'genres'  # was the singular 'genre'
+                    >>> tag.save(comment='rename tag_type genre -> genres')
+                """
                 body = self.json()
                 body['_comment'] = comment
                 url = self.OL.base_url + f'/tags/{self.olid}.json'
                 return self.OL.session.put(url, json.dumps(body))
+
+            @classmethod
+            def _from_doc(cls, data):
+                """Builds a Tag from an OL document dict (/tags/OLnT shape).
+
+                Shared by ``get`` and ``find``. ``data`` is consumed.
+                """
+                _olid = data.pop('key', '').split('/')[-1]
+                name = data.pop('name', '')
+                tag_type = data.pop('tag_type', 'subject')
+                # Strip read-only/structural fields that callers can't set
+                data.pop('type', None)
+                return cls(_olid, name=name, tag_type=tag_type, **data)
 
             @classmethod
             def get(cls, olid):
@@ -836,36 +938,208 @@ class OpenLibrary:
                     return None
                 if 'error' in data:
                     return None
-                _olid = data.pop('key', f'/tags/{olid}').split('/')[-1]
-                name = data.pop('name', '')
-                tag_type = data.pop('tag_type', 'subject')
-                # Strip read-only fields that callers can't set
-                data.pop('type', None)
-                return cls(_olid, name=name, tag_type=tag_type, **data)
+                data.setdefault('key', f'/tags/{olid}')
+                return cls._from_doc(data)
 
             @classmethod
-            def create(cls, name, tag_type, description='', comment='add tag'):
-                """Creates a new Tag in Open Library.
+            def find(cls, tag_type, name=None, limit=1000):
+                """Returns every Tag of a given type.
+
+                A full managed type is small (a few dozen Tags at most), so a
+                single ``query.json`` request with a generous limit returns the
+                whole type.
+
+                Args:
+                    tag_type (str) - plural type, e.g. 'genres', 'subgenres',
+                        'audiences', 'literary_forms', 'content_formats'.
+                    name (str) - optional. If given, only Tags whose name
+                        matches ``name`` case-insensitively are returned. The
+                        match is done in Python on purpose: ``query.json``'s
+                        ``name~=`` prefix match is case-sensitive, so it can't
+                        be relied on for name lookups.
+                    limit (int) - max Tags to fetch (default 1000).
+
+                Returns:
+                    list[Tag] (possibly empty).
+
+                Usage:
+                    >>> ol.Tag.find(tag_type='genres')
+                    >>> ol.Tag.find(tag_type='genres', name='fantasy')
+                """
+                # ``*=`` projects the full document (not just key/name), so the
+                # returned Tags carry their description, slugs, etc. The
+                # tag_type filter is applied server-side.
+                query = urlencode(
+                    {'type': '/type/tag', 'tag_type': tag_type, '*': '', 'limit': limit}
+                )
+                path = f'/query.json?{query}'
+                r = cls.OL.get_ol_response(path)
+                if r is None:
+                    return []
+                try:
+                    docs = r.json()
+                except Exception:
+                    return []
+                if not isinstance(docs, list):
+                    return []
+                tags = [cls._from_doc(dict(doc)) for doc in docs]
+                if name is not None:
+                    needle = name.strip().casefold()
+                    tags = [t for t in tags if (t.name or '').strip().casefold() == needle]
+                return tags
+
+            @classmethod
+            def create(cls, name, tag_type, description='', comment='add tag', slugs=None):
+                """Creates a new Tag in Open Library and returns its key.
+
+                Creation goes through ``POST /api/new``, which is the only
+                external path to Infogami's ``new_key()`` (the OLID minter).
+                ``/api/new`` accepts ``/type/tag`` as of
+                internetarchive/openlibrary#13088 and returns the new key(s).
+                (``save_many`` can only update *existing* tag documents, which
+                is why the earlier implementation -- posting an empty-OLID tag
+                through ``save_many`` -- could not actually create one.)
 
                 Args:
                     name (str) - tag name (e.g. 'cooking')
-                    tag_type (str) - one of 'subject', 'genre', etc.
-                    description (str) - human-readable description
-                    comment (str) - edit comment
+                    tag_type (str) - plural managed type ('genres', ...) or
+                        'subject'.
+                    description (str) - human-readable description, stored as
+                        ``tag_description``.
+                    comment (str) - edit comment.
+                    slugs (list[str]) - optional slugs; OL derives one from the
+                        name if omitted.
 
                 Returns:
-                    Response from save_many.
+                    str - the new Tag's key, e.g. '/tags/OL123T', or None if
+                    the response carried no key.
 
                 Usage:
                     >>> ol.Tag.create('cooking', 'subject', 'Books about cooking')
+                    '/tags/OL123T'
+
+                Note:
+                    Verified by READ (openlibrary#13088 and the ``new`` handler
+                    in openlibrary/plugins/openlibrary/code.py), not RAN: this
+                    is a production write and is not exercised in tests.
                 """
-                tag = cls(
-                    olid='',  # OL assigns the OLID on creation
-                    name=name,
-                    tag_type=tag_type,
-                    tag_description=description or None,
+                doc = {
+                    'type': {'key': '/type/tag'},
+                    'name': name,
+                    'tag_type': tag_type,
+                }
+                if description:
+                    doc['tag_description'] = description
+                if slugs:
+                    doc['slugs'] = slugs
+                # Same HTTP Extension Framework headers save_many uses; the
+                # declared URI matches OL's config (save_many works in prod),
+                # and the session already sends Content-Type: application/json.
+                headers = {
+                    'Opt': '"http://openlibrary.org/dev/docs/api"; ns=42',
+                    '42-comment': comment,
+                }
+                url = cls.OL.base_url + '/api/new'
+                r = cls.OL.session.post(url, json.dumps([doc]), headers=headers)
+                return _key_from_new_response(r)
+
+            @classmethod
+            def create_missing(
+                cls,
+                tag_type,
+                terms,
+                comment='create tags from approved vocabulary',
+                write=False,
+            ):
+                """Idempotently creates the Tags of a type that don't exist yet.
+
+                Given an approved vocabulary, creates only the terms that have
+                no matching Tag of ``tag_type`` already. Matching is on name
+                (case-insensitive) within the type. Dry-run by default: nothing
+                is written unless ``write=True``.
+
+                Args:
+                    tag_type (str) - the *plural* managed type to create under,
+                        e.g. 'content_formats', 'literary_forms'. Pass this
+                        explicitly; do NOT derive it from a vocabulary file's
+                        directory name or ``type`` field, which are singular for
+                        ``audience`` and ``literary_form``
+                        (internetarchive/openlibrary#13814).
+                    terms (iterable[dict]) - approved terms. Each term is a dict
+                        with:
+                          - 'name' (str, required) - the Tag name;
+                          - 'description' (str, optional) - ``tag_description``;
+                          - 'slug'/'slugs' (str/list, optional);
+                          - 'key' (str, optional) - if present, the term is
+                            considered already created and is skipped.
+                        (The open-Book-Genome-Project/tags vocabulary.json files
+                        use 'tag'/'definition'/'slug' keys; map them to 'name'/
+                        'description'/'slug' before calling, as the bundled
+                        entry point does.)
+                    comment (str) - edit comment for each write.
+                    write (bool) - actually create (True) or dry-run (False).
+
+                Returns:
+                    dict with keys:
+                      - 'tag_type' (str)
+                      - 'dry_run' (bool)
+                      - 'to_create' (list[str]) - names that are missing
+                      - 'created' (list[dict]) - {'name', 'key'} for each Tag
+                        created (empty on a dry-run)
+                      - 'skipped_existing' (list[str]) - names already present
+                      - 'skipped_has_key' (list[str]) - names skipped because
+                        the term already carried a 'key'
+
+                Guardrail: only terms in ``terms`` are ever created -- extending
+                a vocabulary needs the working group's approval first.
+
+                Usage:
+                    >>> terms = [{'name': 'Almanac', 'slug': 'almanac',
+                    ...           'description': '...'}]
+                    >>> ol.Tag.create_missing('content_formats', terms)  # dry-run
+                    >>> ol.Tag.create_missing('content_formats', terms, write=True)
+                """
+                if tag_type in SINGULAR_TO_PLURAL_TAG_TYPE:
+                    logger.warning(
+                        "tag_type %r is singular; managed vocabularies use the "
+                        "plural %r (see openlibrary#13814)",
+                        tag_type,
+                        SINGULAR_TO_PLURAL_TAG_TYPE[tag_type],
+                    )
+
+                existing = {
+                    (t.name or '').strip().casefold() for t in cls.find(tag_type=tag_type)
+                }
+
+                to_create, skipped_existing, skipped_has_key = _plan_missing_tags(
+                    existing, terms
                 )
-                return cls.OL.save_many([tag], comment)
+
+                result = {
+                    'tag_type': tag_type,
+                    'dry_run': not write,
+                    'to_create': [t['name'].strip() for t in to_create],
+                    'created': [],
+                    'skipped_existing': skipped_existing,
+                    'skipped_has_key': skipped_has_key,
+                }
+
+                if write:
+                    for term in to_create:
+                        name = term['name'].strip()
+                        slugs = term.get('slugs')
+                        if not slugs and term.get('slug'):
+                            slugs = [term['slug']]
+                        key = cls.create(
+                            name=name,
+                            tag_type=tag_type,
+                            description=term.get('description', ''),
+                            comment=comment,
+                            slugs=slugs,
+                        )
+                        result['created'].append({'name': name, 'key': key})
+
+                return result
 
         return Tag
 
