@@ -983,7 +983,7 @@ class OpenLibrary:
                 if not isinstance(docs, list):
                     return []
                 tags = [cls._from_doc(dict(doc)) for doc in docs]
-                if name is not None:
+                if name:
                     needle = name.strip().casefold()
                     tags = [t for t in tags if (t.name or '').strip().casefold() == needle]
                 return tags
@@ -1041,7 +1041,18 @@ class OpenLibrary:
                 }
                 url = cls.OL.base_url + '/api/new'
                 r = cls.OL.session.post(url, json.dumps([doc]), headers=headers)
-                return _key_from_new_response(r)
+                # Fail loudly: a rejected write (e.g. 403 without auth, 400 for
+                # a bad doc) must not look like a success. Without this a failed
+                # create returns None and create_missing would record a null key
+                # as though the Tag had been created.
+                r.raise_for_status()
+                key = _key_from_new_response(r)
+                if key is None:
+                    raise ValueError(
+                        f"/api/new returned no tag key: "
+                        f"{str(getattr(r, 'text', ''))[:200]}"
+                    )
+                return key
 
             @classmethod
             def create_missing(

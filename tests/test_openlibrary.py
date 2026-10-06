@@ -555,6 +555,17 @@ class TestTag(unittest.TestCase):
         mock_get.return_value = self._query_response([])
         assert self.ol.Tag.find(tag_type='genres') == []
 
+    @patch('olclient.openlibrary.OpenLibrary.get_ol_response')
+    def test_tag_find_empty_name_ignores_filter(self, mock_get):
+        # name='' means "no name filter", not "match the empty name".
+        mock_get.return_value = self._query_response(
+            [
+                {'key': '/tags/OL1T', 'name': 'Fantasy', 'tag_type': 'genres'},
+                {'key': '/tags/OL2T', 'name': 'Horror', 'tag_type': 'genres'},
+            ]
+        )
+        assert len(self.ol.Tag.find(tag_type='genres', name='')) == 2
+
     # --- create (POST /api/new) --------------------------------------------
 
     @patch('requests.Session.post')
@@ -585,6 +596,21 @@ class TestTag(unittest.TestCase):
         mock_post.return_value.json.return_value = '/tags/OL9T'
         key = self.ol.Tag.create('Horror', 'genres')
         assert key == '/tags/OL9T'
+
+    @patch('requests.Session.post')
+    def test_tag_create_raises_on_http_error(self, mock_post):
+        # A rejected write (e.g. 403 without auth) must not look like success.
+        mock_post.return_value.raise_for_status.side_effect = requests.HTTPError('403')
+        with self.assertRaises(requests.HTTPError):
+            self.ol.Tag.create('Horror', 'genres')
+
+    @patch('requests.Session.post')
+    def test_tag_create_raises_when_no_key_in_response(self, mock_post):
+        # 200 but an error/garbage body with no key -> loud failure, not None.
+        mock_post.return_value.json.return_value = {'error': 'badrequest'}
+        mock_post.return_value.text = '{"error": "badrequest"}'
+        with self.assertRaises(ValueError):
+            self.ol.Tag.create('Horror', 'genres')
 
     @patch('requests.Session.post')
     def test_tag_create_includes_slugs_when_given(self, mock_post):
