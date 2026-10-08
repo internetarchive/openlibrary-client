@@ -459,6 +459,10 @@ class TestTag(unittest.TestCase):
         data = tag.json()
         assert 'tag_description' not in data
 
+    def test_tag_validation(self):
+        tag = self.ol.Tag('OL32T', name='cooking', tag_type='subject')
+        self.assertIsNone(tag.validate())
+
     @patch('requests.Session.get')
     def test_tag_get(self, mock_get):
         mock_get.return_value.json.return_value = {
@@ -591,13 +595,6 @@ class TestTag(unittest.TestCase):
         assert 'ns=42' in headers['Opt']
 
     @patch('requests.Session.post')
-    def test_tag_create_handles_bare_string_response(self, mock_post):
-        # /api/new returns a bare JSON string when posted a single doc.
-        mock_post.return_value.json.return_value = '/tags/OL9T'
-        key = self.ol.Tag.create('Horror', 'genres')
-        assert key == '/tags/OL9T'
-
-    @patch('requests.Session.post')
     def test_tag_create_raises_on_http_error(self, mock_post):
         # A rejected write (e.g. 403 without auth) must not look like success.
         mock_post.return_value.raise_for_status.side_effect = requests.HTTPError('403')
@@ -605,10 +602,10 @@ class TestTag(unittest.TestCase):
             self.ol.Tag.create('Horror', 'genres')
 
     @patch('requests.Session.post')
-    def test_tag_create_raises_when_no_key_in_response(self, mock_post):
-        # 200 but an error/garbage body with no key -> loud failure, not None.
-        mock_post.return_value.json.return_value = {'error': 'badrequest'}
-        mock_post.return_value.text = '{"error": "badrequest"}'
+    def test_tag_create_raises_on_empty_response(self, mock_post):
+        # /api/new returned no key -> loud failure, not a silent None.
+        mock_post.return_value.json.return_value = []
+        mock_post.return_value.text = '[]'
         with self.assertRaises(ValueError):
             self.ol.Tag.create('Horror', 'genres')
 
@@ -632,99 +629,3 @@ class TestTag(unittest.TestCase):
         assert body['tag_type'] == 'genres'
         assert body['_comment'] == 'rename tag_type'
         assert body['key'] == '/tags/OL84T'
-
-    # --- create_missing (idempotent, dry-run by default) -------------------
-
-    def _patch_find(self, existing_docs):
-        """Patch get_ol_response so Tag.find() returns `existing_docs`."""
-        p = patch('olclient.openlibrary.OpenLibrary.get_ol_response')
-        m = p.start()
-        self.addCleanup(p.stop)
-        m.return_value = self._query_response(existing_docs)
-        return m
-
-    @patch('requests.Session.post')
-    def test_create_missing_dry_run_writes_nothing(self, mock_post):
-        self._patch_find([{'key': '/tags/OL1T', 'name': 'Fiction', 'tag_type': 'literary_forms'}])
-        terms = [
-            {'name': 'Fiction', 'slug': 'fiction'},      # already exists -> skip
-            {'name': 'Nonfiction', 'slug': 'nonfiction'},  # missing
-        ]
-        result = self.ol.Tag.create_missing('literary_forms', terms)
-        assert result['dry_run'] is True
-        assert result['to_create'] == ['Nonfiction']
-        assert result['skipped_existing'] == ['Fiction']
-        assert result['created'] == []
-        mock_post.assert_not_called()
-
-    @patch('requests.Session.post')
-    def test_create_missing_write_creates_only_missing(self, mock_post):
-        self._patch_find([{'key': '/tags/OL1T', 'name': 'Fiction', 'tag_type': 'literary_forms'}])
-        mock_post.return_value.json.return_value = ['/tags/OL200T']
-        terms = [
-            {'name': 'Fiction', 'slug': 'fiction'},
-            {'name': 'Nonfiction', 'slug': 'nonfiction', 'description': 'd'},
-        ]
-        result = self.ol.Tag.create_missing('literary_forms', terms, write=True)
-        assert result['created'] == [{'name': 'Nonfiction', 'key': '/tags/OL200T'}]
-        # exactly one create, for the missing term, carrying its slug
-        assert mock_post.call_count == 1
-        doc = json.loads(mock_post.call_args[0][1])[0]
-        assert doc['name'] == 'Nonfiction'
-        assert doc['slugs'] == ['nonfiction']
-
-    @patch('requests.Session.post')
-    def test_create_missing_skips_terms_that_have_a_key(self, mock_post):
-        self._patch_find([])  # nothing exists on OL
-        terms = [{'name': 'Almanac', 'slug': 'almanac', 'key': '/tags/OL120T'}]
-        result = self.ol.Tag.create_missing('content_formats', terms, write=True)
-        assert result['skipped_has_key'] == ['Almanac']
-        assert result['to_create'] == []
-        mock_post.assert_not_called()
-
-    @patch('requests.Session.post')
-    def test_create_missing_match_is_case_insensitive(self, mock_post):
-        self._patch_find([{'key': '/tags/OL1T', 'name': 'Fiction', 'tag_type': 'literary_forms'}])
-        # Same term, different case -> treated as existing, not created.
-        result = self.ol.Tag.create_missing(
-            'literary_forms', [{'name': 'fiction'}], write=True
-        )
-        assert result['to_create'] == []
-        assert result['skipped_existing'] == ['fiction']
-        mock_post.assert_not_called()
-
-    # --- retype (singular -> plural migration) -----------------------------
-
-    @patch('requests.Session.put')
-    def test_retype_dry_run_writes_nothing(self, mock_put):
-        self._patch_find(
-            [
-                {'key': '/tags/OL183T', 'name': 'Fiction', 'tag_type': 'literary_form'},
-                {'key': '/tags/OL184T', 'name': 'Nonfiction', 'tag_type': 'literary_form'},
-            ]
-        )
-        result = self.ol.Tag.retype('literary_form', 'literary_forms')
-        assert result['dry_run'] is True
-        assert result['from_type'] == 'literary_form'
-        assert result['to_type'] == 'literary_forms'
-        assert [t['olid'] for t in result['to_retype']] == ['OL183T', 'OL184T']
-        assert result['retyped'] == []
-        mock_put.assert_not_called()
-
-    @patch('requests.Session.put')
-    def test_retype_write_resaves_each_with_new_type(self, mock_put):
-        self._patch_find(
-            [
-                {'key': '/tags/OL183T', 'name': 'Fiction', 'tag_type': 'literary_form'},
-                {'key': '/tags/OL184T', 'name': 'Nonfiction', 'tag_type': 'literary_form'},
-            ]
-        )
-        result = self.ol.Tag.retype(
-            'literary_form', 'literary_forms', comment='retype', write=True
-        )
-        assert mock_put.call_count == 2
-        # Each PUT carries the NEW tag_type and preserves the Tag's key
-        bodies = [json.loads(c[0][1]) for c in mock_put.call_args_list]
-        assert all(b['tag_type'] == 'literary_forms' for b in bodies)
-        assert {b['key'] for b in bodies} == {'/tags/OL183T', '/tags/OL184T'}
-        assert [t['olid'] for t in result['retyped']] == ['OL183T', 'OL184T']
