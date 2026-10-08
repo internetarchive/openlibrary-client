@@ -122,79 +122,24 @@ Author Information for existing authors can be done in the following manner.
 
 #### Tags
 
-Tags are first-class Open Library entities (`/tags/OLnT`) used for
-controlled-vocabulary tagging. Managed `tag_type` values are **plural**:
-`genres`, `subgenres`, `audiences`, `literary_forms`, `content_formats`
-(plus the open-ended `subject`).
+Tags (`/tags/OLnT`) are fetched, created and saved like Works:
 
 ```python
 >>> from olclient.openlibrary import OpenLibrary
 >>> ol = OpenLibrary()
 
-# Fetch one Tag
->>> tag = ol.Tag.get('OL84T')
+>>> tag = ol.Tag.get(tag_olid)
+>>> genres = ol.Tag.find(tag_type='genres')          # every Tag of a type
+>>> ol.Tag.find(tag_type='genres', name='fantasy')
 
-# Every Tag of a type (name match is done in Python because query.json's
-# name~= is case-sensitive)
->>> genres = ol.Tag.find(tag_type='genres')
->>> fantasy = ol.Tag.find(tag_type='genres', name='fantasy')
-
-# Change one Tag's type
->>> tag.tag_type = 'genres'
->>> tag.save(comment='rename tag_type genre -> genres')
-
-# Rename the type of every Tag of a (singular) type to its plural form. This
-# is the openlibrary#13814 migration; dry-run by default. A Tag edit does not
-# reindex works, but it is still a production write.
->>> ol.Tag.retype('literary_form', 'literary_forms')             # dry-run
->>> ol.Tag.retype('genre', 'genres', write=True)                 # re-saves
-
-# Create one Tag (via /api/new; returns the new key). Production write.
+# Create a Tag; returns its key
 >>> ol.Tag.create('Cooking', 'subject', 'Books about cooking')
 '/tags/OL123T'
 
-# Idempotently create the Tags of an approved vocabulary that don't exist
-# yet. Dry-run by default; pass write=True to actually create them. Terms are
-# dicts with 'name' (and optional 'description', 'slug', 'key'); a term that
-# already carries a 'key' is skipped.
->>> terms = [{'name': 'Almanac', 'slug': 'almanac', 'description': '...'}]
->>> ol.Tag.create_missing('content_formats', terms)             # dry-run
->>> ol.Tag.create_missing('content_formats', terms, write=True)  # creates
+# Edit and save
+>>> tag.tag_description = '...'
+>>> tag.save(comment='...')
 ```
-
-To manage a vocabulary from an approved `vocabulary.json` (the shape used by
-[open-Book-Genome-Project/tags](https://github.com/open-Book-Genome-Project/tags)),
-use the bundled entry point. It is **dry-run by default**; the target
-`--tag-type` is given explicitly (plural) and is never derived from the file,
-whose directory/`type` is singular for `audience` and `literary_form`:
-
-```
-# Dry-run: show which content_formats Tags would be created (no writes)
-$ python -m olclient.scripts.create_missing_tags \
-    tag_types/content_formats/vocabulary.json --tag-type content_formats
-
-# Actually create the missing literary_forms Tags (needs ~/.config/ol.ini auth)
-$ python -m olclient.scripts.create_missing_tags \
-    tag_types/literary_form/vocabulary.json --tag-type literary_forms \
-    --comment "create literary_forms from approved vocabulary" --write
-```
-
-To rename the type of the existing production Tags that still carry a singular
-type (openlibrary#13814), use the sibling entry point (dry-run by default;
-`--to-type` defaults to the known plural):
-
-```
-# Dry-run: list the literary_form Tags that would become literary_forms
-$ python -m olclient.scripts.retype_tags --from-type literary_form
-
-# Actually retype the singular 'genre' Tag(s) to 'genres'
-$ python -m olclient.scripts.retype_tags --from-type genre --to-type genres \
-    --comment "retype genre -> genres (#13814)" --write
-```
-
-Creating or editing a Tag is a production write (it does not reindex works).
-Adding a term that isn't in the approved vocabulary needs the working group's
-approval first.
 
 ### Command Line Tool
 

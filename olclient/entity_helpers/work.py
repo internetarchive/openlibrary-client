@@ -139,6 +139,38 @@ def get_work_helper_class(ol_context):
             data['subjects'] = list(set(data['subjects']) - set(subjects))
             return self.OL.session.put(url, json.dumps(data))
 
+        def add_tags(self, field, tag_keys, comment='', validate=True):
+            """Add Tag keys to a work's `field` (e.g. 'genres'); each key is
+            checked via the Tag API, then merged, de-duped and written as refs.
+            """
+            if validate:
+                for key in tag_keys:
+                    tag = self.OL.Tag.get(key.split('/')[-1])
+                    if tag is None:
+                        raise ValueError(f"Tag {key} does not exist")
+                    if tag.tag_type != field:
+                        raise ValueError(
+                            f"Tag {key} has tag_type {tag.tag_type!r}, not {field!r}"
+                        )
+            url = self.OL.base_url + "/works/" + self.olid + ".json"
+            data = self.OL.session.get(url).json()
+            existing = [t['key'] if isinstance(t, dict) else t for t in data.get(field, [])]
+            merged = list(dict.fromkeys(existing + list(tag_keys)))
+            data['_comment'] = comment or f"adding {', '.join(tag_keys)} to {field}"
+            data[field] = [{'key': key} for key in merged]
+            return self.OL.session.put(url, json.dumps(data))
+
+        def rm_tags(self, field, tag_keys, comment=''):
+            """Remove Tag keys from a work's `field`; an empty field is kept as []."""
+            url = self.OL.base_url + "/works/" + self.olid + ".json"
+            data = self.OL.session.get(url).json()
+            existing = [t['key'] if isinstance(t, dict) else t for t in data.get(field, [])]
+            drop = set(tag_keys)
+            remaining = [key for key in existing if key not in drop]
+            data['_comment'] = comment or f"rm {field}: {', '.join(tag_keys)}"
+            data[field] = [{'key': key} for key in remaining]
+            return self.OL.session.put(url, json.dumps(data))
+
         def delete(self, comment: str, confirm: bool = True) -> Optional[Response]:
             should_delete = confirm is False or get_approval_from_cli(
                 f'Delete https://openlibrary.org/works/{self.olid} and its editions? (y/n)'
