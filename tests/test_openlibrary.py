@@ -8,9 +8,8 @@ import pytest
 import requests
 import unittest
 
-from unittest.mock import Mock, call, patch, ANY
+from unittest.mock import call, patch, ANY
 
-from olclient.config import Config
 from olclient.common import Author, Book
 from olclient.openlibrary import OpenLibrary
 

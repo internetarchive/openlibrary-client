@@ -3,7 +3,6 @@
 
 import datetime
 import re
-from typing import Union
 
 ALPHANUMERICS_RE = re.compile(r'([^\s\w])+')
 
