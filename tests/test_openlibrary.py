@@ -93,7 +93,9 @@ class TestOpenLibrary(unittest.TestCase):
         title = "The Autobiography of Benjamin Franklin"
         mock_get.return_value.json.return_value = search_results
         book = self.ol.Work.search(title=title)
-        mock_get.assert_called_with(f"{self.ol.base_url}/search.json?title={title}")
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search.json?title=The+Autobiography+of+Benjamin+Franklin"
+        )
         canonical_title = book.canonical_title
         self.assertTrue(
             'franklin' in canonical_title,
@@ -130,6 +132,28 @@ class TestOpenLibrary(unittest.TestCase):
         )
 
     @patch('requests.Session.get')
+    def test_work_search_encodes_query(self, mock_get):
+        mock_get.return_value.json.return_value = {'start': 0, 'num_found': 0, 'docs': []}
+        self.ol.Work.search(title='Romeo & Juliet', author='Shakespeare')
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search.json?title=Romeo+%26+Juliet&author=Shakespeare"
+        )
+
+    @patch('requests.Session.get')
+    def test_work_search_by_author_only(self, mock_get):
+        mock_get.return_value.json.return_value = {'start': 0, 'num_found': 0, 'docs': []}
+        self.ol.Work.search(author='Dan Brown')
+        mock_get.assert_called_with(f"{self.ol.base_url}/search.json?author=Dan+Brown")
+
+    @patch('requests.Session.get')
+    def test_author_search_encodes_name(self, mock_get):
+        mock_get.return_value.json.return_value = []
+        self.ol.Author.search('Gilbert & Sullivan', limit=5)
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/authors/_autocomplete?q=Gilbert+%26+Sullivan&limit=5"
+        )
+
+    @patch('requests.Session.get')
     def test_matching_authors_olid(self, mock_get):
         author_autocomplete = [
             {'name': "Benjamin Franklin", 'key': "/authors/OL26170A"}
@@ -156,7 +180,7 @@ class TestOpenLibrary(unittest.TestCase):
         mock_get.return_value.json.return_value = author_autocomplete
         got_result = self.ol.create_book(book, debug=True)
         mock_get.assert_called_with(
-            f"{self.ol.base_url}/authors/_autocomplete?q=Karl Schwarzer&limit=1"
+            f"{self.ol.base_url}/authors/_autocomplete?q=Karl+Schwarzer&limit=1"
         )
         expected_result = {
             '_save': '',

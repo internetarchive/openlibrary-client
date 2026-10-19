@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from typing import List, Dict, Optional, Any
+from urllib.parse import urlencode
 
 import backoff
 from requests import Response
@@ -211,9 +212,8 @@ def get_work_helper_class(ol_context):
             if not (title or author):
                 raise ValueError("Author or title required for metadata search")
 
-            url = f'{cls.OL.base_url}/search.json?title={title}'
-            if author:
-                url += f'&author={author}'
+            params = {k: v for k, v in (('title', title), ('author', author)) if v}
+            url = f'{cls.OL.base_url}/search.json?{urlencode(params)}'
 
             @backoff.on_exception(
                 on_giveup=lambda error: logger.exception(

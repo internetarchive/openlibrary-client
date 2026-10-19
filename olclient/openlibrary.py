@@ -647,10 +647,8 @@ class OpenLibrary:
                     err = lambda e: logger.exception(
                         "Error fetching author matches: %s", e
                     )
-                    url = cls.OL.base_url + '/authors/_autocomplete?q={}&limit={}'.format(
-                        name,
-                        limit,
-                    )
+                    query = urlencode({'q': name, 'limit': limit})
+                    url = f'{cls.OL.base_url}/authors/_autocomplete?{query}'
 
                     @backoff.on_exception(on_giveup=err, **cls.OL.BACKOFF_KWARGS)
                     def _get_matching_authors_by_name(url):
