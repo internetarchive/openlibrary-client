@@ -101,6 +101,47 @@ class TestOpenLibrary(unittest.TestCase):
         )
 
     @patch('requests.Session.get')
+    def test_search_subjects_returns_docs_and_encodes_query(self, mock_get):
+        docs = [
+            {
+                'key': '/subjects/biography',
+                'name': 'Biography',
+                'subject_type': 'subject',
+                'work_count': 904349,
+                'count': 904349,
+            }
+        ]
+        mock_get.return_value.json.return_value = {'numFound': 1, 'docs': docs}
+        results = self.ol.search_subjects('science & nature', limit=2)
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search/subjects.json?q=science+%26+nature&limit=2"
+        )
+        assert results == docs
+
+    @patch('requests.Session.get')
+    def test_search_subjects_filters_by_subject_type(self, mock_get):
+        docs = [
+            {'key': '/subjects/person:mark_twain', 'name': 'Mark Twain', 'subject_type': 'person'},
+            {'key': '/subjects/twain', 'name': 'Twain', 'subject_type': 'subject'},
+        ]
+        mock_get.return_value.json.return_value = {'docs': docs}
+        results = self.ol.search_subjects('twain', subject_type='person')
+        assert [d['subject_type'] for d in results] == ['person']
+
+    @patch('requests.Session.get')
+    def test_search_subjects_empty(self, mock_get):
+        mock_get.return_value.json.return_value = {'numFound': 0, 'docs': []}
+        assert self.ol.search_subjects('zzzznomatch') == []
+
+    @patch('requests.Session.get')
+    def test_search_subjects_includes_offset_when_set(self, mock_get):
+        mock_get.return_value.json.return_value = {'docs': []}
+        self.ol.search_subjects('biography', limit=5, offset=10)
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search/subjects.json?q=biography&limit=5&offset=10"
+        )
+
+    @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = {
             'ISBN:0374202915': {
