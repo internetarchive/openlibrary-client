@@ -101,6 +101,46 @@ class TestOpenLibrary(unittest.TestCase):
         )
 
     @patch('requests.Session.get')
+    def test_works_by_subject_yields_keys_and_targets_field(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}],  # page 1 (short -> stop)
+        ]
+        keys = list(self.ol.works_by_subject('Biography', batch_size=1000))
+        assert keys == ['/works/OL1W', '/works/OL2W']
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/query.json?type=%2Ftype%2Fwork&subjects=Biography&limit=1000&offset=0"
+        )
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_pages_until_short_page(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}],  # full page -> keep going
+            [{'key': '/works/OL3W'}],  # short page -> stop
+        ]
+        keys = list(self.ol.works_by_subject('Biography', batch_size=2))
+        assert keys == ['/works/OL1W', '/works/OL2W', '/works/OL3W']
+        assert mock_get.call_count == 2
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_respects_limit(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}, {'key': '/works/OL3W'}],
+        ]
+        keys = list(self.ol.works_by_subject('Biography', limit=2, batch_size=1000))
+        assert keys == ['/works/OL1W', '/works/OL2W']
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_person_type_uses_subject_people(self, mock_get):
+        mock_get.return_value.json.side_effect = [[]]
+        list(self.ol.works_by_subject('Mark Twain', subject_type='person'))
+        called_url = mock_get.call_args[0][0]
+        assert 'subject_people=Mark+Twain' in called_url
+
+    def test_works_by_subject_unknown_type_raises(self):
+        with self.assertRaises(ValueError):
+            list(self.ol.works_by_subject('x', subject_type='bogus'))
+
+    @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = {
             'ISBN:0374202915': {
