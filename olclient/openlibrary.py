@@ -25,6 +25,14 @@ from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
+# The work field that holds each subject type's free-text strings.
+SUBJECT_TYPE_FIELDS = {
+    'subject': 'subjects',
+    'person': 'subject_people',
+    'place': 'subject_places',
+    'time': 'subject_times',
+}
+
 
 def _schema_uri(path: str) -> str:
     """Return a canonical file:// URI for an absolute schema path."""
@@ -177,6 +185,55 @@ class OpenLibrary:
         response = self.session.get(self.base_url + path)
         response.raise_for_status()
         return response
+
+    def works_by_subject(self, subject, subject_type='subject', limit=None, batch_size=1000):
+        """Yield the keys of works that carry ``subject`` exactly.
+
+        Read-only. Pages Open Library's ``/query.json`` over the work field that
+        holds the given ``subject_type``'s strings ('subject' -> ``subjects``,
+        'person' -> ``subject_people``, 'place' -> ``subject_places``, 'time' ->
+        ``subject_times``).
+
+        Args:
+            subject (str) - the exact subject string to match
+            subject_type (str) - 'subject', 'person', 'place' or 'time'
+            limit (int) - cap on the total number of keys yielded (None = all)
+            batch_size (int) - page size for each ``/query.json`` request
+
+        Yields:
+            Work keys, e.g. '/works/OL1W'.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> list(ol.works_by_subject('Biography', limit=2))  # doctest: +SKIP
+            ['/works/OL6212468W', '/works/OL26751518W']
+        """
+        try:
+            field = SUBJECT_TYPE_FIELDS[subject_type]
+        except KeyError:
+            raise ValueError(
+                f"unknown subject_type {subject_type!r}; "
+                f"known: {sorted(SUBJECT_TYPE_FIELDS)}"
+            )
+        yielded = 0
+        offset = 0
+        while True:
+            page = batch_size if limit is None else min(batch_size, limit - yielded)
+            if page <= 0:
+                return
+            params = {'type': '/type/work', field: subject, 'limit': page, 'offset': offset}
+            rows = self.get_ol_response(f'/query.json?{urlencode(params)}').json()
+            if not isinstance(rows, list) or not rows:
+                return
+            for row in rows:
+                yield row['key'] if isinstance(row, dict) else row
+                yielded += 1
+                if limit is not None and yielded >= limit:
+                    return
+            if len(rows) < page:
+                return
+            offset += len(rows)
 
     @property
     def Work(self):
