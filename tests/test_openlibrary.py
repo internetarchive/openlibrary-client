@@ -479,6 +479,45 @@ class TestWorkTags(unittest.TestCase):
 
     @patch('requests.Session.put')
     @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.get_ol_response')
+    def test_add_tags_accepts_singular_genre_on_genres(self, mock_tag, mock_get, mock_put):
+        # Production Tags are typed SINGULAR ('genre'), the work field is plural
+        # ('genres'). Validation must accept the singular tag_type, not require
+        # tag_type == field (which rejected every real Tag on master).
+        mock_tag.return_value.json.return_value = {
+            'key': '/tags/OL84T',
+            'name': 'Fantasy',
+            'tag_type': 'genre',
+        }
+        self._mock_work(mock_get, None)
+        self._work().add_tags('genres', ['/tags/OL84T'])
+        body = json.loads(mock_put.call_args[0][1])
+        assert body['genres'] == [{'key': '/tags/OL84T'}]
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.get_ol_response')
+    def test_add_tags_accepts_literary_form_on_literary_forms(self, mock_tag, mock_get, mock_put):
+        mock_tag.return_value.json.return_value = {
+            'key': '/tags/OL9T',
+            'name': 'Fiction',
+            'tag_type': 'literary_form',
+        }
+        self._mock_work(mock_get, None)
+        self._work().add_tags('literary_forms', ['/tags/OL9T'])
+        body = json.loads(mock_put.call_args[0][1])
+        assert body['literary_forms'] == [{'key': '/tags/OL9T'}]
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    def test_add_tags_unknown_field_raises(self, mock_get, mock_put):
+        # An unmapped field is an error, not a guessed fallback.
+        with self.assertRaises(ValueError):
+            self._work().add_tags('not_a_tag_field', ['/tags/OL9T'], validate=False)
+        mock_put.assert_not_called()
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
     def test_rm_tags(self, mock_get, mock_put):
         self._mock_work(mock_get, [{'key': '/tags/OL1T'}, {'key': '/tags/OL2T'}])
         self._work().rm_tags('genres', ['/tags/OL1T'])
