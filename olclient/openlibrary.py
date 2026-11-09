@@ -178,6 +178,35 @@ class OpenLibrary:
         response.raise_for_status()
         return response
 
+    def search_subjects(self, q, limit=10, offset=0, subject_type=None):
+        """Search Open Library subjects by name.
+
+        Args:
+            q (str) - the subject query, e.g. 'biography'
+            limit (int) - maximum number of results to return
+            offset (int) - results offset, for paging
+            subject_type (str) - if given, restrict results to this subject_type
+                ('subject', 'person', 'place' or 'time')
+
+        Returns:
+            A list of subject dicts, each with keys 'key', 'name',
+            'subject_type', 'work_count' and 'count'. Empty when nothing matches.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> ol.search_subjects('biography', limit=2)  # doctest: +SKIP
+            [{'key': '/subjects/biography', 'name': 'Biography', ...}]
+        """
+        params = {'q': q, 'limit': limit}
+        if offset:
+            params['offset'] = offset
+        response = self.get_ol_response(f'/search/subjects.json?{urlencode(params)}')
+        docs = response.json().get('docs', [])
+        if subject_type:
+            docs = [doc for doc in docs if doc.get('subject_type') == subject_type]
+        return docs
+
     @property
     def Work(self):
         """
