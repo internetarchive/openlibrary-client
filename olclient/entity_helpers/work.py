@@ -14,6 +14,31 @@ from olclient.utils import merge_unique_lists, get_text_value, get_approval_from
 
 logger = logging.getLogger('open_library_work')
 
+# A work's tag field is PLURAL; the Tag's tag_type is SINGULAR (all 197 production
+# Tags were retyped to singular, #14229), and pluralization is not a safe rule. This
+# is the explicit, complete map; openlibrary core/tags.py FIELD_TAG_TYPES is being
+# extended to match (it still maps only literary_forms, from pre-retype #14216).
+FIELD_TAG_TYPES = {
+    'genres': 'genre',
+    'subgenres': 'subgenre',
+    'audiences': 'audience',
+    'content_warnings': 'content_warning',
+    'content_formats': 'content_format',
+    'literary_forms': 'literary_form',
+    'awards': 'award',
+}
+
+
+def tag_type_for_field(field):
+    """The singular tag_type that belongs in a work's plural `field` (e.g.
+    'genres' -> 'genre'). An unknown field is an error, never a guessed fallback."""
+    try:
+        return FIELD_TAG_TYPES[field]
+    except KeyError:
+        raise ValueError(
+            f"unknown tag field {field!r}; known: {sorted(FIELD_TAG_TYPES)}"
+        )
+
 
 def get_work_helper_class(ol_context):
     class Work(Entity):
@@ -143,14 +168,15 @@ def get_work_helper_class(ol_context):
             """Add Tag keys to a work's `field` (e.g. 'genres'); each key is
             checked via the Tag API, then merged, de-duped and written as refs.
             """
+            expected_tag_type = tag_type_for_field(field)  # also validates the field name
             if validate:
                 for key in tag_keys:
                     tag = self.OL.Tag.get(key.split('/')[-1])
                     if tag is None:
                         raise ValueError(f"Tag {key} does not exist")
-                    if tag.tag_type != field:
+                    if tag.tag_type != expected_tag_type:
                         raise ValueError(
-                            f"Tag {key} has tag_type {tag.tag_type!r}, not {field!r}"
+                            f"Tag {key} has tag_type {tag.tag_type!r}, not {expected_tag_type!r}"
                         )
             url = self.OL.base_url + "/works/" + self.olid + ".json"
             data = self.OL.session.get(url).json()
