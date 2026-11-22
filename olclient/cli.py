@@ -39,6 +39,12 @@ from olclient.search import (
 )
 from olclient.solr import http_get_json, solr_base
 
+# Works per /api/save_many POST. Open Library's ModSecurity WAF caps a request
+# body at SecArgumentsLimit (6000 parsed args) and denies with HTTP 460 past it;
+# a full raw work doc is many args, so large batches (e.g. 250) are rejected.
+# Small batches stay well under the limit (and are gentler on the server).
+WAF_SAFE_BATCH = 20
+
 
 def _authed_ol(baseurl=None):
     """An authenticated OpenLibrary client (for datastore reads/writes)."""
@@ -320,7 +326,9 @@ def build_parser():
     mp.add_argument("--type", dest="type", default="subject",
                     choices=["subject", "person", "place", "time"])
     mp.add_argument("--limit", type=int, default=50, help="max works to examine/write")
-    mp.add_argument("--batch-size", type=int, default=250)
+    mp.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
+                    help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH}; "
+                         "kept small so the JSON body stays under ModSec SecArgumentsLimit)")
     mp.add_argument("--comment", default="merge/clean subjects")
     mp.add_argument("--audit", default=None, help="reversible audit JSONL path")
     mp.add_argument("--dry-run", action="store_true", help="preview only; write nothing")
@@ -340,7 +348,8 @@ def build_parser():
     ta.add_argument("--rm-subjects", dest="rm_subjects", default=None,
                     metavar="SLUG[,SLUG...]", help="subject slugs to remove from each tagged work")
     ta.add_argument("--limit", type=int, default=100, help="max works to change (default 100)")
-    ta.add_argument("--batch-size", type=int, default=250)
+    ta.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
+                    help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH})")
     ta.add_argument("--comment", default="tag works by subject")
     ta.add_argument("--audit", default=None, help="reversible audit JSONL path")
     ta.add_argument("--show-payload", action="store_true",
