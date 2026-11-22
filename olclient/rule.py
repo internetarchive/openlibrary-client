@@ -463,21 +463,27 @@ def _audit_rows(plan: RulePlan, comment: str):
     return rows
 
 
-def _save_with_split(ol, docs, comment, on_accept):
-    """POST ``docs`` to /api/save_many; on a WAF 460 for a multi-doc batch,
-    split in half and retry each half (the arg-count estimate that sized the
-    batch may undercount). ``on_accept(docs)`` runs for each accepted sub-batch.
-    A single doc that still 460s raises -- it cannot be split further."""
+def _save_with_split(ol, docs, comment, on_accept, on_skip):
+    """POST ``docs`` to /api/save_many. On ANY save error for a multi-doc batch,
+    split in half and retry each half — this isolates both a WAF 460 (over-limit
+    body) and a single work the server rejects (e.g. a 500/400 on one bad doc).
+    ``on_accept(docs)`` runs for each accepted sub-batch; a single doc the server
+    still won't accept is handed to ``on_skip(doc, exc)`` and the run continues,
+    so one poison work can't abort a whole batch (or a 39k-work subject)."""
     if not docs:
         return
     req = save_many_request(ol, docs, comment)
     resp = ol.session.post(req["url"], json.dumps(docs), headers=req["headers"])
-    if getattr(resp, "status_code", None) == WAF_DENY_STATUS and len(docs) > 1:
-        mid = len(docs) // 2
-        _save_with_split(ol, docs[:mid], comment, on_accept)
-        _save_with_split(ol, docs[mid:], comment, on_accept)
+    try:
+        resp.raise_for_status()
+    except Exception as exc:
+        if len(docs) > 1:
+            mid = len(docs) // 2
+            _save_with_split(ol, docs[:mid], comment, on_accept, on_skip)
+            _save_with_split(ol, docs[mid:], comment, on_accept, on_skip)
+        else:
+            on_skip(docs[0], exc)  # single doc the server rejects — skip it, keep going
         return
-    resp.raise_for_status()
     on_accept(docs)
 
 
@@ -505,6 +511,7 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
 
     audit_rows = _audit_rows(plan, comment)
     written = 0
+    skipped = []
 
     def _accept(accepted):
         # Audit only AFTER a (sub-)batch is accepted, so a rejected/failed POST
@@ -515,6 +522,9 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
                 for doc in accepted:
                     fh.write(json.dumps(audit_rows[doc["key"]]) + "\n")
         written += len(accepted)
+
+    def _skip(doc, exc):
+        skipped.append((doc["key"], f"{type(exc).__name__}: {exc}"))
 
     planned_rev = {c.work_key: c.revision for c in plan.to_write}
     for batch in pack_batches(docs, batch_size):
@@ -528,5 +538,5 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
             if live_doc is None or live_doc.get("revision") != planned_rev.get(key):
                 continue  # vanished or edited since planning — skip, don't clobber
             safe.append(doc)
-        _save_with_split(ol, safe, comment, _accept)
-    return {"dry_run": False, "written": written, "planned": len(docs)}
+        _save_with_split(ol, safe, comment, _accept, _skip)
+    return {"dry_run": False, "written": written, "planned": len(docs), "skipped": skipped}

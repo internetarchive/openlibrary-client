@@ -219,7 +219,7 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
     if writing:
         assert_identity(ol, args.as_account)
 
-    examined = changed = failed = consec_fail = 0
+    examined = changed = skipped = failed = consec_fail = 0
     for i, s in enumerate(pending, 1):
         try:
             rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
@@ -230,6 +230,9 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
                 st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
                                 dry_run=False, audit=args.audit, expected_account=args.as_account)
                 changed += st["written"]
+                for key, why in st.get("skipped", []):
+                    skipped += 1
+                    print(f"    skipped {key}: {why}", file=sys.stderr)
             else:
                 changed += would
             examined += len(plan.changes)
@@ -252,7 +255,9 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
 
     verb = "wrote" if writing else "would change"
     print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); "
-          f"{verb} {changed:,}" + (f"; {failed} subject(s) failed (retry on resume)" if failed else "") + ".")
+          f"{verb} {changed:,}"
+          + (f"; {skipped} work(s) skipped (server rejected)" if skipped else "")
+          + (f"; {failed} subject(s) failed (retry on resume)" if failed else "") + ".")
     if writing and args.audit:
         print(f"Reversible audit log: {args.audit}")
 

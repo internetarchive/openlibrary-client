@@ -56,43 +56,49 @@ def test_save_with_split_retries_halves_on_460():
 
         def raise_for_status(self):
             if self.status_code >= 400:
-                raise AssertionError(f"unexpected raise on {self.status_code}")
+                raise RuntimeError(f"HTTP {self.status_code}")
 
     posts = []
 
     def post(url, data, headers=None):
         docs = json.loads(data)
         posts.append(len(docs))
-        # WAF denies any batch with >1 doc; singletons go through
+        # the server rejects any batch with >1 doc; singletons go through
         return Resp(460 if len(docs) > 1 else 200)
 
     ol = types.SimpleNamespace(
         base_url="https://openlibrary.org",
         session=types.SimpleNamespace(post=post),
     )
-    accepted = []
+    accepted, skipped = [], []
     docs = [{"key": f"/works/OL{i}W"} for i in range(4)]
-    _save_with_split(ol, docs, "c", on_accept=lambda ds: accepted.extend(ds))
-    # 4 -> 460, 2 -> 460, 2 -> 460, then four singletons succeed
+    _save_with_split(ol, docs, "c", on_accept=accepted.extend,
+                     on_skip=lambda d, e: skipped.append(d["key"]))
+    # 4 -> err, 2 -> err, 2 -> err, then four singletons succeed; nothing skipped
     assert sum(1 for n in posts if n == 1) == 4
     assert [d["key"] for d in accepted] == [d["key"] for d in docs]
+    assert skipped == []
 
 
-def test_save_with_split_single_doc_460_raises():
+def test_save_with_split_single_doc_error_is_skipped_not_raised():
     from olclient.rule import _save_with_split
 
     class Resp:
-        status_code = 460
+        status_code = 500
 
         def raise_for_status(self):
-            raise RuntimeError("460")
+            raise RuntimeError("500")
 
     ol = types.SimpleNamespace(
         base_url="https://openlibrary.org",
         session=types.SimpleNamespace(post=lambda *a, **k: Resp()),
     )
-    with pytest.raises(RuntimeError):
-        _save_with_split(ol, [{"key": "/works/OL1W"}], "c", on_accept=lambda ds: None)
+    accepted, skipped = [], []
+    _save_with_split(ol, [{"key": "/works/OL1W"}], "c", on_accept=accepted.extend,
+                     on_skip=lambda d, e: skipped.append(d["key"]))
+    # a lone doc the server rejects is skipped (not raised), so one poison work
+    # can't abort the whole batch/subject
+    assert accepted == [] and skipped == ["/works/OL1W"]
 
 
 NONFIC = tag("literary_form", "Nonfiction")
@@ -393,10 +399,11 @@ def test_failed_post_writes_no_audit_row(tmp_path):
     ol.session = types.SimpleNamespace(post=boom, cookies=ol.session.cookies)
     plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=50)
     audit = tmp_path / "audit.jsonl"
-    with pytest.raises(RuntimeError, match="400"):
-        apply_rule(ol, plan, comment="c", dry_run=False,
-                   expected_account="openlibrarytagsbot", audit=str(audit))
-    # No phantom "we changed this" row: the file was never written to.
+    stats = apply_rule(ol, plan, comment="c", dry_run=False,
+                       expected_account="openlibrarytagsbot", audit=str(audit))
+    # the rejected work is skipped (not written), and leaves no phantom audit row
+    assert stats["written"] == 0
+    assert [k for k, _ in stats["skipped"]] == ["/works/OL1W"]
     assert not audit.exists() or audit.read_text() == ""
 
 
