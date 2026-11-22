@@ -365,6 +365,22 @@ def cmd_configure(args):
 # parser / entry point
 # ---------------------------------------------------------------------------
 
+def _add_write_args(parser, *, default_comment, approve_help, dry_run=False):
+    """Add the flags shared by every writing subcommand (subject, tag add)."""
+    parser.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
+                        help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH}; "
+                             "kept small so the JSON body stays under ModSec SecArgumentsLimit)")
+    parser.add_argument("--comment", default=default_comment)
+    parser.add_argument("--audit", default=None, help="reversible audit JSONL path")
+    if dry_run:
+        parser.add_argument("--dry-run", action="store_true", help="preview only; write nothing")
+    parser.add_argument("--show-payload", action="store_true",
+                        help="print the exact /api/save_many request; write nothing")
+    parser.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
+                        help="refuse to write unless the session is this account")
+    parser.add_argument("--approve", action="store_true", help=approve_help)
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="ol", description=__title__)
     p.add_argument("-v", action="version", version=f"{__title__} v{__version__}")
@@ -406,18 +422,8 @@ def build_parser():
     mp.add_argument("--limit", type=int, default=None,
                     help="max works to examine/write (merge/remove default 50; "
                          "--select defaults to ALL works per subject)")
-    mp.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
-                    help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH}; "
-                         "kept small so the JSON body stays under ModSec SecArgumentsLimit)")
-    mp.add_argument("--comment", default="merge/clean subjects")
-    mp.add_argument("--audit", default=None, help="reversible audit JSONL path")
-    mp.add_argument("--dry-run", action="store_true", help="preview only; write nothing")
-    mp.add_argument("--show-payload", action="store_true",
-                    help="print the exact /api/save_many request; write nothing")
-    mp.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
-                    help="refuse to write unless the session is this account")
-    mp.add_argument("--approve", action="store_true",
-                    help="approve and apply the write (without it: confirmation prompt)")
+    _add_write_args(mp, default_comment="merge/clean subjects", dry_run=True,
+                    approve_help="approve and apply the write (without it: confirmation prompt)")
 
     tp = sub.add_parser("tag", help="Tag works (writes via infogami)")
     tsub = tp.add_subparsers(dest="tag_command", required=True)
@@ -428,16 +434,8 @@ def build_parser():
     ta.add_argument("--rm-subjects", dest="rm_subjects", default=None,
                     metavar="SLUG[,SLUG...]", help="subject slugs to remove from each tagged work")
     ta.add_argument("--limit", type=int, default=100, help="max works to change (default 100)")
-    ta.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
-                    help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH})")
-    ta.add_argument("--comment", default="tag works by subject")
-    ta.add_argument("--audit", default=None, help="reversible audit JSONL path")
-    ta.add_argument("--show-payload", action="store_true",
-                    help="print the exact /api/save_many request; write nothing")
-    ta.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
-                    help="refuse to write unless the session is this account")
-    ta.add_argument("--approve", action="store_true",
-                    help="approve and save the changes (without it, this is a dry run)")
+    _add_write_args(ta, default_comment="tag works by subject",
+                    approve_help="approve and save the changes (without it, this is a dry run)")
 
     cp = sub.add_parser("configure", help="Store IA/OL credentials")
     cp.add_argument("--email", default=None, help="Archive.org email")
