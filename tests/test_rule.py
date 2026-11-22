@@ -23,6 +23,7 @@ from olclient.rule import (
     resolve_tags,
     save_many_request,
 )
+from tests.conftest import FakeOL, tag
 
 
 def test_pack_batches_splits_by_count():
@@ -94,53 +95,6 @@ def test_save_with_split_single_doc_460_raises():
         _save_with_split(ol, [{"key": "/works/OL1W"}], "c", on_accept=lambda ds: None)
 
 
-class FakeResponse:
-    def __init__(self, payload):
-        self._payload = payload
-
-    def json(self):
-        return self._payload
-
-
-class FakeTagAPI:
-    def __init__(self, tags):
-        self._tags = tags
-
-    def get(self, olid):
-        return self._tags.get(olid)
-
-
-class FakeOL:
-    def __init__(self, tags=None, subjects=None, subject_works=None, work_docs=None, user=None):
-        self.Tag = FakeTagAPI(tags or {})
-        self._subjects = subjects or []
-        self._subject_works = subject_works or {}
-        self._work_docs = work_docs or {}
-        self.base_url = "https://openlibrary.org"
-        self.saved = []
-        cookies = types.SimpleNamespace(get=lambda name: user)
-        self.session = types.SimpleNamespace(post=self._post, cookies=cookies)
-
-    def search_subjects(self, q, limit=10, subject_type=None):
-        return [h for h in self._subjects if h["name"].lower() == q.lower()]
-
-    def works_by_subject(self, subject, subject_type="subject", limit=None):
-        keys = self._subject_works.get(subject, [])
-        yield from (keys if limit is None else keys[:limit])
-
-    def get_ol_response(self, path):
-        olid = path.rstrip("/").split("/")[-1].removesuffix(".json")
-        return FakeResponse(self._work_docs[olid])
-
-    def _post(self, url, data=None, headers=None):
-        self.saved.append(json.loads(data))
-        return types.SimpleNamespace(status_code=200, raise_for_status=lambda: None)
-
-
-def tag(tag_type, name):
-    return types.SimpleNamespace(tag_type=tag_type, name=name)
-
-
 NONFIC = tag("literary_form", "Nonfiction")
 FICTION = tag("literary_form", "Fiction")
 FANTASY = tag("genre", "Fantasy")
@@ -166,14 +120,19 @@ def fake_slug_to_tag_key(vocab_dir, slug):
 # --- tag ref resolution -----------------------------------------------------
 
 
-def test_resolve_tag_ref_colon_form_singular_and_plural_dirs():
-    # literary_form resolves from the singular dir; genre from the plural dir.
-    assert resolve_tag_ref("literary_form:fiction", fake_slug_to_tag_key) == "/tags/OL183T"
-    assert resolve_tag_ref("genre:fantasy", fake_slug_to_tag_key) == "/tags/OL169T"
-
-
-def test_resolve_tag_ref_passes_through_key():
-    assert resolve_tag_ref("/tags/OL184T", fake_slug_to_tag_key) == "/tags/OL184T"
+@pytest.mark.parametrize(
+    "ref, expected",
+    [
+        # literary_form resolves from the singular dir ...
+        ("literary_form:fiction", "/tags/OL183T"),
+        # ... genre from the plural dir ...
+        ("genre:fantasy", "/tags/OL169T"),
+        # ... and a bare /tags/ key passes through untouched.
+        ("/tags/OL184T", "/tags/OL184T"),
+    ],
+)
+def test_resolve_tag_ref_resolves_or_passes_through(ref, expected):
+    assert resolve_tag_ref(ref, fake_slug_to_tag_key) == expected
 
 
 def test_resolve_tag_ref_unknown_raises():
