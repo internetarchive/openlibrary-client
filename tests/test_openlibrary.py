@@ -182,6 +182,41 @@ class TestOpenLibrary(unittest.TestCase):
             list(self.ol.works_by_subject('x', subject_type='bogus'))
 
     @patch('requests.Session.get')
+    def test_get_many_sends_json_array_and_unwraps_result(self, mock_get):
+        docs = {'/works/OL1W': {'key': '/works/OL1W'}, '/works/OL2W': {'key': '/works/OL2W'}}
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': docs}
+        result = self.ol.get_many(['/works/OL1W', '/works/OL2W'])
+        assert result == docs
+        called_url = mock_get.call_args[0][0]
+        # keys go as a JSON array on ?keys=, to /api/get_many (not .json)
+        assert '/api/get_many?keys=' in called_url
+        assert '%5B%22%2Fworks%2FOL1W%22%2C+%22%2Fworks%2FOL2W%22%5D' in called_url
+
+    @patch('requests.Session.get')
+    def test_get_many_batches_and_merges(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            {'status': 'ok', 'result': {'/works/OL1W': {'key': '/works/OL1W'}}},
+            {'status': 'ok', 'result': {'/works/OL2W': {'key': '/works/OL2W'}}},
+        ]
+        result = self.ol.get_many(['/works/OL1W', '/works/OL2W'], batch_size=1)
+        assert mock_get.call_count == 2
+        assert set(result) == {'/works/OL1W', '/works/OL2W'}
+
+    @patch('requests.Session.get')
+    def test_get_many_dedupes_keys(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': {}}
+        self.ol.get_many(['/works/OL1W', '/works/OL1W', '/works/OL2W'], batch_size=100)
+        called_url = mock_get.call_args[0][0]
+        assert called_url.count('OL1W') == 1
+
+    @patch('requests.Session.get')
+    def test_get_many_missing_key_is_absent(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': {'/works/OL1W': {'key': '/works/OL1W'}}}
+        result = self.ol.get_many(['/works/OL1W', '/works/OL404W'])
+        assert '/works/OL404W' not in result
+        assert '/works/OL1W' in result
+
+    @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = {
             'ISBN:0374202915': {

@@ -26,6 +26,7 @@ import argparse
 import getpass
 import json
 import sys
+from urllib.parse import urlencode
 
 from olclient import __title__, __version__, OpenLibrary
 from olclient.config import Config, Credentials
@@ -98,6 +99,46 @@ def pick_winner(count_fn, variants, into=None):
     return max(variants, key=lambda v: count_fn(v) or 0)
 
 
+def _execute(ol, plan, *, comment, show_payload, dry_run, yes, batch_size,
+             audit, as_account):
+    """Preview, then (unless previewing/dry-running) write a plan via the engine.
+
+    Shared by ``ol subject`` and ``ol tag add``: inspect the exact request
+    (``show_payload``), stop at a dry run, otherwise confirm (unless ``yes``)
+    and apply with the identity guard and reversible audit.
+    """
+    if show_payload:
+        docs = build_save_docs(ol, plan, comment=comment)
+        req = save_many_request(ol, docs, comment=comment)
+        print(f"POST {req['url']}")
+        for k, v in req["headers"].items():
+            print(f"  {k}: {v}")
+        print(f"  (would write as: {logged_in_user(ol)})")
+        print(f"\nBODY ({len(docs)} work doc(s)):")
+        print(json.dumps(req["body"], indent=2, ensure_ascii=False))
+        return
+
+    if dry_run:
+        s = apply_rule(ol, plan, comment=comment, dry_run=True)
+        print(f"DRY RUN: would write {s['would_write']:,} works in {s['batches']} batch(es). "
+              f"Use --yes to apply.")
+        return
+
+    n = len(plan.to_write)
+    if n == 0:
+        print("Nothing to write — every examined work already satisfies this.")
+        return
+    if not yes:
+        if input(f"Write {n} work(s) as {logged_in_user(ol)}? [y/N] ").strip().lower() not in ("y", "yes"):
+            print("Aborted.")
+            return
+    s = apply_rule(ol, plan, comment=comment, batch_size=batch_size,
+                   dry_run=False, audit=audit, expected_account=as_account)
+    print(f"WROTE {s['written']:,} of {s['planned']:,} planned works.")
+    if audit:
+        print(f"Reversible audit log: {audit}")
+
+
 def cmd_subject(args):
     ol = _authed_ol(args.baseurl)
     st = args.type
@@ -131,37 +172,63 @@ def cmd_subject(args):
     plan = plan_rule(ol, rule, limit=args.limit)
     print(format_plan(plan, args.limit))
     print()
+    _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
+             dry_run=args.dry_run, yes=args.yes, batch_size=args.batch_size,
+             audit=args.audit, as_account=args.as_account)
 
-    if args.show_payload:
-        docs = build_save_docs(ol, plan, comment=args.comment)
-        req = save_many_request(ol, docs, comment=args.comment)
-        print(f"POST {req['url']}")
-        for k, v in req["headers"].items():
-            print(f"  {k}: {v}")
-        print(f"  (would write as: {logged_in_user(ol)})")
-        print(f"\nBODY ({len(docs)} work doc(s)):")
-        print(json.dumps(req["body"], indent=2, ensure_ascii=False))
-        return
 
-    if args.dry_run:
-        s = apply_rule(ol, plan, comment=args.comment, dry_run=True)
-        print(f"DRY RUN: would write {s['would_write']:,} works in {s['batches']} batch(es). "
-              f"Drop --dry-run to apply.")
-        return
+# ---------------------------------------------------------------------------
+# ol tag add  — tag every work carrying ALL of a set of subjects (issue #458)
+# ---------------------------------------------------------------------------
 
-    n = len(plan.to_write)
-    if n == 0:
-        print("Nothing to write — every examined work already satisfies this.")
-        return
-    if not args.yes:
-        if input(f"Write {n} work(s) as {logged_in_user(ol)}? [y/N] ").strip().lower() not in ("y", "yes"):
-            print("Aborted.")
-            return
-    s = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
-                   dry_run=False, audit=args.audit, expected_account=args.as_account)
-    print(f"WROTE {s['written']:,} of {s['planned']:,} planned works.")
-    if args.audit:
-        print(f"Reversible audit log: {args.audit}")
+def _works_matching_all_subjects(ol, slugs, exclude_tag_key=None, tag_type=None,
+                                 tag_olid=None, limit=100):
+    """Work keys carrying ALL ``slugs`` (AND), via the public /search.json.
+
+    ``/query.json`` can't AND two values of the same field, so this uses Solr
+    search: ``subject_key:a AND subject_key:b [AND -<tag_type>_key:OLID]``.
+    The optional exclusion skips works already carrying the Tag; correctness
+    does not depend on it (the plan re-checks each work and no-ops any that
+    already have the Tag), it just avoids fetching them.
+    """
+    clauses = [f"subject_key:{slug}" for slug in slugs]
+    if tag_type and tag_olid:
+        clauses.append(f"-{tag_type}_key:{tag_olid}")
+    params = {"q": " AND ".join(clauses), "fields": "key", "limit": limit}
+    resp = ol.get_ol_response(f"/search.json?{urlencode(params)}")
+    return [d["key"] for d in resp.json().get("docs", []) if d.get("key")]
+
+
+def cmd_tag_add(args):
+    ol = _authed_ol(args.baseurl)
+
+    olid = args.tag_olid.rstrip("/").split("/")[-1]
+    tag = ol.Tag.get(olid)
+    if tag is None:
+        raise SystemExit(f"Tag /tags/{olid} does not exist")
+    tag_key = f"/tags/{olid}"
+    tag_type = getattr(tag, "tag_type", None)
+
+    slugs = [s.strip() for s in args.subjects.split(",") if s.strip()]
+    if not slugs:
+        raise SystemExit("ol tag add: --subjects needs at least one slug")
+    rm_slugs = [s.strip() for s in (args.rm_subjects or "").split(",") if s.strip()]
+
+    work_keys = _works_matching_all_subjects(
+        ol, slugs, tag_type=tag_type, tag_olid=olid, limit=args.limit)
+    print(f"tag: {getattr(tag, 'name', None) or tag_key} ({tag_type})  {tag_key}")
+    print(f"select works with ALL subjects: {', '.join(slugs)}")
+    if rm_slugs:
+        print(f"  and remove subjects by slug: {', '.join(rm_slugs)}")
+    print(f"  {len(work_keys):,} candidate work(s) from search\n")
+
+    rule = Rule(add_tags=[tag_key], subjects=[], remove_subject_slugs=rm_slugs)
+    plan = plan_rule(ol, rule, limit=args.limit, work_keys=work_keys)
+    print(format_plan(plan, args.limit))
+    print()
+    _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
+             dry_run=not args.yes, yes=args.yes, batch_size=args.batch_size,
+             audit=args.audit, as_account=args.as_account)
 
 
 # ---------------------------------------------------------------------------
@@ -230,15 +297,39 @@ def build_parser():
                     help="refuse to write unless the session is this account")
     mp.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
 
+    tp = sub.add_parser("tag", help="Tag works (writes via infogami)")
+    tsub = tp.add_subparsers(dest="tag_command", required=True)
+    ta = tsub.add_parser("add", help="Tag every work carrying ALL of a set of subjects")
+    ta.add_argument("tag_olid", metavar="TAG_OLID", help="the Tag to add, e.g. OL167T")
+    ta.add_argument("--subjects", required=True, metavar="SLUG[,SLUG...]",
+                    help="subject slugs (as in /subjects/<slug>); a work must have ALL")
+    ta.add_argument("--rm-subjects", dest="rm_subjects", default=None,
+                    metavar="SLUG[,SLUG...]", help="subject slugs to remove from each tagged work")
+    ta.add_argument("--limit", type=int, default=100, help="max works to change (default 100)")
+    ta.add_argument("--batch-size", type=int, default=250)
+    ta.add_argument("--comment", default="tag works by subject")
+    ta.add_argument("--audit", default=None, help="reversible audit JSONL path")
+    ta.add_argument("--show-payload", action="store_true",
+                    help="print the exact /api/save_many request; write nothing")
+    ta.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
+                    help="refuse to write unless the session is this account")
+    ta.add_argument("--yes", action="store_true",
+                    help="save the changes (without it, this is a dry run)")
+
     cp = sub.add_parser("configure", help="Store IA/OL credentials")
     cp.add_argument("--email", default=None, help="Archive.org email")
 
     return p
 
 
+def cmd_tag(args):
+    {"add": cmd_tag_add}[args.tag_command](args)
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    {"search": cmd_search, "subject": cmd_subject, "configure": cmd_configure}[args.command](args)
+    {"search": cmd_search, "subject": cmd_subject, "tag": cmd_tag,
+     "configure": cmd_configure}[args.command](args)
 
 
 if __name__ == "__main__":

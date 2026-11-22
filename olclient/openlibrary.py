@@ -264,6 +264,40 @@ class OpenLibrary:
                 return
             offset += len(rows)
 
+    def get_many(self, keys, batch_size=100):
+        """Fetch many documents by key in as few requests as possible.
+
+        Open Library's ``/api/get_many`` takes a JSON array of keys as the
+        ``keys`` query parameter and replies ``{"status": "ok", "result":
+        {<key>: <doc>, ...}}``. (Passing a bare comma-joined list to
+        ``/api/get_many.json`` returns a 500 in production, so this always
+        sends a JSON array and unwraps ``result``.) Keys are fetched in
+        batches of ``batch_size`` and the batches are merged.
+
+        Args:
+            keys (list) - document keys, e.g. ['/works/OL1W', '/works/OL2W']
+            batch_size (int) - maximum keys per request (default 100)
+
+        Returns:
+            A dict mapping each found key to its document. Keys that do not
+            exist are simply absent from the result.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> ol.get_many(['/works/OL1W', '/works/OL2W'])  # doctest: +SKIP
+            {'/works/OL1W': {...}, '/works/OL2W': {...}}
+        """
+        keys = list(dict.fromkeys(keys))  # de-dupe, preserve order
+        result = {}
+        for i in range(0, len(keys), batch_size):
+            chunk = keys[i:i + batch_size]
+            params = urlencode({'keys': json.dumps(chunk)})
+            response = self.get_ol_response(f'/api/get_many?{params}')
+            payload = response.json()
+            result.update(payload.get('result', payload) or {})
+        return result
+
     @property
     def Work(self):
         """

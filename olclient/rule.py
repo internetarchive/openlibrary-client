@@ -68,11 +68,23 @@ class SubjectSel:
     keep: bool = True
 
 
+def subject_slug(name: str) -> str:
+    """Open Library's ``/subjects/<slug>`` key for a subject string.
+
+    Lowercases, turns every run of non-alphanumeric characters into a single
+    underscore, and trims leading/trailing underscores -- so ``'Art, German'``
+    -> ``'art_german'`` and ``'Graphic design'`` -> ``'graphic_design'``. Used
+    to match subjects for removal by slug (as ``--rm-subjects`` gives them).
+    """
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
 @dataclass
 class Rule:
     add_tags: list[str]  # resolved Tag keys, e.g. ['/tags/OL183T']
     subjects: list  # SubjectSel | str | (str, 0|1); normalised in __post_init__
     add_subjects: list[str] = dc_field(default_factory=list)  # plain subject strings to add
+    remove_subject_slugs: list[str] = dc_field(default_factory=list)  # drop subjects by slug
     name: str | None = None
     subject_type: str = "subject"
 
@@ -230,8 +242,13 @@ def _select_work_keys(ol, rule: Rule, limit):
     return list(seen)
 
 
-def plan_rule(ol, rule: Rule, limit=50):
-    """Compute (read-only) what ``rule`` would change, over up to ``limit`` works."""
+def plan_rule(ol, rule: Rule, limit=50, work_keys=None):
+    """Compute (read-only) what ``rule`` would change, over up to ``limit`` works.
+
+    ``work_keys`` lets a caller inject an already-selected set of works (e.g.
+    ``ol tag add``, which selects via ``/search.json``) instead of the default
+    subject-union selection. When given, it is used verbatim, capped at ``limit``.
+    """
     tag_field, tag_type, tag_name = resolve_tags(ol, rule.add_tags)
 
     subject_counts: dict[str, int | None] = {}
@@ -250,11 +267,17 @@ def plan_rule(ol, rule: Rule, limit=50):
         subject_counts[subject] = count
 
     drop = rule.subjects_to_remove()
+    drop_slugs = {subject_slug(s) for s in rule.remove_subject_slugs}
     adds = list(rule.add_subjects)
     subj_field = SUBJECT_TYPE_FIELD.get(rule.subject_type, "subjects")
 
+    if work_keys is None:
+        selected = _select_work_keys(ol, rule, limit)
+    else:
+        selected = list(dict.fromkeys(work_keys))[:limit] if limit is not None else list(dict.fromkeys(work_keys))
+
     changes = []
-    for work_key in _select_work_keys(ol, rule, limit):
+    for work_key in selected:
         data = ol.get_ol_response(f"/works/{_olid(work_key)}.json").json()
 
         tag_changes = {}
@@ -265,9 +288,9 @@ def plan_rule(ol, rule: Rule, limit=50):
             tag_changes[field] = (before, after)
 
         subject_changes = {}
-        if drop or adds:
+        if drop or drop_slugs or adds:
             before = list(data.get(subj_field, []))
-            after = [s for s in before if s not in drop]
+            after = [s for s in before if s not in drop and subject_slug(s) not in drop_slugs]
             for a in adds:
                 if a not in after:
                     after.append(a)
