@@ -99,6 +99,32 @@ def pick_winner(count_fn, variants, into=None):
     return max(variants, key=lambda v: count_fn(v) or 0)
 
 
+def _resolve_add_tags(ol, refs):
+    """Resolve each ``<tag_type>:<name>`` (or ``/tags/OL..T``) ref to a Tag key.
+
+    The name is matched case-insensitively against existing Tags of that
+    tag_type (via ``Tag.find``). Zero matches or more than one is a hard error
+    rather than a guess, so a write never attaches the wrong Tag.
+    """
+    keys = []
+    for raw in refs:
+        ref = raw.strip()
+        if ref.startswith("/tags/"):
+            keys.append(ref)
+            continue
+        if ":" not in ref:
+            raise SystemExit(f"--add-tags {raw!r} must be <tag_type>:<name> or /tags/OL..T")
+        tag_type, value = (p.strip() for p in ref.split(":", 1))
+        matches = ol.Tag.find(tag_type, name=value)
+        if not matches:
+            raise SystemExit(f"--add-tags: no {tag_type} Tag named {value!r}")
+        if len(matches) > 1:
+            olids = ", ".join(f"/tags/{m.olid}" for m in matches)
+            raise SystemExit(f"--add-tags {raw!r} is ambiguous ({len(matches)}): {olids}")
+        keys.append(f"/tags/{matches[0].olid}")
+    return keys
+
+
 def _execute(ol, plan, *, comment, show_payload, dry_run, yes, batch_size,
              audit, as_account):
     """Preview, then (unless previewing/dry-running) write a plan via the engine.
@@ -158,8 +184,11 @@ def cmd_subject(args):
         if len(variants) < 2 and not args.into:
             raise SystemExit("ol subject --merge needs >=2 subjects (or 1 plus --into)")
         winner = pick_winner(count_of, variants, args.into)
-        selector = list(dict.fromkeys(variants + ([winner] if winner not in variants else [])))
-        subjects = [(v, 1 if v == winner else 0) for v in selector]
+        # Selector is exactly the listed subjects (the union to touch). The
+        # winner is the survivor flagged keep; when it is a *new* canonical
+        # (not among the variants) it is added via add_subjects only, so we
+        # never pull in every existing work already carrying it.
+        subjects = [(v, 1 if v == winner else 0) for v in variants]
         add_subjects = [winner]
         print(f"merge winner: {winner!r}\n")
     else:
@@ -168,7 +197,8 @@ def cmd_subject(args):
         subjects = [(s, 0) for s in args.remove]
         add_subjects = list(args.add or [])
 
-    rule = Rule(add_tags=[], subjects=subjects, add_subjects=add_subjects, subject_type=st)
+    add_tags = _resolve_add_tags(ol, args.add_tags) if args.add_tags else []
+    rule = Rule(add_tags=add_tags, subjects=subjects, add_subjects=add_subjects, subject_type=st)
     plan = plan_rule(ol, rule, limit=args.limit)
     print(format_plan(plan, args.limit))
     print()
@@ -284,6 +314,9 @@ def build_parser():
                     help="remove these subjects from matching works")
     mp.add_argument("--add", nargs="+", metavar="SUBJECT",
                     help="add these subject strings to matching works")
+    mp.add_argument("--add-tags", nargs="+", dest="add_tags", metavar="TAG",
+                    help="also add these Tags to every matching work, as "
+                         "<tag_type>:<name> (e.g. genre:'Science Fiction') or /tags/OL..T")
     mp.add_argument("--type", dest="type", default="subject",
                     choices=["subject", "person", "place", "time"])
     mp.add_argument("--limit", type=int, default=50, help="max works to examine/write")
