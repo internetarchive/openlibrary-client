@@ -440,3 +440,32 @@ def test_save_many_request_shape():
     assert req["url"].endswith("/api/save_many")
     assert req["headers"]["42-comment"] == "migrate"
     assert req["body"][0]["key"] == "/works/OL1W"
+
+
+def test_post_save_many_retries_transient_network_errors(monkeypatch):
+    from olclient.rule import _post_save_many
+    import olclient.rule as rule
+    monkeypatch.setattr(rule.time, "sleep", lambda *a: None)
+    calls = {"n": 0}
+
+    def post(url, body, headers=None):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise ConnectionError("reset by peer")
+        return "OK"
+
+    session = types.SimpleNamespace(post=post)
+    assert _post_save_many(session, "u", "b", {}, tries=4) == "OK"
+    assert calls["n"] == 3  # failed twice, succeeded on the third
+
+
+def test_post_save_many_gives_up_after_tries(monkeypatch):
+    from olclient.rule import _post_save_many
+    import olclient.rule as rule
+    monkeypatch.setattr(rule.time, "sleep", lambda *a: None)
+
+    def post(*a, **k):
+        raise ConnectionError("down")
+
+    with pytest.raises(ConnectionError):
+        _post_save_many(types.SimpleNamespace(post=post), "u", "b", {}, tries=3)

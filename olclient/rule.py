@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass, field as dc_field
 from pathlib import Path
 from urllib.parse import unquote
@@ -463,6 +464,25 @@ def _audit_rows(plan: RulePlan, comment: str):
     return rows
 
 
+SAVE_POST_RETRIES = 4
+
+
+def _post_save_many(session, url, body, headers, tries=SAVE_POST_RETRIES):
+    """POST to save_many, retrying transient NETWORK failures (connection reset,
+    connect/read timeout) with backoff. ``session.post`` raises only on network
+    errors, never on an HTTP status, so a raised exception here is a transient
+    blip — without retrying it, a single hiccup across a giant subject's hundreds
+    of POSTs would abort the whole subject (the work-level skip only catches HTTP
+    statuses). After the last try the error propagates (subject fails, resumable)."""
+    for attempt in range(tries):
+        try:
+            return session.post(url, body, headers=headers)
+        except Exception:
+            if attempt == tries - 1:
+                raise
+            time.sleep(min(2 ** attempt, 8))
+
+
 def _save_with_split(ol, docs, comment, on_accept, on_skip):
     """POST ``docs`` to /api/save_many. On ANY save error for a multi-doc batch,
     split in half and retry each half — this isolates both a WAF 460 (over-limit
@@ -473,7 +493,7 @@ def _save_with_split(ol, docs, comment, on_accept, on_skip):
     if not docs:
         return
     req = save_many_request(ol, docs, comment)
-    resp = ol.session.post(req["url"], json.dumps(docs), headers=req["headers"])
+    resp = _post_save_many(ol.session, req["url"], json.dumps(docs), req["headers"])
     try:
         resp.raise_for_status()
     except Exception as exc:
