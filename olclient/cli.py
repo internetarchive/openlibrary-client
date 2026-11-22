@@ -25,6 +25,7 @@
 import argparse
 import getpass
 import json
+import os
 import sys
 from urllib.parse import urlencode
 
@@ -174,9 +175,75 @@ def _execute(ol, plan, *, comment, show_payload, dry_run, approve, batch_size,
         print(f"Reversible audit log: {audit}")
 
 
+def _load_subjects(args):
+    """The subject strings for --select, from the flag and/or --select-file."""
+    subjects = list(args.select or [])
+    if args.select_file:
+        with open(args.select_file, encoding="utf-8") as fh:
+            subjects += [ln.strip() for ln in fh if ln.strip()]
+    return list(dict.fromkeys(subjects))
+
+
+def _run_select(ol, args, subjects, add_tags, add_subjects):
+    """Tag (and/or add subjects to) every work carrying each subject, iterating
+    one subject at a time via the datastore (``works_by_subject``) — no Solr, so
+    no cursor-vs-lag races, and idempotent. Resumable through ``--progress-file``:
+    completed subjects are recorded and skipped on a re-run.
+    """
+    done = set()
+    if args.progress_file and os.path.exists(args.progress_file):
+        with open(args.progress_file, encoding="utf-8") as fh:
+            done = {ln.strip() for ln in fh if ln.strip()}
+    pending = [s for s in subjects if s not in done]
+    writing = args.approve and not args.dry_run
+    per_limit = args.limit if (args.limit and args.limit > 0) else None
+
+    print(f"select: {len(subjects)} subject(s)"
+          + (f" ({len(done)} already done, {len(pending)} to go)" if done else "")
+          + f"  add_tags={add_tags or []}  add_subjects={add_subjects or []}"
+          + ("" if writing else "   [DRY RUN — use --approve to write]") + "\n")
+    if writing:
+        from olclient.rule import assert_identity
+        assert_identity(ol, args.as_account)
+
+    examined = changed = 0
+    for i, s in enumerate(pending, 1):
+        rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
+                    subject_type=args.type)
+        plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False)
+        would = len(plan.to_write)
+        examined += len(plan.changes)
+        if writing and would:
+            st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
+                            dry_run=False, audit=args.audit, expected_account=args.as_account)
+            changed += st["written"]
+            if args.progress_file:
+                with open(args.progress_file, "a", encoding="utf-8") as fh:
+                    fh.write(s + "\n")
+        else:
+            changed += would
+        print(f"[{i}/{len(pending)}] {s!r}: {len(plan.changes)} work(s), "
+              f"{'wrote' if writing else 'would change'} {would}")
+
+    verb = "wrote" if writing else "would change"
+    print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); {verb} {changed:,}.")
+    if writing and args.audit:
+        print(f"Reversible audit log: {args.audit}")
+
+
 def cmd_subject(args):
     ol = _authed_ol(args.baseurl)
     st = args.type
+
+    if args.select or args.select_file:
+        subjects = _load_subjects(args)
+        if not subjects:
+            raise SystemExit("ol subject --select: no subjects given")
+        add_tags = _resolve_add_tags(ol, args.add_tags) if args.add_tags else []
+        if not add_tags and not args.add:
+            raise SystemExit("ol subject --select needs --add-tags and/or --add")
+        _run_select(ol, args, subjects, add_tags, list(args.add or []))
+        return
 
     def count_of(name):
         hits = list(ol.search_subjects(name, limit=25, subject_type=st))
@@ -207,9 +274,10 @@ def cmd_subject(args):
         add_subjects = list(args.add or [])
 
     add_tags = _resolve_add_tags(ol, args.add_tags) if args.add_tags else []
+    limit = args.limit if args.limit is not None else 50
     rule = Rule(add_tags=add_tags, subjects=subjects, add_subjects=add_subjects, subject_type=st)
-    plan = plan_rule(ol, rule, limit=args.limit)
-    print(format_plan(plan, args.limit))
+    plan = plan_rule(ol, rule, limit=limit)
+    print(format_plan(plan, limit))
     print()
     _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
              dry_run=args.dry_run, approve=args.approve, batch_size=args.batch_size,
@@ -321,6 +389,13 @@ def build_parser():
                     help="the survivor for --merge (default: highest work_count)")
     mp.add_argument("--remove", nargs="+", metavar="SUBJECT",
                     help="remove these subjects from matching works")
+    mp.add_argument("--select", nargs="+", metavar="SUBJECT",
+                    help="select works carrying ANY of these subjects (keep them) and "
+                         "apply --add-tags/--add; iterates one subject at a time via the datastore")
+    mp.add_argument("--select-file", dest="select_file", default=None, metavar="PATH",
+                    help="like --select, with one subject per line read from this file")
+    mp.add_argument("--progress-file", dest="progress_file", default=None, metavar="PATH",
+                    help="record completed subjects here (for --select); skipped on a resume")
     mp.add_argument("--add", nargs="+", metavar="SUBJECT",
                     help="add these subject strings to matching works")
     mp.add_argument("--add-tags", nargs="+", dest="add_tags", metavar="TAG",
@@ -328,7 +403,9 @@ def build_parser():
                          "<tag_type>:<name> (e.g. genre:'Science Fiction') or /tags/OL..T")
     mp.add_argument("--type", dest="type", default="subject",
                     choices=["subject", "person", "place", "time"])
-    mp.add_argument("--limit", type=int, default=50, help="max works to examine/write")
+    mp.add_argument("--limit", type=int, default=None,
+                    help="max works to examine/write (merge/remove default 50; "
+                         "--select defaults to ALL works per subject)")
     mp.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
                     help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH}; "
                          "kept small so the JSON body stays under ModSec SecArgumentsLimit)")

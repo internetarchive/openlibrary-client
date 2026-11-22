@@ -277,28 +277,32 @@ def _select_work_keys(ol, rule: Rule, limit):
     return list(seen)
 
 
-def plan_rule(ol, rule: Rule, limit=50, work_keys=None):
+def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
     """Compute (read-only) what ``rule`` would change, over up to ``limit`` works.
 
     ``work_keys`` lets a caller inject an already-selected set of works (e.g.
     ``ol tag add``, which selects via ``/search.json``) instead of the default
     subject-union selection. When given, it is used verbatim, capped at ``limit``.
+
+    ``count_subjects`` looks up each selector's work_count for the preview; pass
+    False to skip those Solr calls when planning many subjects in a loop.
     """
     tag_field, tag_type, tag_name = resolve_tags(ol, rule.add_tags)
 
     subject_counts: dict[str, int | None] = {}
     for subject in rule.selector_strings:
-        hits = list(ol.search_subjects(subject, limit=25, subject_type=rule.subject_type))
         count = None
-        for hit in hits:  # exact case first (case-only variants are distinct subjects)
-            if hit.get("name") == subject:
-                count = hit.get("work_count")
-                break
-        if count is None:
-            for hit in hits:
-                if hit.get("name", "").lower() == subject.lower():
+        if count_subjects:
+            hits = list(ol.search_subjects(subject, limit=25, subject_type=rule.subject_type))
+            for hit in hits:  # exact case first (case-only variants are distinct subjects)
+                if hit.get("name") == subject:
                     count = hit.get("work_count")
                     break
+            if count is None:
+                for hit in hits:
+                    if hit.get("name", "").lower() == subject.lower():
+                        count = hit.get("work_count")
+                        break
         subject_counts[subject] = count
 
     drop = rule.subjects_to_remove()

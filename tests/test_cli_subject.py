@@ -89,6 +89,7 @@ class FakeOL:
 def _subject_args(**over):
     base = dict(
         baseurl=None, merge=None, into=None, remove=None, add=None, add_tags=None,
+        select=None, select_file=None, progress_file=None,
         type="subject", limit=50, batch_size=250, comment="merge/clean subjects",
         audit=None, dry_run=False, show_payload=False,
         as_account="openlibrarytagsbot", approve=False,
@@ -158,3 +159,33 @@ def test_resolve_add_tags_errors_on_missing_and_ambiguous():
 def test_resolve_add_tags_passthrough_key():
     ol = FakeOL({}, {}, {}, {})
     assert _resolve_add_tags(ol, ["/tags/OL7T"]) == ["/tags/OL7T"]
+
+
+# --- --select (datastore tag-by-subject, no removal) ------------------------
+
+def test_select_tags_works_without_removing_subjects(monkeypatch):
+    ol = _steampunk_ol()
+    monkeypatch.setattr(cli, "_authed_ol", lambda baseurl=None: ol)
+    args = _subject_args(select=["Steampunk fiction"], add_tags=["literary_form:fiction"],
+                         approve=True)
+    cmd_subject(args)
+    (doc,) = ol.saved[0]
+    assert doc["literary_forms"] == [{"key": "/tags/OL2T"}]   # tag added
+    assert "Steampunk fiction" in doc["subjects"]              # subject KEPT (no removal)
+
+
+def test_select_dry_run_without_approve_writes_nothing(monkeypatch, capsys):
+    ol = _steampunk_ol()
+    monkeypatch.setattr(cli, "_authed_ol", lambda baseurl=None: ol)
+    args = _subject_args(select=["Steampunk fiction"], add_tags=["literary_form:fiction"],
+                         approve=False)
+    cmd_subject(args)
+    assert ol.saved == []
+    assert "DRY RUN" in capsys.readouterr().out
+
+
+def test_select_requires_add_tags_or_add(monkeypatch):
+    ol = _steampunk_ol()
+    monkeypatch.setattr(cli, "_authed_ol", lambda baseurl=None: ol)
+    with pytest.raises(SystemExit):
+        cmd_subject(_subject_args(select=["Steampunk fiction"]))
