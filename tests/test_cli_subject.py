@@ -91,7 +91,7 @@ def _subject_args(**over):
         baseurl=None, merge=None, into=None, remove=None, add=None, add_tags=None,
         type="subject", limit=50, batch_size=250, comment="merge/clean subjects",
         audit=None, dry_run=False, show_payload=False,
-        as_account="openlibrarytagsbot", yes=False,
+        as_account="openlibrarytagsbot", approve=False,
     )
     base.update(over)
     return types.SimpleNamespace(**base)
@@ -119,7 +119,7 @@ def test_merge_into_new_canonical_scopes_selector_to_listed_subjects(monkeypatch
     ol = _steampunk_ol()
     monkeypatch.setattr(cli, "_authed_ol", lambda baseurl=None: ol)
     args = _subject_args(merge=["Steampunk fiction", "steampunk fiction"], into="Steampunk",
-                         yes=True)
+                         approve=True)
     cmd_subject(args)
     # the new canonical "Steampunk" is NOT selected on — only the listed variants
     assert "Steampunk" not in ol.selected_subjects
@@ -130,7 +130,7 @@ def test_merge_with_add_tags_one_write_adds_tags_removes_subjects_adds_canonical
     ol = _steampunk_ol()
     monkeypatch.setattr(cli, "_authed_ol", lambda baseurl=None: ol)
     args = _subject_args(
-        merge=["Steampunk fiction"], into="Steampunk", yes=True,
+        merge=["Steampunk fiction"], into="Steampunk", approve=True,
         add_tags=["subgenre:steampunk", "literary_form:fiction", "genre:Science Fiction"],
     )
     cmd_subject(args)

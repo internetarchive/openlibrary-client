@@ -64,7 +64,7 @@ def _args(**over):
     base = dict(
         baseurl=None, tag_olid="OL1T", subjects="graphic_design,paintings",
         rm_subjects=None, limit=100, batch_size=250, comment="tag works by subject",
-        audit=None, show_payload=False, as_account="openlibrarytagsbot", yes=False,
+        audit=None, show_payload=False, as_account="openlibrarytagsbot", approve=False,
     )
     base.update(over)
     return types.SimpleNamespace(**base)
@@ -102,14 +102,14 @@ def test_dry_run_by_default_writes_nothing(monkeypatch, capsys):
     assert "DRY RUN" in capsys.readouterr().out
 
 
-def test_yes_adds_tag_reference_to_the_right_field(monkeypatch, capsys):
+def test_approve_adds_tag_reference_to_the_right_field(monkeypatch, capsys):
     ol = FakeOL(
         {"OL1T": FakeTag("Graphic Design", "genre")},
         ["/works/OL9W"],
         {"OL9W": {"key": "/works/OL9W", "revision": 3, "genres": []}},
     )
     _patch_ol(monkeypatch, ol)
-    cmd_tag_add(_args(yes=True))
+    cmd_tag_add(_args(approve=True))
     assert len(ol.saved) == 1
     (doc,) = ol.saved[0]
     assert doc["genres"] == [{"key": "/tags/OL1T"}]
@@ -122,7 +122,7 @@ def test_already_tagged_work_is_a_noop(monkeypatch, capsys):
         {"OL9W": {"key": "/works/OL9W", "revision": 3, "genres": [{"key": "/tags/OL1T"}]}},
     )
     _patch_ol(monkeypatch, ol)
-    cmd_tag_add(_args(yes=True))
+    cmd_tag_add(_args(approve=True))
     assert ol.saved == []  # nothing to write
 
 
@@ -134,7 +134,7 @@ def test_rm_subjects_removes_by_slug(monkeypatch, capsys):
                   "subjects": ["Art, German", "Keep me"]}},
     )
     _patch_ol(monkeypatch, ol)
-    cmd_tag_add(_args(rm_subjects="art_german", yes=True))
+    cmd_tag_add(_args(rm_subjects="art_german", approve=True))
     (doc,) = ol.saved[0]
     assert doc["genres"] == [{"key": "/tags/OL1T"}]
     assert doc["subjects"] == ["Keep me"]  # 'Art, German' slug == art_german, dropped

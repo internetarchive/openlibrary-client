@@ -125,12 +125,12 @@ def _resolve_add_tags(ol, refs):
     return keys
 
 
-def _execute(ol, plan, *, comment, show_payload, dry_run, yes, batch_size,
+def _execute(ol, plan, *, comment, show_payload, dry_run, approve, batch_size,
              audit, as_account):
     """Preview, then (unless previewing/dry-running) write a plan via the engine.
 
     Shared by ``ol subject`` and ``ol tag add``: inspect the exact request
-    (``show_payload``), stop at a dry run, otherwise confirm (unless ``yes``)
+    (``show_payload``), stop at a dry run, otherwise confirm (unless ``approve``)
     and apply with the identity guard and reversible audit.
     """
     if show_payload:
@@ -147,14 +147,14 @@ def _execute(ol, plan, *, comment, show_payload, dry_run, yes, batch_size,
     if dry_run:
         s = apply_rule(ol, plan, comment=comment, dry_run=True)
         print(f"DRY RUN: would write {s['would_write']:,} works in {s['batches']} batch(es). "
-              f"Use --yes to apply.")
+              f"Use --approve to apply.")
         return
 
     n = len(plan.to_write)
     if n == 0:
         print("Nothing to write — every examined work already satisfies this.")
         return
-    if not yes:
+    if not approve:
         if input(f"Write {n} work(s) as {logged_in_user(ol)}? [y/N] ").strip().lower() not in ("y", "yes"):
             print("Aborted.")
             return
@@ -203,7 +203,7 @@ def cmd_subject(args):
     print(format_plan(plan, args.limit))
     print()
     _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
-             dry_run=args.dry_run, yes=args.yes, batch_size=args.batch_size,
+             dry_run=args.dry_run, approve=args.approve, batch_size=args.batch_size,
              audit=args.audit, as_account=args.as_account)
 
 
@@ -257,7 +257,7 @@ def cmd_tag_add(args):
     print(format_plan(plan, args.limit))
     print()
     _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
-             dry_run=not args.yes, yes=args.yes, batch_size=args.batch_size,
+             dry_run=not args.approve, approve=args.approve, batch_size=args.batch_size,
              audit=args.audit, as_account=args.as_account)
 
 
@@ -328,7 +328,8 @@ def build_parser():
                     help="print the exact /api/save_many request; write nothing")
     mp.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
                     help="refuse to write unless the session is this account")
-    mp.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    mp.add_argument("--approve", action="store_true",
+                    help="approve and apply the write (without it: confirmation prompt)")
 
     tp = sub.add_parser("tag", help="Tag works (writes via infogami)")
     tsub = tp.add_subparsers(dest="tag_command", required=True)
@@ -346,8 +347,8 @@ def build_parser():
                     help="print the exact /api/save_many request; write nothing")
     ta.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
                     help="refuse to write unless the session is this account")
-    ta.add_argument("--yes", action="store_true",
-                    help="save the changes (without it, this is a dry run)")
+    ta.add_argument("--approve", action="store_true",
+                    help="approve and save the changes (without it, this is a dry run)")
 
     cp = sub.add_parser("configure", help="Store IA/OL credentials")
     cp.add_argument("--email", default=None, help="Archive.org email")
