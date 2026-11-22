@@ -186,6 +186,7 @@ class WorkChange:
     revision: int | None
     tag_changes: dict[str, tuple[list[str], list[str]]] = dc_field(default_factory=dict)
     subject_changes: dict[str, tuple[list[str], list[str]]] = dc_field(default_factory=dict)
+    doc: dict | None = None  # raw work doc fetched at plan time; reused for the save
 
     @property
     def is_noop(self) -> bool:
@@ -320,9 +321,16 @@ def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
     else:
         selected = list(dict.fromkeys(work_keys))[:limit] if limit is not None else list(dict.fromkeys(work_keys))
 
+    # Batch-fetch every selected work in one go (get_many, chunked) instead of
+    # a serial GET per work — far fewer requests, and gentle enough on the
+    # server not to trip connection resets. The fetched doc is kept on the
+    # WorkChange so build_save_docs doesn't have to re-fetch it.
+    docs = ol.get_many(selected)
     changes = []
     for work_key in selected:
-        data = _work_doc(ol, work_key)
+        data = docs.get(work_key)
+        if data is None:
+            continue  # work unreadable/removed since selection; skip it
 
         tag_changes = {}
         for key in rule.add_tags:
@@ -347,6 +355,7 @@ def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
                 revision=data.get("revision"),
                 tag_changes=tag_changes,
                 subject_changes=subject_changes,
+                doc=data,
             )
         )
     return RulePlan(
@@ -408,7 +417,9 @@ def build_save_docs(ol, plan: RulePlan, comment: str):
     """Build the raw work dicts a write would POST to /api/save_many (lossless)."""
     docs = []
     for c in plan.to_write:
-        data = _work_doc(ol, c.work_key)
+        # Reuse the doc fetched during planning; fall back to a fetch only if a
+        # caller built the WorkChange without one.
+        data = dict(c.doc) if c.doc is not None else _work_doc(ol, c.work_key)
         data["key"] = c.work_key
         for field, (_before, after) in c.tag_changes.items():
             data[field] = [{"key": k} for k in after]
@@ -500,14 +511,17 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
                     fh.write(json.dumps(audit_rows[doc["key"]]) + "\n")
         written += len(accepted)
 
+    planned_rev = {c.work_key: c.revision for c in plan.to_write}
     for batch in pack_batches(docs, batch_size):
+        # Lost-update guard, batched: re-fetch the batch's live revisions in one
+        # get_many and only write a work whose revision still matches the plan.
+        live = ol.get_many([doc["key"] for doc in batch])
         safe = []
         for doc in batch:
             key = doc["key"]
-            live = _work_doc(ol, key)
-            planned = next((c for c in plan.to_write if c.work_key == key), None)
-            if planned is not None and live.get("revision") != planned.revision:
-                continue
+            live_doc = live.get(key)
+            if live_doc is None or live_doc.get("revision") != planned_rev.get(key):
+                continue  # vanished or edited since planning — skip, don't clobber
             safe.append(doc)
         _save_with_split(ol, safe, comment, _accept)
     return {"dry_run": False, "written": written, "planned": len(docs)}

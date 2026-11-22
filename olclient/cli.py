@@ -206,27 +206,40 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
         from olclient.rule import assert_identity
         assert_identity(ol, args.as_account)
 
-    examined = changed = 0
+    examined = changed = failed = consec_fail = 0
     for i, s in enumerate(pending, 1):
-        rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
-                    subject_type=args.type)
-        plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False)
-        would = len(plan.to_write)
-        examined += len(plan.changes)
-        if writing and would:
-            st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
-                            dry_run=False, audit=args.audit, expected_account=args.as_account)
-            changed += st["written"]
-            if args.progress_file:
+        try:
+            rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
+                        subject_type=args.type)
+            plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False)
+            would = len(plan.to_write)
+            if writing and would:
+                st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
+                                dry_run=False, audit=args.audit, expected_account=args.as_account)
+                changed += st["written"]
+            else:
+                changed += would
+            examined += len(plan.changes)
+            # Record EVERY completed subject (incl. 0-work) so a resume skips it.
+            if writing and args.progress_file:
                 with open(args.progress_file, "a", encoding="utf-8") as fh:
                     fh.write(s + "\n")
-        else:
-            changed += would
-        print(f"[{i}/{len(pending)}] {s!r}: {len(plan.changes)} work(s), "
-              f"{'wrote' if writing else 'would change'} {would}")
+            consec_fail = 0
+            print(f"[{i}/{len(pending)}] {s!r}: {len(plan.changes)} work(s), "
+                  f"{'wrote' if writing else 'would change'} {would}")
+        except Exception as e:  # one subject's transient failure must not kill the run
+            failed += 1
+            consec_fail += 1
+            print(f"[{i}/{len(pending)}] {s!r}: ERROR {type(e).__name__}: {e} "
+                  f"— skipped (will retry on resume)", file=sys.stderr)
+            if consec_fail >= 10:
+                raise SystemExit(
+                    f"aborting: {consec_fail} subjects failed in a row "
+                    f"(backend may be down). {changed:,} works written so far; re-run to resume.")
 
     verb = "wrote" if writing else "would change"
-    print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); {verb} {changed:,}.")
+    print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); "
+          f"{verb} {changed:,}" + (f"; {failed} subject(s) failed (retry on resume)" if failed else "") + ".")
     if writing and args.audit:
         print(f"Reversible audit log: {args.audit}")
 

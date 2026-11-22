@@ -196,6 +196,48 @@ def test_multiple_subjects_union_and_dedup():
     assert plan.subject_counts == {"Nonfiction": 38920, "Non-fiction": 1200}
 
 
+def test_plan_rule_batches_reads_with_get_many():
+    ol = FakeOL(
+        tags={"OL184T": NONFIC}, subjects=HITS,
+        subject_works={"Nonfiction": ["/works/OL1W", "/works/OL2W", "/works/OL3W"]},
+        work_docs={"OL1W": {"revision": 1}, "OL2W": {"revision": 1}, "OL3W": {"revision": 1}},
+    )
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=50)
+    # one batched fetch of all three keys — not a GET per work
+    assert ol.get_many_calls == [["/works/OL1W", "/works/OL2W", "/works/OL3W"]]
+    # the fetched doc is carried on each WorkChange for reuse
+    assert all(c.doc is not None for c in plan.changes)
+
+
+def test_build_save_docs_reuses_plan_doc_without_refetch():
+    ol = FakeOL(
+        tags={"OL184T": NONFIC}, subjects=HITS,
+        subject_works={"Nonfiction": ["/works/OL1W"]},
+        work_docs={"OL1W": {"revision": 1}},
+    )
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=50)
+    n_before = len(ol.get_many_calls)
+    build_save_docs(ol, plan, comment="c")
+    assert len(ol.get_many_calls) == n_before  # reused c.doc, issued no new fetch
+
+
+def test_apply_rule_skips_work_edited_since_planning():
+    ol = FakeOL(
+        tags={"OL184T": NONFIC}, subjects=HITS,
+        subject_works={"Nonfiction": ["/works/OL1W", "/works/OL2W"]},
+        work_docs={"OL1W": {"revision": 1}, "OL2W": {"revision": 1}},
+        user="/people/openlibrarytagsbot",
+    )
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=50)
+    # OL2W is edited by someone else between plan and save (revision moves on)
+    ol._work_docs["OL2W"] = {"revision": 9}
+    stats = apply_rule(ol, plan, comment="c", dry_run=False,
+                       expected_account="openlibrarytagsbot")
+    written_keys = [d["key"] for batch in ol.saved for d in batch]
+    assert written_keys == ["/works/OL1W"]  # stale OL2W skipped by the lost-update guard
+    assert stats["written"] == 1
+
+
 def test_multiple_tags_hit_their_own_fields():
     ol = FakeOL(
         tags={"OL183T": FICTION, "OL169T": FANTASY},

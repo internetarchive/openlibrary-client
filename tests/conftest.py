@@ -92,6 +92,7 @@ class FakeOL:
         self.base_url = "https://openlibrary.org"
         self.search_calls = []
         self.selected_subjects = []
+        self.get_many_calls = []
         self.saved = []
         cookies = types.SimpleNamespace(get=lambda name: user)
         self.session = types.SimpleNamespace(post=self._post, cookies=cookies)
@@ -110,6 +111,16 @@ class FakeOL:
             return FakeResponse({"docs": [{"key": k} for k in self._search_keys]})
         olid = path.rstrip("/").split("/")[-1].removesuffix(".json")
         return FakeResponse(self._work_docs[olid])
+
+    def get_many(self, keys, batch_size=100):
+        keys = list(keys)
+        self.get_many_calls.append(keys)
+        out = {}
+        for key in keys:
+            olid = key.rstrip("/").split("/")[-1].removesuffix(".json")
+            if olid in self._work_docs:
+                out[key] = self._work_docs[olid]
+        return out
 
     def _post(self, url, data=None, headers=None):
         self.saved.append(json.loads(data))

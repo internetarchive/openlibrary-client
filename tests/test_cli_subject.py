@@ -114,3 +114,26 @@ def test_select_requires_add_tags_or_add(patch_authed_ol):
     ol = patch_authed_ol(_steampunk_ol())
     with pytest.raises(SystemExit):
         cmd_subject(make_subject_args(select=["Steampunk fiction"]))
+
+
+def test_select_skips_a_failing_subject_and_continues(patch_authed_ol):
+    tag = FakeTag("OL2T", "Fiction", "literary_form")
+    ol = patch_authed_ol(FakeOL(
+        tags={"OL2T": tag},
+        tags_by_type_name={("literary_form", "fiction"): [tag]},
+        subject_works={"good": ["/works/OL1W"], "bad": ["/works/OL2W"]},
+        work_docs={"OL1W": {"revision": 1}, "OL2W": {"revision": 1}},
+    ))
+    orig = ol.works_by_subject
+
+    def flaky(subject, **kw):  # one subject's fetch fails mid-run
+        if subject == "bad":
+            raise ConnectionError("Connection reset by peer")
+        yield from orig(subject, **kw)
+
+    ol.works_by_subject = flaky
+    cmd_subject(make_subject_args(select=["good", "bad"],
+                                  add_tags=["literary_form:fiction"], approve=True))
+    # 'good' was written, 'bad' was skipped, and the run did not crash
+    written = [d["key"] for batch in ol.saved for d in batch]
+    assert written == ["/works/OL1W"]
