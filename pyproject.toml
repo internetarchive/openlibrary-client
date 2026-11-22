@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.2"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -25,11 +25,11 @@ classifiers = [
 ]
 dependencies = [
     "backoff==2.2.1",
-    "internetarchive==5.7.1",
-    "jsonpickle==3.0.2",
-    "jsonschema==4.21.1",
-    "requests[security]==2.31.0",
-    "simplejson==3.20.2",
+    "internetarchive==5.13.0",
+    "jsonpickle==4.1.4",
+    "jsonschema==4.26.0",
+    "requests[security]==2.34.2",
+    "simplejson==4.3.0",
 ]
 
 [project.urls]
