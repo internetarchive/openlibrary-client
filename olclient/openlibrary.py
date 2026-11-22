@@ -295,7 +295,13 @@ class OpenLibrary:
             params = urlencode({'keys': json.dumps(chunk)})
             response = self.get_ol_response(f'/api/get_many?{params}')
             payload = response.json()
-            result.update(payload.get('result', payload) or {})
+            # Expected shape is {'status': 'ok', 'result': {<key>: <doc>}}. Only
+            # merge a dict 'result'; an error object or unexpected body yields no
+            # docs (callers treat the missing keys as absent) rather than
+            # injecting 'status'/'error' as bogus documents.
+            batch = payload.get('result') if isinstance(payload, dict) else None
+            if isinstance(batch, dict):
+                result.update(batch)
         return result
 
     @property

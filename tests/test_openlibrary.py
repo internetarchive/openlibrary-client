@@ -217,6 +217,16 @@ class TestOpenLibrary(unittest.TestCase):
         assert '/works/OL1W' in result
 
     @patch('requests.Session.get')
+    def test_get_many_ignores_error_payload(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'error', 'error': 'nope'}
+        assert self.ol.get_many(['/works/OL1W']) == {}
+
+    @patch('requests.Session.get')
+    def test_get_many_ignores_nondict_payload(self, mock_get):
+        mock_get.return_value.json.return_value = ['unexpected']
+        assert self.ol.get_many(['/works/OL1W']) == {}
+
+    @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = {
             'ISBN:0374202915': {

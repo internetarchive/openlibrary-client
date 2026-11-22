@@ -332,11 +332,16 @@ def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
         if data is None:
             continue  # work unreadable/removed since selection; skip it
 
-        tag_changes = {}
+        # Group tags by their target field first, so multiple tags that land in
+        # the SAME field (e.g. two 'genre' Tags) all get merged in — merging per
+        # key would overwrite the field entry and keep only the last tag.
+        keys_by_field: dict[str, list[str]] = {}
         for key in rule.add_tags:
-            field = tag_field[key]
+            keys_by_field.setdefault(tag_field[key], []).append(key)
+        tag_changes = {}
+        for field, keys in keys_by_field.items():
             before = [e["key"] if isinstance(e, dict) else e for e in data.get(field, [])]
-            after = _merge_keys(data.get(field, []), [key])
+            after = _merge_keys(data.get(field, []), keys)
             tag_changes[field] = (before, after)
 
         subject_changes = {}

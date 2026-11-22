@@ -99,3 +99,13 @@ def test_infogami_types_are_refused(entity, capsys):
         cmd_search(args)
     assert entity in str(e.value) and "infogami" in str(e.value)
     assert entity in INFOGAMI_TYPES
+
+
+def test_search_subjects_requires_a_bound():
+    import types
+    import pytest
+    from olclient.cli import cmd_search
+    args = types.SimpleNamespace(type="subjects", query=None, max_works=None,
+                                 limit=None, solr="http://s", json=False)
+    with pytest.raises(SystemExit, match="unbounded"):
+        cmd_search(args)

@@ -238,6 +238,20 @@ def test_apply_rule_skips_work_edited_since_planning():
     assert stats["written"] == 1
 
 
+def test_two_tags_in_the_same_field_are_both_added():
+    # regression: two 'genre' tags both route to 'genres'; both must survive
+    ol = FakeOL(
+        tags={"OL1T": tag("genre", "Fantasy"), "OL2T": tag("genre", "Horror")},
+        subjects=HITS,
+        subject_works={"Nonfiction": ["/works/OL1W"]},
+        work_docs={"OL1W": {"revision": 1, "genres": []}},
+    )
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL1T", "/tags/OL2T"],
+                              subjects=["Nonfiction"]), limit=50)
+    before, after = plan.changes[0].tag_changes["genres"]
+    assert after == ["/tags/OL1T", "/tags/OL2T"]  # not just the last one
+
+
 def test_multiple_tags_hit_their_own_fields():
     ol = FakeOL(
         tags={"OL183T": FICTION, "OL169T": FANTASY},

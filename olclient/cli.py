@@ -71,6 +71,12 @@ def cmd_search(args):
         raise SystemExit(f"ol search {args.type}: {INFOGAMI_TYPES[args.type]}")
     base = solr_base(args.solr)
     if args.type == "subjects":
+        # Enumerating every subject_facet bucket (no filter) walks the whole
+        # vocabulary — hundreds of thousands of terms. Require a bound.
+        if args.query is None and args.max_works is None and args.limit is None:
+            raise SystemExit(
+                "ol search subjects: give at least one of --query, --max-works, "
+                "or --limit (enumerating the entire subject vocabulary is unbounded)")
         rows = search_subjects(http_get_json, base, query=args.query,
                                max_works=args.max_works, limit=args.limit)
         if args.json:
