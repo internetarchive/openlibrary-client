@@ -215,6 +215,11 @@ def _olid(work_key: str) -> str:
     return work_key.rstrip("/").split("/")[-1]
 
 
+def _work_doc(ol, key: str) -> dict:
+    """Fetch a work's raw JSON by work key or OLID ('/works/OL1W' or 'OL1W')."""
+    return ol.get_ol_response(f"/works/{_olid(key)}.json").json()
+
+
 def logged_in_user(ol) -> str | None:
     """The /people/<name> the session is authenticated as, or None."""
     try:
@@ -317,7 +322,7 @@ def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
 
     changes = []
     for work_key in selected:
-        data = ol.get_ol_response(f"/works/{_olid(work_key)}.json").json()
+        data = _work_doc(ol, work_key)
 
         tag_changes = {}
         for key in rule.add_tags:
@@ -403,7 +408,7 @@ def build_save_docs(ol, plan: RulePlan, comment: str):
     """Build the raw work dicts a write would POST to /api/save_many (lossless)."""
     docs = []
     for c in plan.to_write:
-        data = ol.get_ol_response(f"/works/{_olid(c.work_key)}.json").json()
+        data = _work_doc(ol, c.work_key)
         data["key"] = c.work_key
         for field, (_before, after) in c.tag_changes.items():
             data[field] = [{"key": k} for k in after]
@@ -499,7 +504,7 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
         safe = []
         for doc in batch:
             key = doc["key"]
-            live = ol.get_ol_response(f"{key}.json").json()
+            live = _work_doc(ol, key)
             planned = next((c for c in plan.to_write if c.work_key == key), None)
             if planned is not None and live.get("revision") != planned.revision:
                 continue
