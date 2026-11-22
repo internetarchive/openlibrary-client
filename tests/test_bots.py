@@ -8,8 +8,7 @@ import unittest
 from argparse import ArgumentTypeError
 from olclient.openlibrary import OpenLibrary
 from olclient.bots import AbstractBotJob
-from os import path
-from unittest.mock import MagicMock, Mock, call, patch, ANY
+from unittest.mock import Mock, patch
 
 
 @patch('olclient.openlibrary.OpenLibrary.login')
