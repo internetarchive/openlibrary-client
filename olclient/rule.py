@@ -39,6 +39,38 @@ from urllib.parse import unquote
 
 SAVE_MANY_PATH = "/api/save_many"
 
+# Open Library's ModSecurity WAF denies a POST (HTTP 460, rule 200007) when the
+# parsed request body exceeds SecArgumentsLimit (6000 args). ModSec counts one
+# arg per JSON leaf, so a save_many batch's arg total is the sum of its docs'
+# leaves. We pack batches to stay under this budget (with margin).
+SAVE_MANY_ARG_BUDGET = 5000
+
+
+def _leaf_count(obj) -> int:
+    """Number of scalar leaves in a JSON-ish object (== ModSec's arg count)."""
+    if isinstance(obj, dict):
+        return sum(_leaf_count(v) for v in obj.values()) or 1
+    if isinstance(obj, list):
+        return sum(_leaf_count(v) for v in obj) or 1
+    return 1
+
+
+def pack_batches(docs, max_count, arg_budget=SAVE_MANY_ARG_BUDGET):
+    """Group docs into save_many batches bounded by BOTH a doc count and the
+    WAF arg budget, so a cluster of heavy works can't push a POST over the
+    SecArgumentsLimit. A lone doc larger than the budget is still yielded
+    alone (a single doc can't be split)."""
+    batch, args = [], 0
+    for doc in docs:
+        n = _leaf_count(doc)
+        if batch and (len(batch) >= max_count or args + n > arg_budget):
+            yield batch
+            batch, args = [], 0
+        batch.append(doc)
+        args += n
+    if batch:
+        yield batch
+
 # A Tag's singular ``tag_type`` -> the plural work field it belongs in. An unmapped
 # tag_type is an error (never a guessed field).
 TAG_TYPE_TO_FIELD = {
@@ -418,7 +450,7 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
         return {
             "dry_run": True,
             "would_write": len(docs),
-            "batches": (len(docs) + batch_size - 1) // batch_size if docs else 0,
+            "batches": sum(1 for _ in pack_batches(docs, batch_size)),
         }
 
     if expected_account:
@@ -426,8 +458,7 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
 
     audit_rows = _audit_rows(plan, comment)
     written = 0
-    for i in range(0, len(docs), batch_size):
-        batch = docs[i : i + batch_size]
+    for batch in pack_batches(docs, batch_size):
         safe = []
         for doc in batch:
             key = doc["key"]

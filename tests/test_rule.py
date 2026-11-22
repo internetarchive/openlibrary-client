@@ -17,11 +17,33 @@ from olclient.rule import (
     build_save_docs,
     load_rule,
     logged_in_user,
+    pack_batches,
     plan_rule,
     resolve_tag_ref,
     resolve_tags,
     save_many_request,
 )
+
+
+def test_pack_batches_splits_by_count():
+    docs = [{"k": i} for i in range(5)]  # 1 leaf each
+    batches = list(pack_batches(docs, max_count=2, arg_budget=1000))
+    assert [len(b) for b in batches] == [2, 2, 1]
+
+
+def test_pack_batches_splits_by_arg_budget_before_count():
+    # each doc ~4 leaves; a budget of 10 forces a split at 2 docs even though
+    # max_count is 100
+    docs = [{"a": 1, "b": 2, "c": 3, "d": 4} for _ in range(5)]
+    batches = list(pack_batches(docs, max_count=100, arg_budget=10))
+    assert all(sum(len(d) for d in b) <= 10 or len(b) == 1 for b in batches)
+    assert [len(b) for b in batches] == [2, 2, 1]
+
+
+def test_pack_batches_yields_oversized_lone_doc():
+    big = {"xs": list(range(50))}  # 50 leaves, over budget
+    batches = list(pack_batches([big], max_count=100, arg_budget=10))
+    assert batches == [[big]]  # can't split a single doc
 
 
 class FakeResponse:
