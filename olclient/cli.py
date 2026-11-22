@@ -32,8 +32,8 @@ from urllib.parse import urlencode
 from olclient import __title__, __version__, OpenLibrary
 from olclient.config import Config, Credentials
 from olclient.rule import (
-    Rule, apply_rule, build_save_docs, format_plan, logged_in_user,
-    plan_rule, save_many_request,
+    Rule, _olid, apply_rule, assert_identity, build_save_docs, format_plan,
+    logged_in_user, plan_rule, save_many_request,
 )
 from olclient.search import (
     ENTITY_CHOICES, INFOGAMI_TYPES, search_docs, search_subjects,
@@ -103,7 +103,15 @@ def cmd_search(args):
 # ---------------------------------------------------------------------------
 
 def pick_winner(count_fn, variants, into=None):
-    """Survivor of a merge: an explicit --into, else the highest-work_count variant."""
+    """Survivor of a merge: an explicit --into, else the highest-work_count variant.
+
+    CAVEAT: the fallback count_fn (``count_of`` below) reads work_count from
+    ``/search/subjects.json``, whose counts are NORMALISED across spelling
+    variants and lag edits — so they can't reliably distinguish case/punctuation
+    variants. Prefer an explicit ``--into`` for anything that matters; do not
+    build an automated winner on this heuristic without a per-variant count
+    source (see the deferred openlibrary#14655).
+    """
     if into:
         return into
     return max(variants, key=lambda v: count_fn(v) or 0)
@@ -203,7 +211,6 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
           + f"  add_tags={add_tags or []}  add_subjects={add_subjects or []}"
           + ("" if writing else "   [DRY RUN — use --approve to write]") + "\n")
     if writing:
-        from olclient.rule import assert_identity
         assert_identity(ol, args.as_account)
 
     examined = changed = failed = consec_fail = 0
@@ -301,8 +308,7 @@ def cmd_subject(args):
 # ol tag add  — tag every work carrying ALL of a set of subjects (issue #458)
 # ---------------------------------------------------------------------------
 
-def _works_matching_all_subjects(ol, slugs, exclude_tag_key=None, tag_type=None,
-                                 tag_olid=None, limit=100):
+def _works_matching_all_subjects(ol, slugs, tag_type=None, tag_olid=None, limit=100):
     """Work keys carrying ALL ``slugs`` (AND), via the public /search.json.
 
     ``/query.json`` can't AND two values of the same field, so this uses Solr
@@ -322,7 +328,7 @@ def _works_matching_all_subjects(ol, slugs, exclude_tag_key=None, tag_type=None,
 def cmd_tag_add(args):
     ol = _authed_ol(args.baseurl)
 
-    olid = args.tag_olid.rstrip("/").split("/")[-1]
+    olid = _olid(args.tag_olid)
     tag = ol.Tag.get(olid)
     if tag is None:
         raise SystemExit(f"Tag /tags/{olid} does not exist")

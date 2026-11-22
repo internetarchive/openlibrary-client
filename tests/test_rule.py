@@ -340,6 +340,18 @@ def test_logged_in_user_parses_session_cookie():
     assert logged_in_user(ol) == "/people/openlibrarytagsbot"
 
 
+@pytest.mark.parametrize("cookie,expected", [
+    ("/people/mek,2026-01-01,hash", "/people/mek"),      # normal
+    ("%2Fpeople%2Fmek,ts,h", "/people/mek"),             # url-encoded
+    ('"/people/mek,ts,h"', "/people/mek"),               # quoted
+    (None, None),                                          # not logged in
+    ("", None),                                            # empty
+    ("garbage-no-people", None),                           # unparseable
+])
+def test_logged_in_user_edge_cases(cookie, expected):
+    assert logged_in_user(_one_work_ol(cookie)) == expected
+
+
 def test_write_refuses_wrong_identity():
     ol = _one_work_ol("/people/someone_else,2026,hash")
     plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=50)
