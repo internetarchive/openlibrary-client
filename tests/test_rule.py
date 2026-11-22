@@ -46,6 +46,54 @@ def test_pack_batches_yields_oversized_lone_doc():
     assert batches == [[big]]  # can't split a single doc
 
 
+def test_save_with_split_retries_halves_on_460():
+    from olclient.rule import _save_with_split
+
+    class Resp:
+        def __init__(self, status):
+            self.status_code = status
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise AssertionError(f"unexpected raise on {self.status_code}")
+
+    posts = []
+
+    def post(url, data, headers=None):
+        docs = json.loads(data)
+        posts.append(len(docs))
+        # WAF denies any batch with >1 doc; singletons go through
+        return Resp(460 if len(docs) > 1 else 200)
+
+    ol = types.SimpleNamespace(
+        base_url="https://openlibrary.org",
+        session=types.SimpleNamespace(post=post),
+    )
+    accepted = []
+    docs = [{"key": f"/works/OL{i}W"} for i in range(4)]
+    _save_with_split(ol, docs, "c", on_accept=lambda ds: accepted.extend(ds))
+    # 4 -> 460, 2 -> 460, 2 -> 460, then four singletons succeed
+    assert sum(1 for n in posts if n == 1) == 4
+    assert [d["key"] for d in accepted] == [d["key"] for d in docs]
+
+
+def test_save_with_split_single_doc_460_raises():
+    from olclient.rule import _save_with_split
+
+    class Resp:
+        status_code = 460
+
+        def raise_for_status(self):
+            raise RuntimeError("460")
+
+    ol = types.SimpleNamespace(
+        base_url="https://openlibrary.org",
+        session=types.SimpleNamespace(post=lambda *a, **k: Resp()),
+    )
+    with pytest.raises(RuntimeError):
+        _save_with_split(ol, [{"key": "/works/OL1W"}], "c", on_accept=lambda ds: None)
+
+
 class FakeResponse:
     def __init__(self, payload):
         self._payload = payload

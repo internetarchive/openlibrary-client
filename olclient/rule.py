@@ -45,6 +45,9 @@ SAVE_MANY_PATH = "/api/save_many"
 # leaves. We pack batches to stay under this budget (with margin).
 SAVE_MANY_ARG_BUDGET = 5000
 
+# ModSecurity's deny status for an over-limit request body (see pack_batches).
+WAF_DENY_STATUS = 460
+
 
 def _leaf_count(obj) -> int:
     """Number of scalar leaves in a JSON-ish object (== ModSec's arg count)."""
@@ -435,15 +438,34 @@ def _audit_rows(plan: RulePlan, comment: str):
     return rows
 
 
+def _save_with_split(ol, docs, comment, on_accept):
+    """POST ``docs`` to /api/save_many; on a WAF 460 for a multi-doc batch,
+    split in half and retry each half (the arg-count estimate that sized the
+    batch may undercount). ``on_accept(docs)`` runs for each accepted sub-batch.
+    A single doc that still 460s raises -- it cannot be split further."""
+    if not docs:
+        return
+    req = save_many_request(ol, docs, comment)
+    resp = ol.session.post(req["url"], json.dumps(docs), headers=req["headers"])
+    if getattr(resp, "status_code", None) == WAF_DENY_STATUS and len(docs) > 1:
+        mid = len(docs) // 2
+        _save_with_split(ol, docs[:mid], comment, on_accept)
+        _save_with_split(ol, docs[mid:], comment, on_accept)
+        return
+    resp.raise_for_status()
+    on_accept(docs)
+
+
 def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
                audit=None, expected_account=None):
     """Apply a plan. DRY RUN unless ``dry_run=False``. Returns a summary dict.
 
     Safety: refuses to write unless the session is ``expected_account`` (when given);
     re-fetches and compares each work's revision immediately before saving (lost-update
-    guard); writes in batches of ``batch_size`` via /api/save_many; writes a reversible
-    audit record (base revision + per-field before/after) after each accepted batch
-    when ``audit`` (a file path) is given.
+    guard); writes in batches of ``batch_size`` via /api/save_many, each batch also
+    bounded by the WAF arg budget and split-and-retried if the WAF still denies it
+    (460); writes a reversible audit record (base revision + per-field before/after)
+    after each accepted batch when ``audit`` (a file path) is given.
     """
     docs = build_save_docs(ol, plan, comment)
     if dry_run:
@@ -458,6 +480,17 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
 
     audit_rows = _audit_rows(plan, comment)
     written = 0
+
+    def _accept(accepted):
+        # Audit only AFTER a (sub-)batch is accepted, so a rejected/failed POST
+        # never leaves a phantom "we changed this" row.
+        nonlocal written
+        if audit:
+            with open(audit, "a", encoding="utf-8") as fh:
+                for doc in accepted:
+                    fh.write(json.dumps(audit_rows[doc["key"]]) + "\n")
+        written += len(accepted)
+
     for batch in pack_batches(docs, batch_size):
         safe = []
         for doc in batch:
@@ -467,14 +500,5 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
             if planned is not None and live.get("revision") != planned.revision:
                 continue
             safe.append(doc)
-        req = save_many_request(ol, safe, comment)
-        resp = ol.session.post(req["url"], json.dumps(safe), headers=req["headers"])
-        resp.raise_for_status()
-        # Audit only AFTER the batch is accepted, so a rejected/failed POST
-        # never leaves a phantom "we changed this" row.
-        if audit:
-            with open(audit, "a", encoding="utf-8") as fh:
-                for doc in safe:
-                    fh.write(json.dumps(audit_rows[doc["key"]]) + "\n")
-        written += len(safe)
+        _save_with_split(ol, safe, comment, _accept)
     return {"dry_run": False, "written": written, "planned": len(docs)}

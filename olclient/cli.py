@@ -41,11 +41,12 @@ from olclient.solr import http_get_json, solr_base
 
 # Max works per /api/save_many POST. Open Library's ModSecurity WAF caps a
 # request body at SecArgumentsLimit (6000 parsed args) and denies with HTTP 460
-# past it. Measured work docs are light (median ~19 leaves/args, p90 ~32), so 50
-# is well under the limit; the engine also packs batches by a hard arg budget
-# (rule.pack_batches), so even a cluster of heavy works auto-splits rather than
-# 460ing. This is the default cap; the arg budget is the real safety net.
-WAF_SAFE_BATCH = 50
+# past it. Measured work docs are light (median ~19 leaves/args, p90 ~32), so
+# 100 works ~= ~1900 args, well under the limit. Two safety nets back this up:
+# the engine packs each POST by a hard arg budget (rule.pack_batches) so a
+# cluster of heavy works auto-splits, and any batch the WAF still denies is
+# split-and-retried (rule._save_with_split). So 100 is safe throughput.
+WAF_SAFE_BATCH = 100
 
 
 def _authed_ol(baseurl=None):
