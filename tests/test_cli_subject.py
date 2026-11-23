@@ -137,3 +137,51 @@ def test_select_skips_a_failing_subject_and_continues(patch_authed_ol):
     # 'good' was written, 'bad' was skipped, and the run did not crash
     written = [d["key"] for batch in ol.saved for d in batch]
     assert written == ["/works/OL1W"]
+
+
+def _windowed_ol(n_works):
+    tag = FakeTag("OL2T", "Fiction", "literary_form")
+    keys = [f"/works/OL{i}W" for i in range(n_works)]
+    return FakeOL(
+        tags={"OL2T": tag},
+        tags_by_type_name={("literary_form", "fiction"): [tag]},
+        subject_works={"Big": keys},
+        work_docs={f"OL{i}W": {"key": keys[i], "revision": 1} for i in range(n_works)},
+    )
+
+
+def test_select_window_writes_all_works_and_checkpoints(patch_authed_ol, tmp_path):
+    ol = patch_authed_ol(_windowed_ol(5))
+    progress = tmp_path / "big.progress"
+    cmd_subject(make_subject_args(
+        select=["Big"], add_tags=["literary_form:fiction"], approve=True,
+        window=2, batch_size=100, progress_file=str(progress)))
+    # every work got tagged, across windows of 2 (2 + 2 + 1)
+    written = [d["key"] for batch in ol.saved for d in batch]
+    assert written == [f"/works/OL{i}W" for i in range(5)]
+    # progress holds per-window checkpoints plus a final bare "done" line
+    lines = progress.read_text().splitlines()
+    assert "Big\t2" in lines and "Big\t4" in lines and "Big\t5" in lines
+    assert "Big" in lines  # fully-done sentinel
+
+
+def test_select_window_resumes_from_checkpoint(patch_authed_ol, tmp_path):
+    ol = patch_authed_ol(_windowed_ol(5))
+    progress = tmp_path / "big.progress"
+    progress.write_text("Big\t4\n")  # first 4 already done in a prior run
+    cmd_subject(make_subject_args(
+        select=["Big"], add_tags=["literary_form:fiction"], approve=True,
+        window=2, batch_size=100, progress_file=str(progress)))
+    # only the 5th work (offset 4) is examined/written on resume
+    written = [d["key"] for batch in ol.saved for d in batch]
+    assert written == ["/works/OL4W"]
+
+
+def test_select_window_skips_fully_done_subject(patch_authed_ol, tmp_path):
+    ol = patch_authed_ol(_windowed_ol(5))
+    progress = tmp_path / "big.progress"
+    progress.write_text("Big\n")  # bare line => fully done
+    cmd_subject(make_subject_args(
+        select=["Big"], add_tags=["literary_form:fiction"], approve=True,
+        window=2, batch_size=100, progress_file=str(progress)))
+    assert ol.saved == []  # nothing re-examined or re-written

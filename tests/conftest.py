@@ -100,9 +100,9 @@ class FakeOL:
     def search_subjects(self, q, limit=10, subject_type=None):
         return [h for h in self._subjects if h["name"].lower() == q.lower()]
 
-    def works_by_subject(self, subject, subject_type="subject", limit=None):
+    def works_by_subject(self, subject, subject_type="subject", limit=None, offset=0):
         self.selected_subjects.append(subject)
-        keys = self._subject_works.get(subject, [])
+        keys = self._subject_works.get(subject, [])[offset:]
         yield from (keys if limit is None else keys[:limit])
 
     def get_ol_response(self, path):
@@ -155,7 +155,7 @@ def make_subject_args(**over):
     """Arg namespace for ``ol subject`` (``cmd_subject``)."""
     base = dict(
         baseurl=None, merge=None, into=None, remove=None, add=None, add_tags=None,
-        select=None, select_file=None, progress_file=None,
+        select=None, select_file=None, progress_file=None, window=None,
         type="subject", limit=50, batch_size=250, comment="merge/clean subjects",
         audit=None, dry_run=False, show_payload=False,
         as_account="openlibrarytagsbot", approve=False,

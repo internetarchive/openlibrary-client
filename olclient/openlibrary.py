@@ -215,7 +215,7 @@ class OpenLibrary:
             docs = [doc for doc in docs if doc.get('subject_type') == subject_type]
         return docs
 
-    def works_by_subject(self, subject, subject_type='subject', limit=None, batch_size=1000):
+    def works_by_subject(self, subject, subject_type='subject', limit=None, batch_size=1000, offset=0):
         """Yield the keys of works that carry ``subject`` exactly.
 
         Read-only. Pages Open Library's ``/query.json`` over the work field that
@@ -228,6 +228,9 @@ class OpenLibrary:
             subject_type (str) - 'subject', 'person', 'place' or 'time'
             limit (int) - cap on the total number of keys yielded (None = all)
             batch_size (int) - page size for each ``/query.json`` request
+            offset (int) - skip this many matches before yielding (for windowed
+                resume over a very large subject; ordering is stable because
+                tagging doesn't change the ``subjects`` field a work matches on)
 
         Yields:
             Work keys, e.g. '/works/OL1W'.
@@ -246,7 +249,6 @@ class OpenLibrary:
                 f"known: {sorted(SUBJECT_TYPE_FIELDS)}"
             )
         yielded = 0
-        offset = 0
         while True:
             page = batch_size if limit is None else min(batch_size, limit - yielded)
             if page <= 0:

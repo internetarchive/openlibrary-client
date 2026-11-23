@@ -204,16 +204,46 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
     no cursor-vs-lag races, and idempotent. Resumable through ``--progress-file``:
     completed subjects are recorded and skipped on a re-run.
     """
+    # Progress file carries two kinds of line: a bare ``subject`` means that
+    # subject is fully done; ``subject\t<offset>`` is a windowed checkpoint (the
+    # next window for that subject starts at <offset>). A subject with a bare
+    # line is skipped; otherwise its highest checkpoint offset is the resume point.
     done = set()
+    checkpoints: dict[str, int] = {}
     if args.progress_file and os.path.exists(args.progress_file):
         with open(args.progress_file, encoding="utf-8") as fh:
-            done = {ln.strip() for ln in fh if ln.strip()}
+            for ln in fh:
+                ln = ln.rstrip("\n")
+                if not ln:
+                    continue
+                if "\t" in ln:
+                    name, _, off = ln.rpartition("\t")
+                    checkpoints[name] = max(checkpoints.get(name, 0), int(off))
+                else:
+                    done.add(ln)
     pending = [s for s in subjects if s not in done]
     writing = args.approve and not args.dry_run
     per_limit = args.limit if (args.limit and args.limit > 0) else None
+    window = args.window if (args.window and args.window > 0) else None
+
+    def record(line):
+        if writing and args.progress_file:
+            with open(args.progress_file, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+
+    def apply_plan(plan):
+        """Write a plan; return (written, n_skipped). Prints each skipped work."""
+        if not (writing and plan.to_write):
+            return len(plan.to_write), 0
+        st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
+                        dry_run=False, audit=args.audit, expected_account=args.as_account)
+        for key, why in st.get("skipped", []):
+            print(f"    skipped {key}: {why}", file=sys.stderr)
+        return st["written"], len(st.get("skipped", []))
 
     print(f"select: {len(subjects)} subject(s)"
           + (f" ({len(done)} already done, {len(pending)} to go)" if done else "")
+          + (f"  window={window}" if window else "")
           + f"  add_tags={add_tags or []}  add_subjects={add_subjects or []}"
           + ("" if writing else "   [DRY RUN — use --approve to write]") + "\n")
     if writing:
@@ -222,24 +252,49 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
     examined = changed = skipped = failed = consec_fail = 0
     for i, s in enumerate(pending, 1):
         try:
+            if window:
+                # Offset-windowed: plan+write+checkpoint one window at a time, so
+                # a subject of any size stays bounded in memory and resumes from
+                # its last checkpoint rather than restarting from 0.
+                off = checkpoints.get(s, 0)
+                w_examined = w_changed = 0
+                while True:
+                    keys = list(ol.works_by_subject(s, subject_type=args.type,
+                                                    limit=window, offset=off))
+                    if not keys:
+                        break
+                    rule = Rule(add_tags=add_tags, subjects=[(s, 1)],
+                                add_subjects=list(add_subjects), subject_type=args.type)
+                    plan = plan_rule(ol, rule, limit=window, work_keys=keys,
+                                     count_subjects=False)
+                    wrote, n_skip = apply_plan(plan)
+                    w_changed += wrote
+                    skipped += n_skip
+                    w_examined += len(plan.changes)
+                    off += len(keys)
+                    record(f"{s}\t{off}")
+                    print(f"[{i}/{len(pending)}] {s!r}: window @{off - len(keys)}"
+                          f"+{len(keys)} -> {'wrote' if writing else 'would change'} {wrote}")
+                    if len(keys) < window:
+                        break
+                record(s)  # subject exhausted -> fully done
+                changed += w_changed
+                examined += w_examined
+                consec_fail = 0
+                print(f"[{i}/{len(pending)}] {s!r}: DONE — {w_examined} work(s), "
+                      f"{'wrote' if writing else 'would change'} {w_changed}")
+                continue
+
             rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
                         subject_type=args.type)
             plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False)
             would = len(plan.to_write)
-            if writing and would:
-                st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
-                                dry_run=False, audit=args.audit, expected_account=args.as_account)
-                changed += st["written"]
-                for key, why in st.get("skipped", []):
-                    skipped += 1
-                    print(f"    skipped {key}: {why}", file=sys.stderr)
-            else:
-                changed += would
+            wrote, n_skip = apply_plan(plan)
+            changed += wrote
+            skipped += n_skip
             examined += len(plan.changes)
             # Record EVERY completed subject (incl. 0-work) so a resume skips it.
-            if writing and args.progress_file:
-                with open(args.progress_file, "a", encoding="utf-8") as fh:
-                    fh.write(s + "\n")
+            record(s)
             consec_fail = 0
             print(f"[{i}/{len(pending)}] {s!r}: {len(plan.changes)} work(s), "
                   f"{'wrote' if writing else 'would change'} {would}")
@@ -452,6 +507,11 @@ def build_parser():
     mp.add_argument("--limit", type=int, default=None,
                     help="max works to examine/write (merge/remove default 50; "
                          "--select defaults to ALL works per subject)")
+    mp.add_argument("--window", type=int, default=None, metavar="N",
+                    help="(--select) process each subject in offset windows of N "
+                         "works, writing and checkpointing per window — for subjects "
+                         "too large to plan in one pass (e.g. 160k works). Resumes "
+                         "mid-subject from the last checkpoint in --progress-file.")
     _add_write_args(mp, default_comment="merge/clean subjects", dry_run=True,
                     approve_help="approve and apply the write (without it: confirmation prompt)")
 
