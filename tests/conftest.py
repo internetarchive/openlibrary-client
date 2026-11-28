@@ -142,24 +142,25 @@ def patch_authed_ol(monkeypatch):
 
 def make_tag_args(**over):
     """Arg namespace for ``ol tag add`` (``cmd_tag_add``)."""
-    base = dict(
-        baseurl=None, tag_olid="OL1T", subjects="graphic_design,paintings",
-        rm_subjects=None, limit=100, batch_size=250, comment="tag works by subject",
-        audit=None, show_payload=False, as_account="openlibrarytagsbot", approve=False,
-    )
+    base = {
+        "baseurl": None, "tag_olid": "OL1T", "subjects": "graphic_design,paintings",
+        "rm_subjects": None, "limit": 100, "batch_size": 250,
+        "comment": "tag works by subject", "audit": None, "show_payload": False,
+        "as_account": "openlibrarytagsbot", "approve": False,
+    }
     base.update(over)
     return types.SimpleNamespace(**base)
 
 
 def make_subject_args(**over):
     """Arg namespace for ``ol subject`` (``cmd_subject``)."""
-    base = dict(
-        baseurl=None, merge=None, into=None, remove=None, add=None, add_tags=None,
-        select=None, select_file=None, progress_file=None, window=None,
-        type="subject", limit=50, batch_size=250, comment="merge/clean subjects",
-        audit=None, dry_run=False, show_payload=False,
-        as_account="openlibrarytagsbot", approve=False,
-    )
+    base = {
+        "baseurl": None, "merge": None, "into": None, "remove": None, "add": None,
+        "add_tags": None, "select": None, "select_file": None, "progress_file": None,
+        "window": None, "type": "subject", "limit": 50, "batch_size": 250,
+        "comment": "merge/clean subjects", "audit": None, "dry_run": False,
+        "show_payload": False, "as_account": "openlibrarytagsbot", "approve": False,
+    }
     base.update(over)
     return types.SimpleNamespace(**base)
 

@@ -111,7 +111,7 @@ def test_select_dry_run_without_approve_writes_nothing(patch_authed_ol, capsys):
 
 
 def test_select_requires_add_tags_or_add(patch_authed_ol):
-    ol = patch_authed_ol(_steampunk_ol())
+    patch_authed_ol(_steampunk_ol())
     with pytest.raises(SystemExit):
         cmd_subject(make_subject_args(select=["Steampunk fiction"]))
 

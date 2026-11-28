@@ -366,7 +366,7 @@ def test_logged_in_user_parses_session_cookie():
     ('"/people/mek,ts,h"', "/people/mek"),               # quoted
     (None, None),                                          # not logged in
     ("", None),                                            # empty
-    ("garbage-no-people", None),                           # unparseable
+    ("garbage-no-people", None),                           # unparsable
 ])
 def test_logged_in_user_edge_cases(cookie, expected):
     assert logged_in_user(_one_work_ol(cookie)) == expected
