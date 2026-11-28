@@ -4,146 +4,577 @@
     cli.py
     ~~~~~~
 
-    The `ol` command line utility
+    The ``ol`` command line (v2) — a gh-style, noun/verb CLI for Open Library.
 
-    :copyright: (c) 2016 by Internet Archive.
+        ol search subjects --query fantasy --max-works 10 --limit 100
+        ol search works    --query dune --limit 20
+        ol subject --merge "Fiction - Fantasy" "Fiction, fantasy"
+        ol subject --remove "A" "B" --add "C"
+        ol configure --email you@archive.org
+
+    Design seam — **search vs infogami**:
+      * ``ol search <plural>``  -> Solr (ranking, facets; works/authors/subjects).
+      * ``ol <noun> …``         -> infogami datastore (exact records / writes).
+    Solr owns work/author/subject; editions and tags are datastore objects, so
+    ``ol search`` refuses them and points at the datastore.
+
+    :copyright: (c) 2016-2026 by Internet Archive.
     :license: see LICENSE for more details.
 """
 
 import argparse
 import getpass
 import json
-import jsonpickle
+import os
 import sys
+from urllib.parse import urlencode
 
-import internetarchive as ia
-
-from olclient import __title__, __version__, OpenLibrary, common
+from olclient import __title__, __version__, OpenLibrary
 from olclient.config import Config, Credentials
+from olclient.rule import (
+    Rule, _olid, apply_rule, assert_identity, build_save_docs, format_plan,
+    logged_in_user, plan_rule, resolve_tags, save_many_request,
+)
+from olclient.search import (
+    ENTITY_CHOICES, INFOGAMI_TYPES, search_docs, search_subjects,
+)
+from olclient.solr import http_get_json, solr_base
+
+# Max works per /api/save_many POST. Open Library's ModSecurity WAF caps a
+# request body at SecArgumentsLimit (6000 parsed args) and denies with HTTP 460
+# past it. Measured work docs are light (median ~19 leaves/args, p90 ~32), so
+# 100 works ~= ~1900 args, well under the limit. Two safety nets back this up:
+# the engine packs each POST by a hard arg budget (rule.pack_batches) so a
+# cluster of heavy works auto-splits, and any batch the WAF still denies is
+# split-and-retried (rule._save_with_split). So 100 is safe throughput.
+WAF_SAFE_BATCH = 100
 
 
-def argparser():
-    """Parses command line options and returns an args object"""
-    parser = argparse.ArgumentParser(description=__title__)
-    parser.add_argument(
-        '-v',
-        help="Displays the currently installed " "version of ol",
-        action="version",
-        version=f"{__title__} v{__version__}",
-    )
-    parser.add_argument(
-        '--configure', action='store_true', help='Configure ol client with credentials'
-    )
-    parser.add_argument(
-        '--get-work', action='store_true', help='Get a work by --title, --olid'
-    )
-    parser.add_argument(
-        '--get-author-works',
-        action='store_true',
-        help='Get a works of an author providing author\'s --olid, --author-name ',
-    )
-    parser.add_argument(
-        '--get-book', action='store_true', help='Get a book by --isbn, --olid'
-    )
-    parser.add_argument(
-        '--get-olid', action='store_true', help='Get an olid by --title or --isbn'
-    )
-    parser.add_argument('--olid', default=None, help="Specify an olid as an argument")
-    parser.add_argument('--isbn', default=None, help="Specify an isbn as an argument")
-    parser.add_argument('--create', default='', help='Create a new work from json')
-    parser.add_argument('--title', default=None, help="Specify a title as an argument")
-    parser.add_argument(
-        '--author-name', default=None, help="Specify an author as an argument"
-    )
-    parser.add_argument(
-        '--baseurl', default='https://openlibrary.org', help="Which OL backend to use"
-    )
-    parser.add_argument(
-        '--email',
-        default=None,
-        help="An IA email for requests which "
-        "require authentication. You will be prompted "
-        "discretely for a password",
-    )
-
-    # --create : to create a book (e.g. --title, --author, --isbn, ...)
-    # --edit : to edit an OL book (e.g. --olid OLXXXXX, ...)
-    return parser
-
-
-def main() -> None:
-    parser = argparser()
-    args = parser.parse_args()
-
-    if args.configure:
-        email = args.email or input("Archive.org Email: ")
-        if not email:
-            raise ValueError("--email required for configuration")
-        password = getpass.getpass("Password: ")
-
-        # Explicitly specify host until next release of ia tool
-        # See https://github.com/internetarchive/openlibrary-client/issues/322
-        ia.configure(email, password, host='archive.org')
-        config_tool = Config()
-        config = config_tool._get_config()
-        config['s3'] = ia.config.get_config()['s3']
-
-        try:
-            ol = OpenLibrary(
-                credentials=Credentials(**config['s3']), base_url=args.baseurl
+def _authed_ol(baseurl=None):
+    """An authenticated OpenLibrary client (for datastore reads/writes)."""
+    try:
+        return OpenLibrary(base_url=baseurl) if baseurl else OpenLibrary()
+    except ValueError as e:
+        if str(e) == "No cookie set":
+            raise SystemExit(
+                "not configured — run:  ol configure --email <you@archive.org>"
             )
-        except:
-            sys.stderr.write("Incorrect credentials, not updating config.")
-            return
+        raise
 
-        config_tool.update(config)
-        print("Successfully configured")
+
+# ---------------------------------------------------------------------------
+# ol search <type>  — Solr
+# ---------------------------------------------------------------------------
+
+def cmd_search(args):
+    if args.type in INFOGAMI_TYPES:
+        raise SystemExit(f"ol search {args.type}: {INFOGAMI_TYPES[args.type]}")
+    base = solr_base(args.solr)
+    if args.type == "subjects":
+        # Enumerating every subject_facet bucket (no filter) walks the whole
+        # vocabulary — hundreds of thousands of terms. Require a bound.
+        if args.query is None and args.max_works is None and args.limit is None:
+            raise SystemExit(
+                "ol search subjects: give at least one of --query, --max-works, "
+                "or --limit (enumerating the entire subject vocabulary is unbounded)")
+        rows = search_subjects(http_get_json, base, query=args.query,
+                               max_works=args.max_works, limit=args.limit)
+        if args.json:
+            json.dump([{"name": n, "work_count": c} for n, c in rows],
+                      sys.stdout, ensure_ascii=False, indent=2)
+            sys.stdout.write("\n")
+        else:
+            for name, count in rows:
+                print(f"{count}\t{name}")
+        n = len(rows)
+    else:
+        if args.max_works is not None:
+            print("note: --max-works only applies to 'subjects'; ignoring", file=sys.stderr)
+        docs = search_docs(http_get_json, base, args.type, query=args.query, limit=args.limit)
+        if args.json:
+            json.dump(docs, sys.stdout, ensure_ascii=False, indent=2)
+            sys.stdout.write("\n")
+        else:
+            for d in docs:
+                label = d.get("title") or d.get("name") or ""
+                if d.get("author_name"):
+                    label += "  —  " + ", ".join(d["author_name"])
+                print(f"{d.get('key', '')}\t{label}")
+        n = len(docs)
+    print(f"# {n:,} {args.type}", file=sys.stderr)
+
+
+# ---------------------------------------------------------------------------
+# ol subject  — infogami write: merge variants, or remove/add (dedup)
+# ---------------------------------------------------------------------------
+
+def pick_winner(count_fn, variants, into=None):
+    """Survivor of a merge: an explicit --into, else the highest-work_count variant.
+
+    CAVEAT: the fallback count_fn (``count_of`` below) reads work_count from
+    ``/search/subjects.json``, whose counts are NORMALISED across spelling
+    variants and lag edits — so they can't reliably distinguish case/punctuation
+    variants. Prefer an explicit ``--into`` for anything that matters; do not
+    build an automated winner on this heuristic without a per-variant count
+    source (see the deferred openlibrary#14655).
+    """
+    if into:
+        return into
+    return max(variants, key=lambda v: count_fn(v) or 0)
+
+
+def _resolve_add_tags(ol, refs):
+    """Resolve each ``<tag_type>:<name>`` (or ``/tags/OL..T``) ref to a Tag key.
+
+    The name is matched case-insensitively against existing Tags of that
+    tag_type (via ``Tag.find``). Zero matches or more than one is a hard error
+    rather than a guess, so a write never attaches the wrong Tag.
+    """
+    keys = []
+    for raw in refs:
+        ref = raw.strip()
+        if ref.startswith("/tags/"):
+            keys.append(ref)
+            continue
+        if ":" not in ref:
+            raise SystemExit(f"--add-tags {raw!r} must be <tag_type>:<name> or /tags/OL..T")
+        tag_type, value = (p.strip() for p in ref.split(":", 1))
+        matches = ol.Tag.find(tag_type, name=value)
+        if not matches:
+            raise SystemExit(f"--add-tags: no {tag_type} Tag named {value!r}")
+        if len(matches) > 1:
+            olids = ", ".join(f"/tags/{m.olid}" for m in matches)
+            raise SystemExit(f"--add-tags {raw!r} is ambiguous ({len(matches)}): {olids}")
+        keys.append(f"/tags/{matches[0].olid}")
+    return keys
+
+
+def _execute(ol, plan, *, comment, show_payload, dry_run, approve, batch_size,
+             audit, as_account):
+    """Preview, then (unless previewing/dry-running) write a plan via the engine.
+
+    Shared by ``ol subject`` and ``ol tag add``: inspect the exact request
+    (``show_payload``), stop at a dry run, otherwise confirm (unless ``approve``)
+    and apply with the identity guard and reversible audit.
+    """
+    if show_payload:
+        docs = build_save_docs(ol, plan, comment=comment)
+        req = save_many_request(ol, docs, comment=comment)
+        print(f"POST {req['url']}")
+        for k, v in req["headers"].items():
+            print(f"  {k}: {v}")
+        print(f"  (would write as: {logged_in_user(ol)})")
+        print(f"\nBODY ({len(docs)} work doc(s)):")
+        print(json.dumps(req["body"], indent=2, ensure_ascii=False))
         return
 
-    # prompt first time users to configure their OpenLibrary credentials
-    try:
-        ol = OpenLibrary()
-    except ValueError as e:
-        if str(e) == 'No cookie set':
-            print(
-                "Seems like you haven't configured your olclient with credentials.\n"
-                "You can configure olclient using the following command:\n"
-                "$ol --configure --email <EMAIL>\n"
-            )
-            return parser.print_help()
-        else:
-            raise
+    if dry_run:
+        s = apply_rule(ol, plan, comment=comment, dry_run=True, batch_size=batch_size)
+        print(f"DRY RUN: would write {s['would_write']:,} works in {s['batches']} batch(es). "
+              f"Use --approve to apply.")
+        return
 
-    if args.get_olid:
-        print(ol.Edition.get_olid_by_isbn(args.isbn))
-    elif args.get_book:
-        if args.olid:
-            print(jsonpickle.encode(ol.Edition.get(olid=args.olid)))
-        elif args.isbn:
-            print(jsonpickle.encode(ol.Edition.get(isbn=args.isbn)))
-    elif args.get_work:
-        if args.olid:
-            print(jsonpickle.encode(ol.Work.get(args.olid)))
-        elif args.title:
-            print(jsonpickle.encode(ol.Work.search(args.title)))
-    elif args.get_author_works:
-        if args.olid:
-            print(jsonpickle.encode(ol.Author.get(args.olid).works()))
-        elif args.author_name:
-            print(
-                jsonpickle.encode(
-                    ol.Author.get(ol.Author.get_olid_by_name(args.author_name)).works()
-                )
-            )
-    elif args.create:
-        data = json.loads(args.create)
-        title = data.pop('title')
-        author = common.Author(data.pop('author'))
-        book = common.Book(title, authors=[author], **data)
-        edition = ol.Work.create(book)
-        print(edition.olid)
+    n = len(plan.to_write)
+    if n == 0:
+        print("Nothing to write — every examined work already satisfies this.")
+        return
+    if not approve:
+        if input(f"Write {n} work(s) as {logged_in_user(ol)}? [y/N] ").strip().lower() not in ("y", "yes"):
+            print("Aborted.")
+            return
+    s = apply_rule(ol, plan, comment=comment, batch_size=batch_size,
+                   dry_run=False, audit=audit, expected_account=as_account)
+    print(f"WROTE {s['written']:,} of {s['planned']:,} planned works.")
+    if audit:
+        print(f"Reversible audit log: {audit}")
+
+
+def _load_subjects(args):
+    """The subject strings for --select, from the flag and/or --select-file."""
+    subjects = list(args.select or [])
+    if args.select_file:
+        with open(args.select_file, encoding="utf-8") as fh:
+            subjects += [ln.strip() for ln in fh if ln.strip()]
+    return list(dict.fromkeys(subjects))
+
+
+def _run_select(ol, args, subjects, add_tags, add_subjects):
+    """Tag (and/or add subjects to) every work carrying each subject, iterating
+    one subject at a time via the datastore (``works_by_subject``) — no Solr, so
+    no cursor-vs-lag races, and idempotent. Resumable through ``--progress-file``:
+    completed subjects are recorded and skipped on a re-run.
+    """
+    # Progress file carries two kinds of line: a bare ``subject`` means that
+    # subject is fully done; ``subject\t<offset>`` is a windowed checkpoint (the
+    # next window for that subject starts at <offset>). A subject with a bare
+    # line is skipped; otherwise its highest checkpoint offset is the resume point.
+    done = set()
+    checkpoints: dict[str, int] = {}
+    if args.progress_file and os.path.exists(args.progress_file):
+        with open(args.progress_file, encoding="utf-8") as fh:
+            for ln in fh:
+                ln = ln.rstrip("\n")
+                if not ln:
+                    continue
+                if "\t" in ln:
+                    name, _, off = ln.rpartition("\t")
+                    checkpoints[name] = max(checkpoints.get(name, 0), int(off))
+                else:
+                    done.add(ln)
+    pending = [s for s in subjects if s not in done]
+    writing = args.approve and not args.dry_run
+    per_limit = args.limit if (args.limit and args.limit > 0) else None
+    window = args.window if (args.window and args.window > 0) else None
+
+    # Resolve the (constant) tag set ONCE for the whole run, instead of re-reading
+    # every Tag from the API inside plan_rule once per subject (and per window).
+    resolved_tags = resolve_tags(ol, add_tags)
+    # Works that can't be written (server-rejected poison, or dropped by the
+    # lost-update guard) are appended here so marking a subject "done" never
+    # silently loses them — they stay recoverable for a follow-up pass.
+    skips_file = (args.progress_file + ".skipped") if args.progress_file else None
+
+    def record(line):
+        if writing and args.progress_file:
+            with open(args.progress_file, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+
+    def log_skips(subject, rows):
+        """Persist unwritten works (key, reason) for a subject, durably."""
+        if not (writing and skips_file and rows):
+            return
+        with open(skips_file, "a", encoding="utf-8") as fh:
+            for key, why in rows:
+                fh.write(json.dumps({"subject": subject, "work": key, "reason": why}) + "\n")
+
+    def apply_plan(subject, plan):
+        """Write a plan; return (written, skipped_rows). Logs/records each skip."""
+        if not (writing and plan.to_write):
+            return len(plan.to_write), []
+        st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
+                        dry_run=False, audit=args.audit, expected_account=args.as_account)
+        rows = list(st.get("skipped", []))
+        rows += [(k, "lost-update: revision changed since planning")
+                 for k in st.get("lost_update", [])]
+        for key, why in rows:
+            print(f"    skipped {key}: {why}", file=sys.stderr)
+        log_skips(subject, rows)
+        return st["written"], rows
+
+    print(f"select: {len(subjects)} subject(s)"
+          + (f" ({len(done)} already done, {len(pending)} to go)" if done else "")
+          + (f"  window={window}" if window else "")
+          + f"  add_tags={add_tags or []}  add_subjects={add_subjects or []}"
+          + ("" if writing else "   [DRY RUN — use --approve to write]") + "\n")
+    if writing:
+        assert_identity(ol, args.as_account)
+
+    examined = changed = skipped = failed = consec_fail = 0
+    for i, s in enumerate(pending, 1):
+        try:
+            if window:
+                # Offset-windowed: plan+write+checkpoint one window at a time, so
+                # a subject of any size stays bounded in memory and resumes from
+                # its last checkpoint rather than restarting from 0. ``per_limit``
+                # (--limit) caps the TOTAL works processed for the subject here.
+                off = checkpoints.get(s, 0)
+                w_examined = w_changed = processed = 0
+                exhausted = False
+                while True:
+                    remaining = None if per_limit is None else per_limit - processed
+                    if remaining is not None and remaining <= 0:
+                        break  # hit --limit for this subject (not exhausted)
+                    win = window if remaining is None else min(window, remaining)
+                    keys = list(ol.works_by_subject(s, subject_type=args.type,
+                                                    limit=win, offset=off))
+                    if not keys:
+                        exhausted = True
+                        break
+                    rule = Rule(add_tags=add_tags, subjects=[(s, 1)],
+                                add_subjects=list(add_subjects), subject_type=args.type)
+                    plan = plan_rule(ol, rule, limit=win, work_keys=keys,
+                                     count_subjects=False, resolved_tags=resolved_tags)
+                    wrote, skip_rows = apply_plan(s, plan)
+                    w_changed += wrote
+                    skipped += len(skip_rows)
+                    w_examined += len(plan.changes)
+                    processed += len(keys)
+                    off += len(keys)
+                    record(f"{s}\t{off}")
+                    print(f"[{i}/{len(pending)}] {s!r}: window @{off - len(keys)}"
+                          f"+{len(keys)} -> {'wrote' if writing else 'would change'} {wrote}")
+                    if len(keys) < win:
+                        exhausted = True
+                        break
+                if exhausted:
+                    record(s)  # subject exhausted -> fully done (don't mark if --limit truncated)
+                changed += w_changed
+                examined += w_examined
+                consec_fail = 0
+                tail = "DONE" if exhausted else f"stopped at --limit {per_limit}"
+                print(f"[{i}/{len(pending)}] {s!r}: {tail} — {w_examined} work(s), "
+                      f"{'wrote' if writing else 'would change'} {w_changed}")
+                continue
+
+            rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
+                        subject_type=args.type)
+            plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False,
+                             resolved_tags=resolved_tags)
+            would = len(plan.to_write)
+            wrote, skip_rows = apply_plan(s, plan)
+            changed += wrote
+            skipped += len(skip_rows)
+            examined += len(plan.changes)
+            # Record EVERY completed subject (incl. 0-work) so a resume skips it.
+            record(s)
+            consec_fail = 0
+            print(f"[{i}/{len(pending)}] {s!r}: {len(plan.changes)} work(s), "
+                  f"{'wrote' if writing else 'would change'} {would}")
+        except Exception as e:  # one subject's transient failure must not kill the run
+            failed += 1
+            consec_fail += 1
+            print(f"[{i}/{len(pending)}] {s!r}: ERROR {type(e).__name__}: {e} "
+                  f"— skipped (will retry on resume)", file=sys.stderr)
+            if consec_fail >= 10:
+                raise SystemExit(
+                    f"aborting: {consec_fail} subjects failed in a row "
+                    f"(backend may be down). {changed:,} works written so far; re-run to resume.")
+
+    verb = "wrote" if writing else "would change"
+    print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); "
+          f"{verb} {changed:,}"
+          + (f"; {skipped} work(s) skipped (server-rejected or lost-update)" if skipped else "")
+          + (f"; {failed} subject(s) failed (retry on resume)" if failed else "") + ".")
+    if writing and skipped and skips_file:
+        print(f"Skipped works logged for review: {skips_file}")
+    if writing and args.audit:
+        print(f"Reversible audit log: {args.audit}")
+
+
+def cmd_subject(args):
+    ol = _authed_ol(args.baseurl)
+    st = args.type
+
+    if args.select or args.select_file:
+        subjects = _load_subjects(args)
+        if not subjects:
+            raise SystemExit("ol subject --select: no subjects given")
+        add_tags = _resolve_add_tags(ol, args.add_tags) if args.add_tags else []
+        if not add_tags and not args.add:
+            raise SystemExit("ol subject --select needs --add-tags and/or --add")
+        _run_select(ol, args, subjects, add_tags, list(args.add or []))
+        return
+
+    def count_of(name):
+        hits = list(ol.search_subjects(name, limit=25, subject_type=st))
+        for hit in hits:  # exact case first (case-only variants are distinct)
+            if hit.get("name") == name:
+                return hit.get("work_count") or 0
+        for hit in hits:
+            if hit.get("name", "").lower() == name.lower():
+                return hit.get("work_count") or 0
+        return 0
+
+    if args.merge:
+        variants = list(dict.fromkeys(args.merge))
+        if len(variants) < 2 and not args.into:
+            raise SystemExit("ol subject --merge needs >=2 subjects (or 1 plus --into)")
+        winner = pick_winner(count_of, variants, args.into)
+        # Selector is exactly the listed subjects (the union to touch). The
+        # winner is the survivor flagged keep; when it is a *new* canonical
+        # (not among the variants) it is added via add_subjects only, so we
+        # never pull in every existing work already carrying it.
+        subjects = [(v, 1 if v == winner else 0) for v in variants]
+        add_subjects = [winner]
+        print(f"merge winner: {winner!r}\n")
     else:
-        parser.print_help()
+        if not args.remove:
+            raise SystemExit("ol subject: use --merge, or --remove ... [--add ...]")
+        subjects = [(s, 0) for s in args.remove]
+        add_subjects = list(args.add or [])
+
+    add_tags = _resolve_add_tags(ol, args.add_tags) if args.add_tags else []
+    limit = args.limit if args.limit is not None else 50
+    rule = Rule(add_tags=add_tags, subjects=subjects, add_subjects=add_subjects, subject_type=st)
+    plan = plan_rule(ol, rule, limit=limit)
+    print(format_plan(plan, limit))
+    print()
+    _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
+             dry_run=args.dry_run, approve=args.approve, batch_size=args.batch_size,
+             audit=args.audit, as_account=args.as_account)
+
+
+# ---------------------------------------------------------------------------
+# ol tag add  — tag every work carrying ALL of a set of subjects (issue #458)
+# ---------------------------------------------------------------------------
+
+def _works_matching_all_subjects(ol, slugs, tag_type=None, tag_olid=None, limit=100):
+    """Work keys carrying ALL ``slugs`` (AND), via the public /search.json.
+
+    ``/query.json`` can't AND two values of the same field, so this uses Solr
+    search: ``subject_key:a AND subject_key:b [AND -<tag_type>_key:OLID]``.
+    The optional exclusion skips works already carrying the Tag; correctness
+    does not depend on it (the plan re-checks each work and no-ops any that
+    already have the Tag), it just avoids fetching them.
+    """
+    clauses = [f"subject_key:{slug}" for slug in slugs]
+    if tag_type and tag_olid:
+        clauses.append(f"-{tag_type}_key:{tag_olid}")
+    params = {"q": " AND ".join(clauses), "fields": "key", "limit": limit}
+    resp = ol.get_ol_response(f"/search.json?{urlencode(params)}")
+    return [d["key"] for d in resp.json().get("docs", []) if d.get("key")]
+
+
+def cmd_tag_add(args):
+    ol = _authed_ol(args.baseurl)
+
+    olid = _olid(args.tag_olid)
+    tag = ol.Tag.get(olid)
+    if tag is None:
+        raise SystemExit(f"Tag /tags/{olid} does not exist")
+    tag_key = f"/tags/{olid}"
+    tag_type = getattr(tag, "tag_type", None)
+
+    slugs = [s.strip() for s in args.subjects.split(",") if s.strip()]
+    if not slugs:
+        raise SystemExit("ol tag add: --subjects needs at least one slug")
+    rm_slugs = [s.strip() for s in (args.rm_subjects or "").split(",") if s.strip()]
+
+    work_keys = _works_matching_all_subjects(
+        ol, slugs, tag_type=tag_type, tag_olid=olid, limit=args.limit)
+    print(f"tag: {getattr(tag, 'name', None) or tag_key} ({tag_type})  {tag_key}")
+    print(f"select works with ALL subjects: {', '.join(slugs)}")
+    if rm_slugs:
+        print(f"  and remove subjects by slug: {', '.join(rm_slugs)}")
+    print(f"  {len(work_keys):,} candidate work(s) from search\n")
+
+    rule = Rule(add_tags=[tag_key], subjects=[], remove_subject_slugs=rm_slugs)
+    plan = plan_rule(ol, rule, limit=args.limit, work_keys=work_keys)
+    print(format_plan(plan, args.limit))
+    print()
+    _execute(ol, plan, comment=args.comment, show_payload=args.show_payload,
+             dry_run=not args.approve, approve=args.approve, batch_size=args.batch_size,
+             audit=args.audit, as_account=args.as_account)
+
+
+# ---------------------------------------------------------------------------
+# ol configure
+# ---------------------------------------------------------------------------
+
+def cmd_configure(args):
+    import internetarchive as ia
+
+    email = args.email or input("Archive.org Email: ")
+    if not email:
+        raise SystemExit("--email required for configuration")
+    password = getpass.getpass("Password: ")
+    ia.configure(email, password, host="archive.org")
+    config_tool = Config()
+    config = config_tool._get_config()
+    config["s3"] = ia.config.get_config()["s3"]
+    try:
+        OpenLibrary(credentials=Credentials(**config["s3"]), base_url=args.baseurl)
+    except Exception:
+        raise SystemExit("Incorrect credentials, not updating config.")
+    config_tool.update(config)
+    print("Successfully configured")
+
+
+# ---------------------------------------------------------------------------
+# parser / entry point
+# ---------------------------------------------------------------------------
+
+def _add_write_args(parser, *, default_comment, approve_help, dry_run=False):
+    """Add the flags shared by every writing subcommand (subject, tag add)."""
+    parser.add_argument("--batch-size", type=int, default=WAF_SAFE_BATCH,
+                        help=f"works per /api/save_many POST (default {WAF_SAFE_BATCH}; "
+                             "kept small so the JSON body stays under ModSec SecArgumentsLimit)")
+    parser.add_argument("--comment", default=default_comment)
+    parser.add_argument("--audit", default=None, help="reversible audit JSONL path")
+    if dry_run:
+        parser.add_argument("--dry-run", action="store_true", help="preview only; write nothing")
+    parser.add_argument("--show-payload", action="store_true",
+                        help="print the exact /api/save_many request; write nothing")
+    parser.add_argument("--as", dest="as_account", default="openlibrarytagsbot",
+                        help="refuse to write unless the session is this account")
+    parser.add_argument("--approve", action="store_true", help=approve_help)
+
+
+def build_parser():
+    p = argparse.ArgumentParser(prog="ol", description=__title__)
+    p.add_argument("-v", action="version", version=f"{__title__} v{__version__}")
+    p.add_argument("--baseurl", default=None, help="Which OL backend to use")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    sp = sub.add_parser("search", help="Search Solr (works, authors, subjects)")
+    sp.add_argument("type", choices=ENTITY_CHOICES, help="entity type to search")
+    sp.add_argument("--query", "-q", default=None,
+                    help="search term (subjects: substring match on the name)")
+    sp.add_argument("--limit", type=int, default=None, help="cap the number of results")
+    sp.add_argument("--max-works", type=int, default=None,
+                    help="subjects only: keep subjects appearing in <= N works")
+    sp.add_argument("--solr", default=None, help="Solr base URL (default: $OL_SOLR_BASE_URL)")
+    sp.add_argument("--json", action="store_true", help="emit JSON")
+
+    mp = sub.add_parser("subject", help="Merge/clean subjects on works (writes via infogami)")
+    mp.add_argument("--merge", nargs="+", metavar="SUBJECT",
+                    help="merge these subject variants into one winner")
+    mp.add_argument("--into", "--keep", "--winner", "--choose", dest="into",
+                    default=None, metavar="SUBJECT",
+                    help="the survivor for --merge (default: highest work_count)")
+    mp.add_argument("--remove", nargs="+", metavar="SUBJECT",
+                    help="remove these subjects from matching works")
+    mp.add_argument("--select", nargs="+", metavar="SUBJECT",
+                    help="select works carrying ANY of these subjects (keep them) and "
+                         "apply --add-tags/--add; iterates one subject at a time via the datastore")
+    mp.add_argument("--select-file", dest="select_file", default=None, metavar="PATH",
+                    help="like --select, with one subject per line read from this file")
+    mp.add_argument("--progress-file", dest="progress_file", default=None, metavar="PATH",
+                    help="record completed subjects here (for --select); skipped on a resume")
+    mp.add_argument("--add", nargs="+", metavar="SUBJECT",
+                    help="add these subject strings to matching works")
+    mp.add_argument("--add-tags", nargs="+", dest="add_tags", metavar="TAG",
+                    help="also add these Tags to every matching work, as "
+                         "<tag_type>:<name> (e.g. genre:'Science Fiction') or /tags/OL..T")
+    mp.add_argument("--type", dest="type", default="subject",
+                    choices=["subject", "person", "place", "time"])
+    mp.add_argument("--limit", type=int, default=None,
+                    help="max works to examine/write (merge/remove default 50; "
+                         "--select defaults to ALL works per subject)")
+    mp.add_argument("--window", type=int, default=None, metavar="N",
+                    help="(--select) process each subject in offset windows of N "
+                         "works, writing and checkpointing per window — for subjects "
+                         "too large to plan in one pass (e.g. 160k works). Resumes "
+                         "mid-subject from the last checkpoint in --progress-file.")
+    _add_write_args(mp, default_comment="merge/clean subjects", dry_run=True,
+                    approve_help="approve and apply the write (without it: confirmation prompt)")
+
+    tp = sub.add_parser("tag", help="Tag works (writes via infogami)")
+    tsub = tp.add_subparsers(dest="tag_command", required=True)
+    ta = tsub.add_parser("add", help="Tag every work carrying ALL of a set of subjects")
+    ta.add_argument("tag_olid", metavar="TAG_OLID", help="the Tag to add, e.g. OL167T")
+    ta.add_argument("--subjects", required=True, metavar="SLUG[,SLUG...]",
+                    help="subject slugs (as in /subjects/<slug>); a work must have ALL")
+    ta.add_argument("--rm-subjects", dest="rm_subjects", default=None,
+                    metavar="SLUG[,SLUG...]", help="subject slugs to remove from each tagged work")
+    ta.add_argument("--limit", type=int, default=100, help="max works to change (default 100)")
+    _add_write_args(ta, default_comment="tag works by subject",
+                    approve_help="approve and save the changes (without it, this is a dry run)")
+
+    cp = sub.add_parser("configure", help="Store IA/OL credentials")
+    cp.add_argument("--email", default=None, help="Archive.org email")
+
+    return p
+
+
+def cmd_tag(args):
+    {"add": cmd_tag_add}[args.tag_command](args)
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    {"search": cmd_search, "subject": cmd_subject, "tag": cmd_tag,
+     "configure": cmd_configure}[args.command](args)
 
 
 if __name__ == "__main__":

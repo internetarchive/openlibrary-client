@@ -3,9 +3,10 @@
 name: pre-commit
 on:
   pull_request:
-    branches: [master]
+    branches: [master, ol-v2]
   push:
-    branches: [master]
+    branches: [master, ol-v2]
+  workflow_dispatch:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest

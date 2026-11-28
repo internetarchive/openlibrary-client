@@ -1,9 +1,9 @@
 name: test_python
 on:
   pull_request:
-    branches: [master]
+    branches: [master, ol-v2]
   push:
-    branches: [master]
+    branches: [master, ol-v2]
   workflow_dispatch:
 jobs:
   test_python:

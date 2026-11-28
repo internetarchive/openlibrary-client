@@ -25,6 +25,14 @@ from olclient.utils import merge_unique_lists
 
 logger = logging.getLogger('openlibrary')
 
+# The work field that holds each subject type's free-text strings.
+SUBJECT_TYPE_FIELDS = {
+    'subject': 'subjects',
+    'person': 'subject_people',
+    'place': 'subject_places',
+    'time': 'subject_times',
+}
+
 
 def _schema_uri(path: str) -> str:
     """Return a canonical file:// URI for an absolute schema path."""
@@ -177,6 +185,132 @@ class OpenLibrary:
         response = self.session.get(self.base_url + path)
         response.raise_for_status()
         return response
+
+    def search_subjects(self, q, limit=10, offset=0, subject_type=None):
+        """Search Open Library subjects by name.
+
+        Args:
+            q (str) - the subject query, e.g. 'biography'
+            limit (int) - maximum number of results to return
+            offset (int) - results offset, for paging
+            subject_type (str) - if given, restrict results to this subject_type
+                ('subject', 'person', 'place' or 'time')
+
+        Returns:
+            A list of subject dicts, each with keys 'key', 'name',
+            'subject_type', 'work_count' and 'count'. Empty when nothing matches.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> ol.search_subjects('biography', limit=2)  # doctest: +SKIP
+            [{'key': '/subjects/biography', 'name': 'Biography', ...}]
+        """
+        # When filtering by subject_type client-side, over-fetch from the server
+        # so the wanted type isn't pushed out of the window by other-type rows
+        # (the endpoint returns all subject_types mixed, ranked) and then lost to
+        # the post-filter — which would hand callers a 0/None work_count and a
+        # wrong merge winner. Harmless when no type filter is requested.
+        server_limit = max(limit * 5, 50) if subject_type else limit
+        params = {'q': q, 'limit': server_limit}
+        if offset:
+            params['offset'] = offset
+        response = self.get_ol_response(f'/search/subjects.json?{urlencode(params)}')
+        docs = response.json().get('docs', [])
+        if subject_type:
+            docs = [doc for doc in docs if doc.get('subject_type') == subject_type][:limit]
+        return docs
+
+    def works_by_subject(self, subject, subject_type='subject', limit=None, batch_size=1000, offset=0):
+        """Yield the keys of works that carry ``subject`` exactly.
+
+        Read-only. Pages Open Library's ``/query.json`` over the work field that
+        holds the given ``subject_type``'s strings ('subject' -> ``subjects``,
+        'person' -> ``subject_people``, 'place' -> ``subject_places``, 'time' ->
+        ``subject_times``).
+
+        Args:
+            subject (str) - the exact subject string to match
+            subject_type (str) - 'subject', 'person', 'place' or 'time'
+            limit (int) - cap on the total number of keys yielded (None = all)
+            batch_size (int) - page size for each ``/query.json`` request
+            offset (int) - skip this many matches before yielding (for windowed
+                resume over a very large subject; ordering is stable because
+                tagging doesn't change the ``subjects`` field a work matches on)
+
+        Yields:
+            Work keys, e.g. '/works/OL1W'.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> list(ol.works_by_subject('Biography', limit=2))  # doctest: +SKIP
+            ['/works/OL6212468W', '/works/OL26751518W']
+        """
+        try:
+            field = SUBJECT_TYPE_FIELDS[subject_type]
+        except KeyError:
+            raise ValueError(
+                f"unknown subject_type {subject_type!r}; "
+                f"known: {sorted(SUBJECT_TYPE_FIELDS)}"
+            )
+        yielded = 0
+        while True:
+            page = batch_size if limit is None else min(batch_size, limit - yielded)
+            if page <= 0:
+                return
+            params = {'type': '/type/work', field: subject, 'limit': page, 'offset': offset}
+            rows = self.get_ol_response(f'/query.json?{urlencode(params)}').json()
+            if not isinstance(rows, list) or not rows:
+                return
+            for row in rows:
+                yield row['key'] if isinstance(row, dict) else row
+                yielded += 1
+                if limit is not None and yielded >= limit:
+                    return
+            if len(rows) < page:
+                return
+            offset += len(rows)
+
+    def get_many(self, keys, batch_size=100):
+        """Fetch many documents by key in as few requests as possible.
+
+        Open Library's ``/api/get_many`` takes a JSON array of keys as the
+        ``keys`` query parameter and replies ``{"status": "ok", "result":
+        {<key>: <doc>, ...}}``. (Passing a bare comma-joined list to
+        ``/api/get_many.json`` returns a 500 in production, so this always
+        sends a JSON array and unwraps ``result``.) Keys are fetched in
+        batches of ``batch_size`` and the batches are merged.
+
+        Args:
+            keys (list) - document keys, e.g. ['/works/OL1W', '/works/OL2W']
+            batch_size (int) - maximum keys per request (default 100)
+
+        Returns:
+            A dict mapping each found key to its document. Keys that do not
+            exist are simply absent from the result.
+
+        Usage:
+            >>> from olclient.openlibrary import OpenLibrary
+            >>> ol = OpenLibrary()
+            >>> ol.get_many(['/works/OL1W', '/works/OL2W'])  # doctest: +SKIP
+            {'/works/OL1W': {...}, '/works/OL2W': {...}}
+        """
+        keys = list(dict.fromkeys(keys))  # de-dupe, preserve order
+        result = {}
+        for i in range(0, len(keys), batch_size):
+            chunk = keys[i:i + batch_size]
+            params = urlencode({'keys': json.dumps(chunk)})
+            response = self.get_ol_response(f'/api/get_many?{params}')
+            payload = response.json()
+            # Expected shape is {'status': 'ok', 'result': {<key>: <doc>}}. Only
+            # merge a dict 'result'; an error object or unexpected body yields no
+            # docs (callers treat the missing keys as absent) rather than
+            # injecting 'status'/'error' as bogus documents.
+            batch = payload.get('result') if isinstance(payload, dict) else None
+            if isinstance(batch, dict):
+                result.update(batch)
+        return result
 
     @property
     def Work(self):

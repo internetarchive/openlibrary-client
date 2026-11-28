@@ -101,6 +101,144 @@ class TestOpenLibrary(unittest.TestCase):
         )
 
     @patch('requests.Session.get')
+    def test_search_subjects_returns_docs_and_encodes_query(self, mock_get):
+        docs = [
+            {
+                'key': '/subjects/biography',
+                'name': 'Biography',
+                'subject_type': 'subject',
+                'work_count': 904349,
+                'count': 904349,
+            }
+        ]
+        mock_get.return_value.json.return_value = {'numFound': 1, 'docs': docs}
+        results = self.ol.search_subjects('science & nature', limit=2)
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search/subjects.json?q=science+%26+nature&limit=2"
+        )
+        assert results == docs
+
+    @patch('requests.Session.get')
+    def test_search_subjects_filters_by_subject_type(self, mock_get):
+        docs = [
+            {'key': '/subjects/person:mark_twain', 'name': 'Mark Twain', 'subject_type': 'person'},
+            {'key': '/subjects/twain', 'name': 'Twain', 'subject_type': 'subject'},
+        ]
+        mock_get.return_value.json.return_value = {'docs': docs}
+        results = self.ol.search_subjects('twain', subject_type='person')
+        assert [d['subject_type'] for d in results] == ['person']
+
+    @patch('requests.Session.get')
+    def test_search_subjects_overfetches_so_type_filter_keeps_match(self, mock_get):
+        # The wanted 'subject' doc sits behind several other-type rows; a naive
+        # fetch of limit=1 then client-side filter would drop it. We over-fetch
+        # server-side so the match survives the filter (and gives a real count).
+        docs = [{'name': f'p{i}', 'subject_type': 'person'} for i in range(5)] + [
+            {'name': 'Dogs', 'subject_type': 'subject', 'work_count': 42}]
+        mock_get.return_value.json.return_value = {'docs': docs}
+        results = self.ol.search_subjects('dogs', limit=1, subject_type='subject')
+        assert mock_get.call_args[0][0].endswith('limit=50')  # over-fetched, not limit=1
+        assert results == [{'name': 'Dogs', 'subject_type': 'subject', 'work_count': 42}]
+
+    @patch('requests.Session.get')
+    def test_search_subjects_empty(self, mock_get):
+        mock_get.return_value.json.return_value = {'numFound': 0, 'docs': []}
+        assert self.ol.search_subjects('zzzznomatch') == []
+
+    @patch('requests.Session.get')
+    def test_search_subjects_includes_offset_when_set(self, mock_get):
+        mock_get.return_value.json.return_value = {'docs': []}
+        self.ol.search_subjects('biography', limit=5, offset=10)
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/search/subjects.json?q=biography&limit=5&offset=10"
+        )
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_yields_keys_and_targets_field(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}],  # page 1 (short -> stop)
+        ]
+        keys = list(self.ol.works_by_subject('Biography', batch_size=1000))
+        assert keys == ['/works/OL1W', '/works/OL2W']
+        mock_get.assert_called_with(
+            f"{self.ol.base_url}/query.json?type=%2Ftype%2Fwork&subjects=Biography&limit=1000&offset=0"
+        )
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_pages_until_short_page(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}],  # full page -> keep going
+            [{'key': '/works/OL3W'}],  # short page -> stop
+        ]
+        keys = list(self.ol.works_by_subject('Biography', batch_size=2))
+        assert keys == ['/works/OL1W', '/works/OL2W', '/works/OL3W']
+        assert mock_get.call_count == 2
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_respects_limit(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            [{'key': '/works/OL1W'}, {'key': '/works/OL2W'}, {'key': '/works/OL3W'}],
+        ]
+        keys = list(self.ol.works_by_subject('Biography', limit=2, batch_size=1000))
+        assert keys == ['/works/OL1W', '/works/OL2W']
+
+    @patch('requests.Session.get')
+    def test_works_by_subject_person_type_uses_subject_people(self, mock_get):
+        mock_get.return_value.json.side_effect = [[]]
+        list(self.ol.works_by_subject('Mark Twain', subject_type='person'))
+        called_url = mock_get.call_args[0][0]
+        assert 'subject_people=Mark+Twain' in called_url
+
+    def test_works_by_subject_unknown_type_raises(self):
+        with self.assertRaises(ValueError):
+            list(self.ol.works_by_subject('x', subject_type='bogus'))
+
+    @patch('requests.Session.get')
+    def test_get_many_sends_json_array_and_unwraps_result(self, mock_get):
+        docs = {'/works/OL1W': {'key': '/works/OL1W'}, '/works/OL2W': {'key': '/works/OL2W'}}
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': docs}
+        result = self.ol.get_many(['/works/OL1W', '/works/OL2W'])
+        assert result == docs
+        called_url = mock_get.call_args[0][0]
+        # keys go as a JSON array on ?keys=, to /api/get_many (not .json)
+        assert '/api/get_many?keys=' in called_url
+        assert '%5B%22%2Fworks%2FOL1W%22%2C+%22%2Fworks%2FOL2W%22%5D' in called_url
+
+    @patch('requests.Session.get')
+    def test_get_many_batches_and_merges(self, mock_get):
+        mock_get.return_value.json.side_effect = [
+            {'status': 'ok', 'result': {'/works/OL1W': {'key': '/works/OL1W'}}},
+            {'status': 'ok', 'result': {'/works/OL2W': {'key': '/works/OL2W'}}},
+        ]
+        result = self.ol.get_many(['/works/OL1W', '/works/OL2W'], batch_size=1)
+        assert mock_get.call_count == 2
+        assert set(result) == {'/works/OL1W', '/works/OL2W'}
+
+    @patch('requests.Session.get')
+    def test_get_many_dedupes_keys(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': {}}
+        self.ol.get_many(['/works/OL1W', '/works/OL1W', '/works/OL2W'], batch_size=100)
+        called_url = mock_get.call_args[0][0]
+        assert called_url.count('OL1W') == 1
+
+    @patch('requests.Session.get')
+    def test_get_many_missing_key_is_absent(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'ok', 'result': {'/works/OL1W': {'key': '/works/OL1W'}}}
+        result = self.ol.get_many(['/works/OL1W', '/works/OL404W'])
+        assert '/works/OL404W' not in result
+        assert '/works/OL1W' in result
+
+    @patch('requests.Session.get')
+    def test_get_many_ignores_error_payload(self, mock_get):
+        mock_get.return_value.json.return_value = {'status': 'error', 'error': 'nope'}
+        assert self.ol.get_many(['/works/OL1W']) == {}
+
+    @patch('requests.Session.get')
+    def test_get_many_ignores_nondict_payload(self, mock_get):
+        mock_get.return_value.json.return_value = ['unexpected']
+        assert self.ol.get_many(['/works/OL1W']) == {}
+
+    @patch('requests.Session.get')
     def test_get_edition_by_isbn(self, mock_get):
         isbn_lookup_response = {
             'ISBN:0374202915': {
@@ -475,6 +613,45 @@ class TestWorkTags(unittest.TestCase):
         mock_tag.return_value.json.return_value = {'error': 'notfound'}
         with self.assertRaises(ValueError):
             self._work().add_tags('genres', ['/tags/OL9T'])
+        mock_put.assert_not_called()
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.get_ol_response')
+    def test_add_tags_accepts_singular_genre_on_genres(self, mock_tag, mock_get, mock_put):
+        # Production Tags are typed SINGULAR ('genre'), the work field is plural
+        # ('genres'). Validation must accept the singular tag_type, not require
+        # tag_type == field (which rejected every real Tag on master).
+        mock_tag.return_value.json.return_value = {
+            'key': '/tags/OL84T',
+            'name': 'Fantasy',
+            'tag_type': 'genre',
+        }
+        self._mock_work(mock_get, None)
+        self._work().add_tags('genres', ['/tags/OL84T'])
+        body = json.loads(mock_put.call_args[0][1])
+        assert body['genres'] == [{'key': '/tags/OL84T'}]
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    @patch('olclient.openlibrary.OpenLibrary.get_ol_response')
+    def test_add_tags_accepts_literary_form_on_literary_forms(self, mock_tag, mock_get, mock_put):
+        mock_tag.return_value.json.return_value = {
+            'key': '/tags/OL9T',
+            'name': 'Fiction',
+            'tag_type': 'literary_form',
+        }
+        self._mock_work(mock_get, None)
+        self._work().add_tags('literary_forms', ['/tags/OL9T'])
+        body = json.loads(mock_put.call_args[0][1])
+        assert body['literary_forms'] == [{'key': '/tags/OL9T'}]
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    def test_add_tags_unknown_field_raises(self, mock_get, mock_put):
+        # An unmapped field is an error, not a guessed fallback.
+        with self.assertRaises(ValueError):
+            self._work().add_tags('not_a_tag_field', ['/tags/OL9T'], validate=False)
         mock_put.assert_not_called()
 
     @patch('requests.Session.put')

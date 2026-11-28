@@ -3,13 +3,23 @@ openlibrary-client
 
 [![pre-commit](https://github.com/internetarchive/openlibrary-client/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/internetarchive/openlibrary-client/actions/workflows/pre-commit.yml) [![test_python](https://github.com/internetarchive/openlibrary-client/actions/workflows/test_python.yml/badge.svg)](https://github.com/internetarchive/openlibrary-client/actions/workflows/test_python.yml)
 
-A reference client library for the Open Library API. Tested with Python 3.7, 3.8, 3.9, and 3.10.
+A reference client library for the Open Library API, plus the **`ol`** command-line tool. Tested with Python 3.7, 3.8, 3.9, and 3.10.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Documentation](#documentation)
 - [Testing](#testing)
 - [Other Client Libraries](#other-client-libraries)
+
+## Documentation
+
+- **[`docs/`](docs/)** — guides for the `ol` CLI and subject tagging/cleanup
+  workflows ([CLI reference](docs/cli.md), [subject tagging](docs/subject-tagging.md)),
+  for humans and AI agents.
+- **[`AGENTS.md`](AGENTS.md)** — conventions and patterns for working in this
+  codebase (the search-vs-infogami seam, the write-safety invariants, batching,
+  testing).
 
 ## Installation
 
