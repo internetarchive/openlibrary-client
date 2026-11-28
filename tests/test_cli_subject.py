@@ -185,3 +185,29 @@ def test_select_window_skips_fully_done_subject(patch_authed_ol, tmp_path):
         select=["Big"], add_tags=["literary_form:fiction"], approve=True,
         window=2, batch_size=100, progress_file=str(progress)))
     assert ol.saved == []  # nothing re-examined or re-written
+
+
+def test_select_window_honors_limit_and_does_not_mark_done(patch_authed_ol, tmp_path):
+    ol = patch_authed_ol(_windowed_ol(5))
+    progress = tmp_path / "big.progress"
+    cmd_subject(make_subject_args(
+        select=["Big"], add_tags=["literary_form:fiction"], approve=True,
+        window=2, limit=3, batch_size=100, progress_file=str(progress)))
+    # --limit 3 caps the windowed run at 3 works even though the subject has 5
+    written = [d["key"] for batch in ol.saved for d in batch]
+    assert written == [f"/works/OL{i}W" for i in range(3)]
+    # truncated by --limit, so the subject is NOT marked fully done (no bare line)
+    lines = progress.read_text().splitlines()
+    assert "Big" not in lines
+
+
+def test_merge_dry_run_preview_uses_batch_size(patch_authed_ol, capsys):
+    from olclient.cli import _execute
+    from olclient.rule import Rule, plan_rule
+    ol = patch_authed_ol(_windowed_ol(5))
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL2T"], subjects=[]), limit=None,
+                     work_keys=[f"/works/OL{i}W" for i in range(5)])
+    _execute(ol, plan, comment="c", show_payload=False, dry_run=True, approve=False,
+             batch_size=1, audit=None, as_account="openlibrarytagsbot")
+    out = capsys.readouterr().out
+    assert "5 batch(es)" in out  # batch_size=1 over 5 works => 5 batches, not the default 250

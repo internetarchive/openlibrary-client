@@ -206,13 +206,19 @@ class OpenLibrary:
             >>> ol.search_subjects('biography', limit=2)  # doctest: +SKIP
             [{'key': '/subjects/biography', 'name': 'Biography', ...}]
         """
-        params = {'q': q, 'limit': limit}
+        # When filtering by subject_type client-side, over-fetch from the server
+        # so the wanted type isn't pushed out of the window by other-type rows
+        # (the endpoint returns all subject_types mixed, ranked) and then lost to
+        # the post-filter — which would hand callers a 0/None work_count and a
+        # wrong merge winner. Harmless when no type filter is requested.
+        server_limit = max(limit * 5, 50) if subject_type else limit
+        params = {'q': q, 'limit': server_limit}
         if offset:
             params['offset'] = offset
         response = self.get_ol_response(f'/search/subjects.json?{urlencode(params)}')
         docs = response.json().get('docs', [])
         if subject_type:
-            docs = [doc for doc in docs if doc.get('subject_type') == subject_type]
+            docs = [doc for doc in docs if doc.get('subject_type') == subject_type][:limit]
         return docs
 
     def works_by_subject(self, subject, subject_type='subject', limit=None, batch_size=1000, offset=0):

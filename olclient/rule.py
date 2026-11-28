@@ -284,7 +284,8 @@ def _select_work_keys(ol, rule: Rule, limit):
     return list(seen)
 
 
-def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
+def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True,
+              resolved_tags=None):
     """Compute (read-only) what ``rule`` would change, over up to ``limit`` works.
 
     ``work_keys`` lets a caller inject an already-selected set of works (e.g.
@@ -293,8 +294,13 @@ def plan_rule(ol, rule: Rule, limit=50, work_keys=None, count_subjects=True):
 
     ``count_subjects`` looks up each selector's work_count for the preview; pass
     False to skip those Solr calls when planning many subjects in a loop.
+
+    ``resolved_tags`` is an already-computed ``(tag_field, tag_type, tag_name)``
+    triple (from :func:`resolve_tags`); pass it when planning many subjects with
+    the SAME tags to avoid re-reading every Tag from the API once per subject.
     """
-    tag_field, tag_type, tag_name = resolve_tags(ol, rule.add_tags)
+    tag_field, tag_type, tag_name = (
+        resolved_tags if resolved_tags is not None else resolve_tags(ol, rule.add_tags))
 
     subject_counts: dict[str, int | None] = {}
     for subject in rule.selector_strings:
@@ -466,6 +472,18 @@ def _audit_rows(plan: RulePlan, comment: str):
 
 SAVE_POST_RETRIES = 4
 
+# If this many single-doc saves are rejected in a row with no accepted save
+# between them, the failure is systemic (session expired, backend down/5xx,
+# rate-limited) rather than a scatter of individually-poison works. Splitting a
+# systemic failure down to singletons would "skip" every work and report a false
+# success, so we abort instead — the caller can then resume and retry.
+CONSECUTIVE_SKIP_ABORT = 25
+
+
+class SaveAborted(RuntimeError):
+    """Saves are failing systemically (not per-doc poison). Raised so a run stops
+    and stays resumable instead of silently skipping every work as 'rejected'."""
+
 
 def _post_save_many(session, url, body, headers, tries=SAVE_POST_RETRIES):
     """POST to save_many, retrying transient NETWORK failures (connection reset,
@@ -532,19 +550,32 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
     audit_rows = _audit_rows(plan, comment)
     written = 0
     skipped = []
+    lost_update = []
+    consec_skips = 0
 
     def _accept(accepted):
         # Audit only AFTER a (sub-)batch is accepted, so a rejected/failed POST
         # never leaves a phantom "we changed this" row.
-        nonlocal written
+        nonlocal written, consec_skips
         if audit:
             with open(audit, "a", encoding="utf-8") as fh:
                 for doc in accepted:
                     fh.write(json.dumps(audit_rows[doc["key"]]) + "\n")
         written += len(accepted)
+        consec_skips = 0  # a success breaks any run of single-doc rejections
 
     def _skip(doc, exc):
+        # A lone doc the server rejects is skipped so one poison work can't abort
+        # the run — BUT a long unbroken run of such skips is systemic (not poison),
+        # so abort rather than silently "skip" every remaining work (see F1).
+        nonlocal consec_skips
         skipped.append((doc["key"], f"{type(exc).__name__}: {exc}"))
+        consec_skips += 1
+        if consec_skips >= CONSECUTIVE_SKIP_ABORT:
+            raise SaveAborted(
+                f"{consec_skips} consecutive single-work saves rejected "
+                f"(last {doc['key']}: {type(exc).__name__}: {exc}) — systemic "
+                f"failure (auth/backend), aborting; {written:,} written, resume to retry")
 
     planned_rev = {c.work_key: c.revision for c in plan.to_write}
     for batch in pack_batches(docs, batch_size):
@@ -556,7 +587,9 @@ def apply_rule(ol, plan: RulePlan, comment: str, batch_size=250, dry_run=True,
             key = doc["key"]
             live_doc = live.get(key)
             if live_doc is None or live_doc.get("revision") != planned_rev.get(key):
-                continue  # vanished or edited since planning — skip, don't clobber
+                lost_update.append(key)  # vanished or edited since planning — don't clobber
+                continue
             safe.append(doc)
         _save_with_split(ol, safe, comment, _accept, _skip)
-    return {"dry_run": False, "written": written, "planned": len(docs), "skipped": skipped}
+    return {"dry_run": False, "written": written, "planned": len(docs),
+            "skipped": skipped, "lost_update": lost_update}

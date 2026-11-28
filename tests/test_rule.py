@@ -353,6 +353,47 @@ def test_write_skips_lost_update():
     ol._work_docs["OL1W"]["revision"] = 2
     summary = apply_rule(ol, plan, comment="c", dry_run=False, expected_account="openlibrarytagsbot")
     assert summary["written"] == 0
+    # the dropped work is reported (not silently uncounted) so a caller can log it
+    assert summary["lost_update"] == ["/works/OL1W"]
+
+
+def _many_work_ol(n, user="/people/openlibrarytagsbot,2026,h"):
+    keys = [f"/works/OL{i}W" for i in range(n)]
+    return FakeOL(
+        tags={"OL184T": NONFIC},
+        subject_works={"Nonfiction": keys},
+        work_docs={f"OL{i}W": {"revision": 1, "subjects": ["Nonfiction"]} for i in range(n)},
+        user=user,
+    )
+
+
+def test_apply_rule_aborts_on_systemic_save_failure():
+    """Every save failing (e.g. expired session / backend down) must ABORT, not
+    split to singletons and silently 'skip' every work while reporting success."""
+    from olclient.rule import CONSECUTIVE_SKIP_ABORT, SaveAborted
+
+    ol = _many_work_ol(CONSECUTIVE_SKIP_ABORT + 5)
+
+    def always_403(url, data=None, headers=None):
+        def raise_for_status():
+            raise RuntimeError("403 Forbidden")
+        return types.SimpleNamespace(status_code=403, raise_for_status=raise_for_status)
+
+    ol.session = types.SimpleNamespace(post=always_403, cookies=ol.session.cookies)
+    plan = plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]), limit=None)
+    with pytest.raises(SaveAborted, match="systemic"):
+        apply_rule(ol, plan, comment="c", dry_run=False, expected_account="openlibrarytagsbot")
+
+
+def test_plan_rule_uses_injected_resolved_tags_without_rereading():
+    ol = _one_work_ol()
+    resolved = resolve_tags(ol, ["/tags/OL184T"])
+    calls = []
+    real_get = ol.Tag.get
+    ol.Tag.get = lambda olid: (calls.append(olid), real_get(olid))[1]
+    plan_rule(ol, Rule(add_tags=["/tags/OL184T"], subjects=["Nonfiction"]),
+              limit=50, resolved_tags=resolved)
+    assert calls == []  # no Tag re-read when the resolved triple is injected
 
 
 def test_logged_in_user_parses_session_cookie():

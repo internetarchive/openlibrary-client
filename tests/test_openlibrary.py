@@ -129,6 +129,18 @@ class TestOpenLibrary(unittest.TestCase):
         assert [d['subject_type'] for d in results] == ['person']
 
     @patch('requests.Session.get')
+    def test_search_subjects_overfetches_so_type_filter_keeps_match(self, mock_get):
+        # The wanted 'subject' doc sits behind several other-type rows; a naive
+        # fetch of limit=1 then client-side filter would drop it. We over-fetch
+        # server-side so the match survives the filter (and gives a real count).
+        docs = [{'name': f'p{i}', 'subject_type': 'person'} for i in range(5)] + [
+            {'name': 'Dogs', 'subject_type': 'subject', 'work_count': 42}]
+        mock_get.return_value.json.return_value = {'docs': docs}
+        results = self.ol.search_subjects('dogs', limit=1, subject_type='subject')
+        assert mock_get.call_args[0][0].endswith('limit=50')  # over-fetched, not limit=1
+        assert results == [{'name': 'Dogs', 'subject_type': 'subject', 'work_count': 42}]
+
+    @patch('requests.Session.get')
     def test_search_subjects_empty(self, mock_get):
         mock_get.return_value.json.return_value = {'numFound': 0, 'docs': []}
         assert self.ol.search_subjects('zzzznomatch') == []

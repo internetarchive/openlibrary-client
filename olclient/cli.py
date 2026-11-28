@@ -33,7 +33,7 @@ from olclient import __title__, __version__, OpenLibrary
 from olclient.config import Config, Credentials
 from olclient.rule import (
     Rule, _olid, apply_rule, assert_identity, build_save_docs, format_plan,
-    logged_in_user, plan_rule, save_many_request,
+    logged_in_user, plan_rule, resolve_tags, save_many_request,
 )
 from olclient.search import (
     ENTITY_CHOICES, INFOGAMI_TYPES, search_docs, search_subjects,
@@ -169,7 +169,7 @@ def _execute(ol, plan, *, comment, show_payload, dry_run, approve, batch_size,
         return
 
     if dry_run:
-        s = apply_rule(ol, plan, comment=comment, dry_run=True)
+        s = apply_rule(ol, plan, comment=comment, dry_run=True, batch_size=batch_size)
         print(f"DRY RUN: would write {s['would_write']:,} works in {s['batches']} batch(es). "
               f"Use --approve to apply.")
         return
@@ -226,20 +226,40 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
     per_limit = args.limit if (args.limit and args.limit > 0) else None
     window = args.window if (args.window and args.window > 0) else None
 
+    # Resolve the (constant) tag set ONCE for the whole run, instead of re-reading
+    # every Tag from the API inside plan_rule once per subject (and per window).
+    resolved_tags = resolve_tags(ol, add_tags)
+    # Works that can't be written (server-rejected poison, or dropped by the
+    # lost-update guard) are appended here so marking a subject "done" never
+    # silently loses them — they stay recoverable for a follow-up pass.
+    skips_file = (args.progress_file + ".skipped") if args.progress_file else None
+
     def record(line):
         if writing and args.progress_file:
             with open(args.progress_file, "a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
 
-    def apply_plan(plan):
-        """Write a plan; return (written, n_skipped). Prints each skipped work."""
+    def log_skips(subject, rows):
+        """Persist unwritten works (key, reason) for a subject, durably."""
+        if not (writing and skips_file and rows):
+            return
+        with open(skips_file, "a", encoding="utf-8") as fh:
+            for key, why in rows:
+                fh.write(json.dumps({"subject": subject, "work": key, "reason": why}) + "\n")
+
+    def apply_plan(subject, plan):
+        """Write a plan; return (written, skipped_rows). Logs/records each skip."""
         if not (writing and plan.to_write):
-            return len(plan.to_write), 0
+            return len(plan.to_write), []
         st = apply_rule(ol, plan, comment=args.comment, batch_size=args.batch_size,
                         dry_run=False, audit=args.audit, expected_account=args.as_account)
-        for key, why in st.get("skipped", []):
+        rows = list(st.get("skipped", []))
+        rows += [(k, "lost-update: revision changed since planning")
+                 for k in st.get("lost_update", [])]
+        for key, why in rows:
             print(f"    skipped {key}: {why}", file=sys.stderr)
-        return st["written"], len(st.get("skipped", []))
+        log_skips(subject, rows)
+        return st["written"], rows
 
     print(f"select: {len(subjects)} subject(s)"
           + (f" ({len(done)} already done, {len(pending)} to go)" if done else "")
@@ -255,43 +275,55 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
             if window:
                 # Offset-windowed: plan+write+checkpoint one window at a time, so
                 # a subject of any size stays bounded in memory and resumes from
-                # its last checkpoint rather than restarting from 0.
+                # its last checkpoint rather than restarting from 0. ``per_limit``
+                # (--limit) caps the TOTAL works processed for the subject here.
                 off = checkpoints.get(s, 0)
-                w_examined = w_changed = 0
+                w_examined = w_changed = processed = 0
+                exhausted = False
                 while True:
+                    remaining = None if per_limit is None else per_limit - processed
+                    if remaining is not None and remaining <= 0:
+                        break  # hit --limit for this subject (not exhausted)
+                    win = window if remaining is None else min(window, remaining)
                     keys = list(ol.works_by_subject(s, subject_type=args.type,
-                                                    limit=window, offset=off))
+                                                    limit=win, offset=off))
                     if not keys:
+                        exhausted = True
                         break
                     rule = Rule(add_tags=add_tags, subjects=[(s, 1)],
                                 add_subjects=list(add_subjects), subject_type=args.type)
-                    plan = plan_rule(ol, rule, limit=window, work_keys=keys,
-                                     count_subjects=False)
-                    wrote, n_skip = apply_plan(plan)
+                    plan = plan_rule(ol, rule, limit=win, work_keys=keys,
+                                     count_subjects=False, resolved_tags=resolved_tags)
+                    wrote, skip_rows = apply_plan(s, plan)
                     w_changed += wrote
-                    skipped += n_skip
+                    skipped += len(skip_rows)
                     w_examined += len(plan.changes)
+                    processed += len(keys)
                     off += len(keys)
                     record(f"{s}\t{off}")
                     print(f"[{i}/{len(pending)}] {s!r}: window @{off - len(keys)}"
                           f"+{len(keys)} -> {'wrote' if writing else 'would change'} {wrote}")
-                    if len(keys) < window:
+                    if len(keys) < win:
+                        exhausted = True
                         break
-                record(s)  # subject exhausted -> fully done
+                if exhausted:
+                    record(s)  # subject exhausted -> fully done (don't mark if --limit truncated)
                 changed += w_changed
                 examined += w_examined
                 consec_fail = 0
-                print(f"[{i}/{len(pending)}] {s!r}: DONE — {w_examined} work(s), "
+                tail = "DONE" if exhausted else f"stopped at --limit {per_limit}"
+                print(f"[{i}/{len(pending)}] {s!r}: {tail} — {w_examined} work(s), "
                       f"{'wrote' if writing else 'would change'} {w_changed}")
                 continue
 
             rule = Rule(add_tags=add_tags, subjects=[(s, 1)], add_subjects=list(add_subjects),
                         subject_type=args.type)
-            plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False)
+            plan = plan_rule(ol, rule, limit=per_limit, count_subjects=False,
+                             resolved_tags=resolved_tags)
             would = len(plan.to_write)
-            wrote, n_skip = apply_plan(plan)
+            wrote, skip_rows = apply_plan(s, plan)
             changed += wrote
-            skipped += n_skip
+            skipped += len(skip_rows)
             examined += len(plan.changes)
             # Record EVERY completed subject (incl. 0-work) so a resume skips it.
             record(s)
@@ -311,8 +343,10 @@ def _run_select(ol, args, subjects, add_tags, add_subjects):
     verb = "wrote" if writing else "would change"
     print(f"\nTOTAL across {len(pending)} subject(s): examined {examined:,} work-hit(s); "
           f"{verb} {changed:,}"
-          + (f"; {skipped} work(s) skipped (server rejected)" if skipped else "")
+          + (f"; {skipped} work(s) skipped (server-rejected or lost-update)" if skipped else "")
           + (f"; {failed} subject(s) failed (retry on resume)" if failed else "") + ".")
+    if writing and skipped and skips_file:
+        print(f"Skipped works logged for review: {skips_file}")
     if writing and args.audit:
         print(f"Reversible audit log: {args.audit}")
 
